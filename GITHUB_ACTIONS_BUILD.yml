@@ -1,0 +1,43 @@
+name: Build DramaVoice 6 APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install Android 36
+        run: sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "9.6.0"
+
+      - name: Build debug APK
+        run: gradle assembleDebug --stacktrace --non-interactive
+
+      - name: Rename APK
+        run: cp build/outputs/apk/debug/DramaVoice6-debug.apk DramaVoice6-debug.apk || cp build/outputs/apk/debug/*.apk DramaVoice6-debug.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DramaVoice6-APK
+          path: DramaVoice6-debug.apk
