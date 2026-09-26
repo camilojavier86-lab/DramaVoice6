@@ -1,0 +1,19 @@
+DramaVoice Supertonic · 10 voces
+
+Este archivo NO reemplaza index.html y NO cambia DramaVoice v45.
+
+Sube build-dv6-supertonic-engine.yml a:
+.github/workflows/build-dv6-supertonic-engine.yml
+
+Al confirmar el cambio en main, GitHub Actions intentará construir automáticamente:
+DramaVoice-Supertonic-10Voces-arm64.apk
+
+El motor expone Supertonic 1–10 como voces Android independientes.
+Después de instalar el APK resultante, se selecciona una sola vez como motor TTS preferido.
+DramaVoice v45 debería entonces poder detectar las diez voces con “Actualizar voces”.
+
+Base:
+- sherpa-onnx v1.13.8
+- Supertonic 3 int8 2026-05-11
+- español
+- arm64-v8a

@@ -1,0 +1,214 @@
+name: Build DramaVoice Supertonic 10 Voices
+
+on:
+  push:
+    paths:
+      - ".github/workflows/build-dv6-supertonic-engine.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Clone sherpa-onnx v1.13.8
+        run: |
+          git clone --depth 1 --branch v1.13.8 https://github.com/k2-fsa/sherpa-onnx.git sherpa-onnx
+
+      - name: Download official Supertonic 3 arm64 engine
+        run: |
+          curl -L --fail --retry 5 \
+            "https://huggingface.co/csukuangfj2/sherpa-onnx-apk/resolve/main/tts-engine-new/1.13.8/sherpa-onnx-1.13.8-arm64-v8a-eng-tts-engine-sherpa-onnx-supertonic-3-tts-int8-2026-05-11.apk?download=true" \
+            -o official-supertonic.apk
+          rm -rf official-apk
+          mkdir -p official-apk
+          unzip -q official-supertonic.apk -d official-apk
+          test -d official-apk/assets
+          test -d official-apk/lib/arm64-v8a
+
+      - name: Reuse official model and arm64 native libraries
+        run: |
+          APP="sherpa-onnx/android/SherpaOnnxTtsEngine/app/src/main"
+          mkdir -p "$APP/assets" "$APP/jniLibs/arm64-v8a"
+          cp -a official-apk/assets/. "$APP/assets/"
+          cp -a official-apk/lib/arm64-v8a/. "$APP/jniLibs/arm64-v8a/"
+          find "$APP/assets" -maxdepth 2 -type f | head -30
+          ls -lh "$APP/jniLibs/arm64-v8a"
+
+      - name: Patch engine for 10 selectable DramaVoice voices
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path("sherpa-onnx")
+          app = root / "android" / "SherpaOnnxTtsEngine" / "app"
+
+          def replace_once(path, old, new):
+              path = Path(path)
+              text = path.read_text(encoding="utf-8")
+              if old not in text:
+                  raise RuntimeError(f"Missing expected text in {path}: {old!r}")
+              path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          gradle = app / "build.gradle.kts"
+          replace_once(
+              gradle,
+              'applicationId = "com.k2fsa.sherpa.onnx.tts.engine"',
+              'applicationId = "com.dramavoice6.supertonic.tts"',
+          )
+
+          manifest = app / "src" / "main" / "AndroidManifest.xml"
+          replace_once(
+              manifest,
+              'android:authorities="com.k2fsa.sherpa.onnx.tts.engine.fileprovider"',
+              'android:authorities="com.dramavoice6.supertonic.tts.fileprovider"',
+          )
+
+          strings = app / "src" / "main" / "res" / "values" / "strings.xml"
+          st = strings.read_text(encoding="utf-8")
+          st2, n = re.subn(
+              r'<string\s+name="app_name">.*?</string>',
+              '<string name="app_name">DramaVoice Supertonic · 10 voces</string>',
+              st,
+              count=1,
+          )
+          if n != 1:
+              raise RuntimeError("Could not patch app_name")
+          strings.write_text(st2, encoding="utf-8")
+
+          engine = app / "src" / "main" / "java" / "com" / "k2fsa" / "sherpa" / "onnx" / "tts" / "engine" / "TtsEngine.kt"
+          replace_once(engine, 'modelDir = null', 'modelDir = "sherpa-onnx-supertonic-3-tts-int8-2026-05-11"')
+          replace_once(engine, 'lang = null', 'lang = "spa"')
+          replace_once(engine, 'var supertonicLang: String = "en"', 'var supertonicLang: String = "es"')
+          replace_once(engine, 'var isSupertonic = false', 'var isSupertonic = true')
+          replace_once(engine, 'durationPredictor: String? = null', 'durationPredictor: String? = "duration_predictor.int8.onnx"')
+          replace_once(engine, 'textEncoder: String? = null', 'textEncoder: String? = "text_encoder.int8.onnx"')
+          replace_once(engine, 'vectorEstimator: String? = null', 'vectorEstimator: String? = "vector_estimator.int8.onnx"')
+          replace_once(engine, 'supertonicVocoder: String? = null', 'supertonicVocoder: String? = "vocoder.int8.onnx"')
+          replace_once(engine, 'ttsJson: String? = null', 'ttsJson: String? = "tts.json"')
+          replace_once(engine, 'unicodeIndexer: String? = null', 'unicodeIndexer: String? = "unicode_indexer.bin"')
+          replace_once(engine, 'voiceStyle: String? = null', 'voiceStyle: String? = "voice.bin"')
+
+          service = app / "src" / "main" / "java" / "com" / "k2fsa" / "sherpa" / "onnx" / "tts" / "engine" / "TtsService.kt"
+          text = service.read_text(encoding="utf-8")
+
+          if "import android.speech.tts.Voice" not in text:
+              marker = "import android.speech.tts.TextToSpeechService\n"
+              if marker not in text:
+                  raise RuntimeError("Could not find TextToSpeechService import")
+              text = text.replace(
+                  marker,
+                  marker + "import android.speech.tts.Voice\nimport java.util.Locale\n",
+                  1,
+              )
+
+          class_marker = "class TtsService : TextToSpeechService() {"
+          voice_support = r'''
+              companion object {
+                  private const val DV6_VOICE_PREFIX = "DV6 Supertonic "
+                  private const val DV6_SPEAKER_COUNT = 10
+              }
+
+              private fun dv6VoiceName(sid: Int): String = "$DV6_VOICE_PREFIX${sid + 1}"
+
+              private fun dv6SpeakerId(voiceName: String?): Int? {
+                  if (voiceName.isNullOrBlank() || !voiceName.startsWith(DV6_VOICE_PREFIX)) return null
+                  val shown = voiceName.removePrefix(DV6_VOICE_PREFIX).trim().toIntOrNull() ?: return null
+                  return (shown - 1).takeIf { it in 0 until DV6_SPEAKER_COUNT }
+              }
+
+              override fun onGetVoices(): MutableList<Voice> {
+                  val locale = Locale("es", "US")
+                  return (0 until DV6_SPEAKER_COUNT).map { sid ->
+                      Voice(
+                          dv6VoiceName(sid),
+                          locale,
+                          Voice.QUALITY_HIGH,
+                          Voice.LATENCY_NORMAL,
+                          false,
+                          emptySet()
+                      )
+                  }.toMutableList()
+              }
+
+              override fun onIsValidVoiceName(voiceName: String): Int {
+                  return if (dv6SpeakerId(voiceName) != null) TextToSpeech.SUCCESS else TextToSpeech.ERROR
+              }
+
+              override fun onLoadVoice(voiceName: String): Int {
+                  if (dv6SpeakerId(voiceName) == null) return TextToSpeech.ERROR
+                  TtsEngine.createTts(application)
+                  return TextToSpeech.SUCCESS
+              }
+
+              override fun onGetDefaultVoiceNameFor(
+                  lang: String?,
+                  country: String?,
+                  variant: String?
+              ): String = dv6VoiceName(0)
+          '''
+          if "DV6_VOICE_PREFIX" not in text:
+              if class_marker not in text:
+                  raise RuntimeError("Could not find TtsService class")
+              text = text.replace(class_marker, class_marker + "\n" + voice_support, 1)
+
+          old = "config = GenerationConfig(sid = TtsEngine.speakerId, speed = engineSpeed),"
+          new = '''config = GenerationConfig(
+                      sid = dv6SpeakerId(request.voiceName) ?: TtsEngine.speakerId,
+                      speed = engineSpeed,
+                      extra = mapOf("lang" to "es"),
+                  ),'''
+          if old not in text:
+              raise RuntimeError("Could not find GenerationConfig call")
+          text = text.replace(old, new, 1)
+
+          service.write_text(text, encoding="utf-8")
+          print("Patched service to expose DV6 Supertonic 1..10 as Android Voice objects")
+          PY
+
+      - name: Build installable APK
+        run: |
+          cd sherpa-onnx/android/SherpaOnnxTtsEngine
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Prepare APK
+        run: |
+          cp \
+            sherpa-onnx/android/SherpaOnnxTtsEngine/app/build/outputs/apk/debug/app-debug.apk \
+            DramaVoice-Supertonic-10Voces-arm64.apk
+          ls -lh DramaVoice-Supertonic-10Voces-arm64.apk
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DramaVoice-Supertonic-10Voces-arm64
+          path: DramaVoice-Supertonic-10Voces-arm64.apk
+          if-no-files-found: error
+
+      - name: Publish APK in GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: dv6-supertonic-engine-v1
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" DramaVoice-Supertonic-10Voces-arm64.apk --clobber
+          else
+            gh release create "$TAG" \
+              DramaVoice-Supertonic-10Voces-arm64.apk \
+              --target "${{ github.sha }}" \
+              --title "DramaVoice Supertonic · 10 voces" \
+              --notes "Motor TTS experimental para DramaVoice. Expone los 10 Speaker ID de Supertonic 3 como voces Android independientes y sintetiza en español."
+          fi
