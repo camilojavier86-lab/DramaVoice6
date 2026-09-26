@@ -1,0 +1,18 @@
+{
+  "version": 47,
+  "build": "2026.09.26.5",
+  "date": "26 sep 2026",
+  "title": "Correcciones consolidadas de voces y personajes",
+  "updateRequired": false,
+  "changes": [
+    "Actualizar voces ahora confirma visualmente cada comprobación y muestra el resultado real del catálogo TTS.",
+    "El botón de prueba de pronunciación personal ya no falla en silencio: reproduce exactamente el texto de SE PRONUNCIA y muestra el estado o el error.",
+    "Las pruebas de pronunciación y de voz usan una voz española de respaldo cuando el personaje aún no tiene una voz válida asignada.",
+    "Se añadió un pequeño margen entre cancelar y reproducir una prueba para evitar pérdidas de audio en Android.",
+    "Se eliminó Agregar personaje: los personajes nacen únicamente del análisis de la narración.",
+    "El nombre corto sigue siendo la forma normal de identificar un personaje; si existe una sola identidad compatible puede reutilizarse como alias.",
+    "Los nombres completos distintos permanecen como personajes separados cuando la historia necesita distinguir personas con el mismo nombre.",
+    "Se corrigió la versión interna incluida en los respaldos exportados a v47.",
+    "Se conserva la detección automática de Supertonic 1–10 y todas las funciones existentes de v46."
+  ]
+}
