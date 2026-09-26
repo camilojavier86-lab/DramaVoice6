@@ -1,16 +1,19 @@
 {
-  "version": 44,
-  "build": "2026.09.26.1",
+  "version": 45,
+  "build": "2026.09.26.2",
   "date": "26 sep 2026",
-  "title": "Actualizaciones inteligentes",
+  "title": "Producción de audio por capas",
   "updateRequired": false,
   "changes": [
-    "DramaVoice ahora comprueba automáticamente si existe una versión nueva.",
-    "Nuevo aviso dentro de la app con el resumen de mejoras y correcciones.",
-    "Botones Actualizar ahora y Después para decidir cuándo aplicar los cambios.",
-    "La actualización mantiene el mismo origen para conservar localStorage e IndexedDB.",
-    "Se añadió Buscar actualización dentro de Proyecto / respaldo.",
-    "Se mantienen corregidos el análisis de historias y la importación de proyectos.",
-    "La biblioteca visual de Lugares continúa eliminada."
+    "Cada evento de sonido puede reproducir varias capas simultáneas.",
+    "Se añadió recorte no destructivo por capa con inicio, fin y retardo.",
+    "Ahora puedes elegir un audio desde Descargas directamente dentro de una escena.",
+    "Se añadió grabación desde la escena con validación del formato antes de guardar.",
+    "El matching automático da más peso al nombre del archivo, familia, categoría y acción, y rechaza coincidencias incompatibles.",
+    "Cada pronunciación personal tiene un botón Probar con la voz del personaje.",
+    "Se eliminó Duplicar de Escenas.",
+    "Se añadió Restablecer personajes y datos antiguos de lugares sin borrar sonidos ni el prompt general.",
+    "El prompt general ahora se puede editar, pegar, guardar, copiar y restaurar.",
+    "El prompt general personalizado se incluye en Exportar / Importar proyecto."
   ]
 }
