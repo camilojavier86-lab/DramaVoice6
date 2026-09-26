@@ -1,17 +1,14 @@
-# DramaVoice 6 — proyecto plano
+# DramaVoice 6 v42
 
-Esta versión está preparada específicamente para subir desde un teléfono.
+PWA estable preparada para publicarse bajo un único origen HTTPS.
 
-Todos los archivos principales del proyecto están en esta misma carpeta:
-- AndroidManifest.xml
-- MainActivity.java
-- build.gradle.kts
-- settings.gradle.kts
-- gradle.properties
-- dv6_icon.png
+## Archivos
+- index.html
+- manifest.webmanifest
+- service-worker.js
+- icon-192.png
+- icon-512.png
 
-IMPORTANTE:
-`GITHUB_ACTIONS_BUILD.yml` debe copiarse después dentro de GitHub como:
-`.github/workflows/build-apk.yml`
+La sección visual de Lugares fue retirada. `[LUGAR:]` permanece en el parser para contexto y control de ambientes.
 
-No necesitas crear ninguna otra carpeta manualmente para el código de la app.
+Para preservar datos entre actualizaciones, mantén el mismo dominio/origen y no borres los datos del sitio.
