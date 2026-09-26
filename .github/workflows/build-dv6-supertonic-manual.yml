@@ -39,8 +39,6 @@ jobs:
           mkdir -p "$APP/assets" "$APP/jniLibs/arm64-v8a"
           cp -a official-apk/assets/. "$APP/assets/"
           cp -a official-apk/lib/arm64-v8a/. "$APP/jniLibs/arm64-v8a/"
-          find "$APP/assets" -maxdepth 2 -type f | head -30
-          ls -lh "$APP/jniLibs/arm64-v8a"
 
       - name: Patch engine for 10 selectable DramaVoice voices
         shell: bash
@@ -101,8 +99,8 @@ jobs:
           service = app / "src" / "main" / "java" / "com" / "k2fsa" / "sherpa" / "onnx" / "tts" / "engine" / "TtsService.kt"
           text = service.read_text(encoding="utf-8")
 
+          marker = "import android.speech.tts.TextToSpeechService\n"
           if "import android.speech.tts.Voice" not in text:
-              marker = "import android.speech.tts.TextToSpeechService\n"
               if marker not in text:
                   raise RuntimeError("Could not find TextToSpeechService import")
               text = text.replace(
@@ -112,11 +110,15 @@ jobs:
               )
 
           class_marker = "class TtsService : TextToSpeechService() {"
-          voice_support = r''' companion object { private const val DV6_VOICE_PREFIX = "DV6 Supertonic " private const val DV6_SPEAKER_COUNT = 10 } private fun dv6VoiceName(sid: Int): String = "$DV6_VOICE_PREFIX${sid + 1}" private fun dv6SpeakerId(voiceName: String?): Int? { if (voiceName.isNullOrBlank() || !voiceName.startsWith(DV6_VOICE_PREFIX)) return null val shown = voiceName.removePrefix(DV6_VOICE_PREFIX).trim().toIntOrNull() ?: return null return (shown - 1).takeIf { it in 0 until DV6_SPEAKER_COUNT } } override fun onGetVoices(): MutableList<Voice> { val locale = Locale("es", "US") return (0 until DV6_SPEAKER_COUNT).map { sid -> Voice( dv6VoiceName(sid), locale, Voice.QUALITY_HIGH, Voice.LATENCY_NORMAL, false, emptySet() ) }.toMutableList() } override fun onIsValidVoiceName(voiceName: String): Int { return if (dv6SpeakerId(voiceName) != null) TextToSpeech.SUCCESS else TextToSpeech.ERROR } override fun onLoadVoice(voiceName: String): Int { if (dv6SpeakerId(voiceName) == null) return TextToSpeech.ERROR TtsEngine.createTts(application) return TextToSpeech.SUCCESS } override fun onGetDefaultVoiceNameFor( lang: String?, country: String?, variant: String? ): String = dv6VoiceName(0) '''
+          voice_support = ''' companion object { private const val DV6_VOICE_PREFIX = "DV6 Supertonic " private const val DV6_SPEAKER_COUNT = 10 } private fun dv6VoiceName(sid: Int): String { return "$DV6_VOICE_PREFIX${sid + 1}" } private fun dv6SpeakerId(voiceName: String?): Int? { if (voiceName.isNullOrBlank() || !voiceName.startsWith(DV6_VOICE_PREFIX)) { return null } val shown = voiceName.removePrefix(DV6_VOICE_PREFIX).trim().toIntOrNull() ?: return null val sid = shown - 1 return sid.takeIf { it in 0 until DV6_SPEAKER_COUNT } } override fun onGetVoices(): MutableList<Voice> { val locale = Locale("es", "US") return (0 until DV6_SPEAKER_COUNT).map { sid -> Voice( dv6VoiceName(sid), locale, Voice.QUALITY_HIGH, Voice.LATENCY_NORMAL, false, emptySet() ) }.toMutableList() } override fun onIsValidVoiceName(voiceName: String): Int { return if (dv6SpeakerId(voiceName) != null) { TextToSpeech.SUCCESS } else { TextToSpeech.ERROR } } override fun onLoadVoice(voiceName: String): Int { if (dv6SpeakerId(voiceName) == null) { return TextToSpeech.ERROR } TtsEngine.createTts(application) return TextToSpeech.SUCCESS } override fun onGetDefaultVoiceNameFor( lang: String?, country: String?, variant: String? ): String { return dv6VoiceName(0) } '''
           if "DV6_VOICE_PREFIX" not in text:
               if class_marker not in text:
                   raise RuntimeError("Could not find TtsService class")
-              text = text.replace(class_marker, class_marker + "\n" + voice_support, 1)
+              text = text.replace(
+                  class_marker,
+                  class_marker + "\n" + voice_support,
+                  1,
+              )
 
           old = "config = GenerationConfig(sid = TtsEngine.speakerId, speed = engineSpeed),"
           new = '''config = GenerationConfig( sid = dv6SpeakerId(request.voiceName) ?: TtsEngine.speakerId, speed = engineSpeed, extra = mapOf("lang" to "es"), ),'''
@@ -125,7 +127,7 @@ jobs:
           text = text.replace(old, new, 1)
 
           service.write_text(text, encoding="utf-8")
-          print("Patched service to expose DV6 Supertonic 1..10 as Android Voice objects")
+          print("Patched TtsService.kt with 10 Android voices")
           PY
 
       - name: Build installable APK
@@ -147,4 +149,3 @@ jobs:
           name: DramaVoice-Supertonic-10Voces-arm64
           path: DramaVoice-Supertonic-10Voces-arm64.apk
           if-no-files-found: error
-
