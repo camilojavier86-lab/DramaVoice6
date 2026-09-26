@@ -1,14 +1,71 @@
-const CACHE='dramavoice6-v42';
-const APP=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
+const DV6_SW_VERSION='44';
+const DV6_CACHE=`dramavoice6-v${DV6_SW_VERSION}`;
+
+// Esta v44 usa skipWaiting para facilitar la transición desde las versiones anteriores.
+// A partir de futuras versiones, DramaVoice podrá activar la actualización desde el botón interno.
 self.addEventListener('install',event=>{
-  event.waitUntil(caches.open(CACHE).then(c=>c.addAll(APP)).then(()=>self.skipWaiting()));
+  event.waitUntil((async()=>{
+    const cache=await caches.open(DV6_CACHE);
+    try{
+      const response=await fetch('./index.html',{cache:'reload'});
+      if(response.ok)await cache.put('./index.html',response.clone());
+    }catch{}
+    await self.skipWaiting();
+  })());
 });
+
 self.addEventListener('activate',event=>{
-  event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
+  event.waitUntil((async()=>{
+    const keys=await caches.keys();
+    await Promise.all(
+      keys.filter(k=>k.startsWith('dramavoice6-')&&k!==DV6_CACHE).map(k=>caches.delete(k))
+    );
+    await self.clients.claim();
+    const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+    clients.forEach(client=>client.postMessage({type:'DV6_SW_ACTIVATED',version:DV6_SW_VERSION}));
+  })());
 });
+
+self.addEventListener('message',event=>{
+  if(event.data?.type==='SKIP_WAITING')self.skipWaiting();
+});
+
+async function networkFirst(request){
+  const cache=await caches.open(DV6_CACHE);
+  try{
+    const response=await fetch(request);
+    if(response&&response.ok)await cache.put(request,response.clone());
+    return response;
+  }catch{
+    return (await cache.match(request)) || (await cache.match('./index.html'));
+  }
+}
+
+async function staleWhileRevalidate(request){
+  const cache=await caches.open(DV6_CACHE);
+  const cached=await cache.match(request);
+  const network=fetch(request).then(response=>{
+    if(response&&response.ok)cache.put(request,response.clone());
+    return response;
+  }).catch(()=>null);
+  return cached || await network || Response.error();
+}
+
 self.addEventListener('fetch',event=>{
-  if(event.request.method!=='GET')return;
-  event.respondWith(fetch(event.request).then(resp=>{
-    const copy=resp.clone();caches.open(CACHE).then(c=>c.put(event.request,copy));return resp;
-  }).catch(()=>caches.match(event.request).then(r=>r||caches.match('./index.html'))));
+  const request=event.request;
+  if(request.method!=='GET')return;
+  const url=new URL(request.url);
+  if(url.origin!==self.location.origin)return;
+
+  if(url.pathname.endsWith('/version.json') || url.pathname.endsWith('version.json')){
+    event.respondWith(fetch(new Request(request,{cache:'no-store'})));
+    return;
+  }
+
+  if(request.mode==='navigate' || url.pathname.endsWith('/index.html') || url.pathname.endsWith('index.html')){
+    event.respondWith(networkFirst(new Request(request,{cache:'no-store'})));
+    return;
+  }
+
+  event.respondWith(staleWhileRevalidate(request));
 });

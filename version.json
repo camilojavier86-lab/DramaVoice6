@@ -1,0 +1,16 @@
+{
+  "version": 44,
+  "build": "2026.09.26.1",
+  "date": "26 sep 2026",
+  "title": "Actualizaciones inteligentes",
+  "updateRequired": false,
+  "changes": [
+    "DramaVoice ahora comprueba automáticamente si existe una versión nueva.",
+    "Nuevo aviso dentro de la app con el resumen de mejoras y correcciones.",
+    "Botones Actualizar ahora y Después para decidir cuándo aplicar los cambios.",
+    "La actualización mantiene el mismo origen para conservar localStorage e IndexedDB.",
+    "Se añadió Buscar actualización dentro de Proyecto / respaldo.",
+    "Se mantienen corregidos el análisis de historias y la importación de proyectos.",
+    "La biblioteca visual de Lugares continúa eliminada."
+  ]
+}
