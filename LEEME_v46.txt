@@ -1,0 +1,13 @@
+DramaVoice 6 v46 — Supertonic
+
+Archivos de actualización web (raíz del repositorio):
+- index.html
+- service-worker.js
+- version.json
+
+Motor TTS de 10 voces (GitHub Actions):
+- .github/workflows/build-dv6-supertonic-engine.yml
+
+La v46 detecta automáticamente DV6 Supertonic 1–10 cuando Android/Chrome las expone.
+El narrador prioriza Supertonic 1 y los personajes sin voz válida reciben una voz estable automáticamente.
+Las voces que ya estaban asignadas y siguen siendo válidas no se sobrescriben.

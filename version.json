@@ -1,19 +1,16 @@
 {
-  "version": 45,
-  "build": "2026.09.26.2",
+  "version": 46,
+  "build": "2026.09.26.3",
   "date": "26 sep 2026",
-  "title": "Producción de audio por capas",
+  "title": "Integración automática de Supertonic",
   "updateRequired": false,
   "changes": [
-    "Cada evento de sonido puede reproducir varias capas simultáneas.",
-    "Se añadió recorte no destructivo por capa con inicio, fin y retardo.",
-    "Ahora puedes elegir un audio desde Descargas directamente dentro de una escena.",
-    "Se añadió grabación desde la escena con validación del formato antes de guardar.",
-    "El matching automático da más peso al nombre del archivo, familia, categoría y acción, y rechaza coincidencias incompatibles.",
-    "Cada pronunciación personal tiene un botón Probar con la voz del personaje.",
-    "Se eliminó Duplicar de Escenas.",
-    "Se añadió Restablecer personajes y datos antiguos de lugares sin borrar sonidos ni el prompt general.",
-    "El prompt general ahora se puede editar, pegar, guardar, copiar y restaurar.",
-    "El prompt general personalizado se incluye en Exportar / Importar proyecto."
+    "DramaVoice detecta automáticamente las voces DV6 Supertonic expuestas por Android/Chrome.",
+    "Supertonic se prioriza sobre otras voces cuando está disponible.",
+    "El narrador usa automáticamente DV6 Supertonic 1 cuando el motor está presente.",
+    "Los personajes sin una voz válida reciben automáticamente una voz Supertonic estable, sin pasos adicionales.",
+    "Las asignaciones de voz válidas que ya hizo el usuario se conservan.",
+    "La app reintenta detectar voces al abrir, al volver a primer plano y cuando Android notifica cambios de voces.",
+    "El diagnóstico indica cuántas voces Supertonic de las 10 están visibles para Chrome."
   ]
 }
