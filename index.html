@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>DramaVoice 6 v50</title>
-<meta name="dv6-version" content="50">
+<title>DramaVoice 6</title>
+<meta name="dv6-version" content="10100">
 
 <meta name="theme-color" content="#07090d">
 <meta name="application-name" content="DramaVoice 6">
@@ -3638,7 +3638,7 @@ async function exportProject(){
  const photos=[];for(const k of await photoDbKeys()){const blob=await photoDbBlob(k);if(blob)photos.push({key:String(k),data:await blobToDataURL(blob)})}
  const placePhotos=[];for(const k of await placePhotoDbKeys()){const blob=await placePhotoDbBlob(k);if(blob)placePhotos.push({key:String(k),data:await blobToDataURL(blob)})}
  const data={format:'DramaVoice6-project',version:49,exportedAt:new Date().toISOString(),story:$('#story').value,chapterTitle,scenes,charLib,placeLib,soundTaxonomy,soundOverrides,settings,pronRules,generalImagePrompt:customGeneralImagePrompt,sceneLocations,resumePositions,sounds,photos,placePhotos};
- const blob=new Blob([JSON.stringify(data)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='DramaVoice6_Proyecto_v49.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);$('#projectStatus').textContent='Proyecto v49 exportado con personajes, fotos, sonidos, capas y configuración.';$('#projectStatus').className='status good';
+ const blob=new Blob([JSON.stringify(data)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='DramaVoice6_Proyecto_v1.1.0.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);$('#projectStatus').textContent='Proyecto v49 exportado con personajes, fotos, sonidos, capas y configuración.';$('#projectStatus').className='status good';
 }
 function mergeImportedLibrary(current,incoming){
  const merged={...(current||{})};
@@ -3851,7 +3851,7 @@ if(dv6InstallBtn)dv6InstallBtn.addEventListener('click',async()=>{
 dv6RefreshInstallUi();
 
 // v44 — actualizaciones inteligentes de la PWA
-const DV6_APP_VERSION=50;
+const DV6_APP_VERSION=10100;
 const DV6_VERSION_URL='./version.json';
 let dv6UpdateInfo=null;
 let dv6UpdateRegistration=null;
@@ -4543,283 +4543,114 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
   #historia.active .history-actionbar{width:calc(100vw - 12px)!important}
 }
 </style>
-
-<script id="dv50-native-audio-script">
+<style id="dv110-style">
+.brand .sub{display:none!important}
+.dv110-version-info{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line,#263246);border-radius:12px;background:#0a1018;padding:10px 12px;margin:8px 0;font-size:13px}.dv110-version-info span{color:var(--muted,#9ba7b8)}.dv110-version-info strong{color:var(--aqua,#8ff8ee)}
+.dv110-create-sound{margin-left:6px!important;white-space:nowrap}
+.dv110-overlay{position:fixed;inset:0;z-index:9999;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.66);padding:12px}.dv110-overlay.open{display:flex}.dv110-sheet{width:min(620px,100%);max-height:90vh;overflow:auto;border:1px solid #2d3c52;border-radius:20px 20px 14px 14px;background:#0a1018;box-shadow:0 20px 60px rgba(0,0,0,.55);padding:14px}.dv110-sheet-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px}.dv110-sheet-head strong{display:block;font-size:18px}.dv110-sheet-head small{display:block;color:var(--muted,#9ba7b8);margin-top:3px}.dv110-close{border:0;background:transparent;color:#fff;font-size:30px;line-height:1;padding:0 4px}.dv110-sheet label{display:block;color:var(--muted,#9ba7b8);font-size:12px;margin:10px 0}.dv110-sheet input,.dv110-sheet select{width:100%;margin-top:5px}.dv110-source-row,.dv110-sheet-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.dv110-sheet-actions{justify-content:flex-end;border-top:1px solid var(--line,#263246);padding-top:12px}.dv110-audio-status{margin-top:8px;padding:9px 10px;border-radius:10px;background:#0e1622;color:var(--muted,#9ba7b8);font-size:12px}.dv110-toast{position:fixed;left:50%;bottom:84px;transform:translate(-50%,20px);z-index:10050;width:min(520px,calc(100vw - 28px));opacity:0;pointer-events:none;transition:.18s ease;border-radius:12px;padding:11px 13px;background:#14202d;border:1px solid #2d3c52;color:#fff;text-align:center;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.4)}.dv110-toast.show{opacity:1;transform:translate(-50%,0)}.dv110-toast.good{border-color:#2dd4bf}.dv110-toast.warn{border-color:#fbbf24}.dv110-toast.bad{border-color:#fb7185}
+@media(max-width:520px){.dv110-overlay{padding:0}.dv110-sheet{border-radius:20px 20px 0 0;padding:14px 12px max(14px,env(safe-area-inset-bottom))}.dv110-source-row .btn,.dv110-sheet-actions .btn{flex:1}.dv110-create-sound{width:100%;margin:7px 0 0!important}}
+</style><script id="dv110-script">
 (function(){
-  'use strict';
-  if(window.__DV50_PATCHED)return;
-  window.__DV50_PATCHED=true;
+'use strict';
+if(window.__DV6_V110_PATCHED)return;
+window.__DV6_V110_PATCHED=true;
+const V='1.1.0';
 
-  function installTopShell(){
-    const app=document.querySelector('.app');
-    const brand=app?.querySelector(':scope > .brand');
-    const tabs=app?.querySelector(':scope > .tabs');
-    if(!app||!brand||!tabs||brand.closest('.dv50-top-shell'))return;
-    const shell=document.createElement('div');
-    shell.className='dv50-top-shell';
-    app.insertBefore(shell,brand);
-    shell.appendChild(brand);
-    shell.appendChild(tabs);
-  }
-  installTopShell();
+function toast(msg,kind='good'){
+ let b=document.getElementById('dv110Toast');
+ if(!b){b=document.createElement('div');b.id='dv110Toast';document.body.appendChild(b)}
+ b.className='dv110-toast '+kind;b.textContent=msg;b.classList.add('show');
+ clearTimeout(b._t);b._t=setTimeout(()=>b.classList.remove('show'),3200);
+}
 
-  let tries=0;
-  const timer=setInterval(()=>{
-    tries++;
-    if(typeof window.DramaVoiceNativeTTS==='undefined' ||
-       !window.__DV6_NATIVE_BRIDGE_V48_PATCHED){
-      if(tries>120)clearInterval(timer);
-      return;
-    }
-    clearInterval(timer);
-    installNativeAudioFix();
-  },150);
+function versionInfo(){
+ const sub=document.querySelector('.brand .sub');if(sub)sub.style.display='none';
+ const old=document.querySelector('.dv6-version-current');if(old)old.textContent='v'+V;
+ if(document.getElementById('dv110VersionInfo'))return;
+ const a=document.getElementById('checkUpdatesBtn')||document.getElementById('projectStatus')||document.getElementById('settingsVoiceSummary');
+ if(!a||!a.parentElement)return;
+ const x=document.createElement('div');x.id='dv110VersionInfo';x.className='dv110-version-info';
+ x.innerHTML='<span>Versión instalada</span><strong>v'+V+'</strong>';
+ a.parentElement.insertBefore(x,a);
+}
 
-  function installNativeAudioFix(){
-    if(window.__DV50_NATIVE_AUDIO_FIXED)return;
-    window.__DV50_NATIVE_AUDIO_FIXED=true;
+/* Exportar contenido: intercepta únicamente respaldos JSON blob y usa Guardar/Compartir de Android. */
+const nativeClick=HTMLAnchorElement.prototype.click;
+const nativeRevoke=URL.revokeObjectURL.bind(URL);
+const keepUrls=new Set();
+URL.revokeObjectURL=function(u){u=String(u);if(keepUrls.has(u)){setTimeout(()=>{keepUrls.delete(u);try{nativeRevoke(u)}catch(e){}},12000);return}return nativeRevoke(u)};
+async function saveBackup(blob,name){
+ const f=new File([blob],name||('DramaVoice6_Proyecto_v'+V+'.json'),{type:blob.type||'application/json'});
+ if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[f]}))){
+  try{await navigator.share({files:[f],title:'Respaldo DramaVoice 6',text:'Respaldo completo de DramaVoice 6'});toast('Respaldo preparado. Elige dónde guardarlo.');return true}catch(e){if(e&&e.name==='AbortError')return true}
+ }
+ if(window.showSaveFilePicker){
+  try{const h=await showSaveFilePicker({suggestedName:f.name,types:[{description:'Respaldo DramaVoice 6',accept:{'application/json':['.json']}}]});const w=await h.createWritable();await w.write(f);await w.close();toast('Respaldo guardado.');return true}catch(e){if(e&&e.name==='AbortError')return true}
+ }
+ return false;
+}
+HTMLAnchorElement.prototype.click=function(){
+ const h=String(this.href||''),n=String(this.download||'');
+ if(!(h.startsWith('blob:')&&n&&(/\.json$/i.test(n)||/DramaVoice/i.test(n))))return nativeClick.call(this);
+ const a=this;keepUrls.add(h);toast('Preparando respaldo…','warn');
+ (async()=>{try{const b=await (await fetch(h)).blob();if(!await saveBackup(b,n))nativeClick.call(a)}catch(e){toast('No se pudo abrir el respaldo. Intentando descarga normal.','bad');nativeClick.call(a)}})();
+};
 
-    const bridge=window.DramaVoiceNativeTTS;
-    const previousEvent=window.dv6NativeTtsEvent;
-    const callbacks=new Map();
-    let serial=0;
-    let activeId='';
+/* Mantener el evento de sonido abierto y la posición de pantalla. */
+function capture(root){
+ if(!root)return null;const cards=[...root.querySelectorAll('.sound-event-card')],open=[];cards.forEach((c,i)=>{if(c.open||c.hasAttribute('open'))open.push(i)});
+ let focus=document.activeElement?.closest?.('.sound-event-card')||null;if(!focus&&open.length)focus=cards[open[open.length-1]]||null;
+ return{open,idx:focus?cards.indexOf(focus):-1,top:focus?focus.getBoundingClientRect().top:null,y:window.scrollY};
+}
+function restore(root,s){
+ if(!root||!s)return;const cards=[...root.querySelectorAll('.sound-event-card')];s.open.forEach(i=>{if(cards[i]){try{cards[i].open=true}catch(e){}cards[i].setAttribute('open','')}});installCreate(root);
+ requestAnimationFrame(()=>{const t=s.idx>=0?cards[s.idx]:null;if(t&&s.top!==null){const d=t.getBoundingClientRect().top-s.top;if(Math.abs(d)>1)window.scrollBy(0,d)}else window.scrollTo(0,s.y)});
+}
+if(typeof renderSceneSoundEditor==='function'){
+ const base=renderSceneSoundEditor;
+ renderSceneSoundEditor=function(root){const s=capture(root),r=base.apply(this,arguments),done=()=>requestAnimationFrame(()=>requestAnimationFrame(()=>restore(root,s)));if(r&&typeof r.then==='function')r.finally(done);else done();return r};
+}
 
-    function currentVoice(speaker){
-      const isNarr=typeof isNarratorName==='function' && isNarratorName(speaker);
-      const ch=typeof characterRecordForName==='function'
-        ? (characterRecordForName(speaker)||{})
-        : {};
-      let voice=null;
-      if(isNarr && typeof getNarratorVoice==='function')voice=getNarratorVoice();
-      if(!voice && typeof getVoice==='function')voice=getVoice(ch.voiceURI);
-      if(!voice && typeof getNarratorVoice==='function')voice=getNarratorVoice();
-      if(!voice && Array.isArray(window.voices))voice=window.voices[0]||null;
-      return {voice,ch,isNarr};
-    }
+/* Crear sonido desde una capa. */
+function normType(v){v=String(v||'').toUpperCase();if(v.includes('AMBI'))return'AMBIENTE';if(v.includes('VOCAL'))return'VOCALIZACIÓN';return'EFECTO'}
+function sndSelect(layer){const s=[...layer.querySelectorAll('select')];return s.find((x,i)=>i>0&&[...x.options].some(o=>/SIN SONIDO/i.test(o.textContent||'')))||s[1]||null}
+function families(t){try{return typeof taxonomyFamilies==='function'?(taxonomyFamilies(t)||[]):[]}catch(e){return[]}}
+function categories(t,f){try{return typeof taxonomyCategories==='function'?(taxonomyCategories(t,f)||[]):[]}catch(e){return[]}}
+function ensureTax(t,f,c){try{if(typeof ensureCategory==='function')ensureCategory(t,f,c);if(typeof saveSoundTaxonomy==='function')saveSoundTaxonomy()}catch(e){}}
 
-    function nativeParams(speaker){
-      const x=currentVoice(speaker);
-      const rate=x.isNarr?.96:Number(x.ch?.rate||1);
-      const pitch=x.isNarr?.96:Number(x.ch?.pitch||1);
-      const volume=typeof effectiveVoiceVolume==='function'
-        ? Number(effectiveVoiceVolume())
-        : 1;
-      return {voice:x.voice,rate,pitch,volume};
-    }
+function overlay(){
+ let o=document.getElementById('dv110SoundCreator');if(o)return o;
+ o=document.createElement('div');o.id='dv110SoundCreator';o.className='dv110-overlay';
+ o.innerHTML=`<div class="dv110-sheet"><div class="dv110-sheet-head"><div><strong>Crear sonido nuevo</strong><small>Se guardará también en Sonidos.</small></div><button type="button" class="dv110-close">×</button></div>
+ <label>Nombre<input id="dv110SoundName" type="text" placeholder="Ej. puerta cerrándose"></label>
+ <label>Tipo<select id="dv110SoundType"><option value="AMBIENTE">Ambiente</option><option value="EFECTO">Efecto / SFX</option><option value="VOCALIZACIÓN">Vocalización</option></select></label>
+ <label>Familia<input id="dv110SoundFamily" list="dv110FamilyList" placeholder="Ej. PUERTAS"><datalist id="dv110FamilyList"></datalist></label>
+ <label>Categoría<input id="dv110SoundCategory" list="dv110CategoryList" placeholder="Ej. HOTEL"><datalist id="dv110CategoryList"></datalist></label>
+ <div class="dv110-source-row"><button type="button" id="dv110PickFile" class="btn">📁 Elegir archivo</button><button type="button" id="dv110Record" class="btn">● Grabar</button></div>
+ <input id="dv110FileInput" type="file" accept="audio/*" hidden><div id="dv110AudioStatus" class="dv110-audio-status">Sin audio seleccionado.</div>
+ <div class="dv110-sheet-actions"><button type="button" id="dv110Cancel" class="btn">Cancelar</button><button type="button" id="dv110Save" class="btn primary">Guardar y usar</button></div></div>`;
+ document.body.appendChild(o);return o;
+}
+async function createSound(layer){
+ if(typeof dbPut!=='function'){toast('La biblioteca de sonidos no está disponible.','bad');return}
+ const o=overlay(),name=o.querySelector('#dv110SoundName'),type=o.querySelector('#dv110SoundType'),fam=o.querySelector('#dv110SoundFamily'),cat=o.querySelector('#dv110SoundCategory'),fl=o.querySelector('#dv110FamilyList'),cl=o.querySelector('#dv110CategoryList'),fi=o.querySelector('#dv110FileInput'),pick=o.querySelector('#dv110PickFile'),recBtn=o.querySelector('#dv110Record'),save=o.querySelector('#dv110Save'),status=o.querySelector('#dv110AudioStatus');
+ const selects=[...layer.querySelectorAll('select')],st={blob:null,rec:null,stream:null,chunks:[]};
+ type.value=normType(selects[0]?.value);name.value='';fam.value='';cat.value='';status.textContent='Sin audio seleccionado.';recBtn.textContent='● Grabar';
+ function lists(){const t=normType(type.value),f=String(fam.value||'').trim().toUpperCase();fl.innerHTML=families(t).map(x=>`<option value="${String(x).replaceAll('"','&quot;')}"></option>`).join('');cl.innerHTML=categories(t,f).map(x=>`<option value="${String(x).replaceAll('"','&quot;')}"></option>`).join('')}
+ lists();type.onchange=lists;fam.oninput=lists;
+ function stopTracks(){try{st.stream?.getTracks?.().forEach(t=>t.stop())}catch(e){}st.stream=null;st.rec=null;st.chunks=[];recBtn.textContent='● Grabar'}
+ function close(){try{if(st.rec&&st.rec.state==='recording')st.rec.stop()}catch(e){}stopTracks();o.classList.remove('open')}
+ o.querySelector('.dv110-close').onclick=close;o.querySelector('#dv110Cancel').onclick=close;o.onclick=e=>{if(e.target===o)close()};
+ pick.onclick=()=>fi.click();fi.onchange=()=>{const f=fi.files?.[0];if(f){st.blob=f;status.textContent='Archivo listo: '+f.name}};
+ recBtn.onclick=async()=>{if(st.rec&&st.rec.state==='recording'){st.rec.stop();return}try{st.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});let mime='';try{if(typeof supportedRecorderMime==='function')mime=supportedRecorderMime()||''}catch(e){}if(!mime){const p=['audio/mp4;codecs=mp4a.40.2','audio/mp4','audio/webm;codecs=opus','audio/webm'];mime=p.find(x=>!MediaRecorder.isTypeSupported||MediaRecorder.isTypeSupported(x))||''}st.rec=mime?new MediaRecorder(st.stream,{mimeType:mime}):new MediaRecorder(st.stream);st.chunks=[];st.rec.ondataavailable=e=>{if(e.data&&e.data.size)st.chunks.push(e.data)};st.rec.onstop=()=>{st.blob=new Blob(st.chunks,{type:st.rec?.mimeType||mime||'audio/webm'});status.textContent='Grabación lista · '+Math.max(1,Math.round(st.blob.size/1024))+' KB';stopTracks()};st.rec.start();recBtn.textContent='■ Detener grabación';status.textContent='Grabando…'}catch(e){stopTracks();status.textContent='No se pudo iniciar la grabación.';toast('No se pudo iniciar la grabación.','bad')}};
+ save.onclick=async()=>{const n=String(name.value||'').trim(),t=normType(type.value),f=String(fam.value||'').trim().toUpperCase()||'SIN FAMILIA',c=String(cat.value||'').trim().toUpperCase()||'GENERAL';if(!n){name.focus();toast('Escribe un nombre para el sonido.','warn');return}if(!st.blob){toast('Elige un archivo o graba el sonido.','warn');return}save.disabled=true;save.textContent='Guardando…';try{ensureTax(t,f,c);const key='dv6sound_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);await dbPut(key,{id:key,key,name:n,title:n,type:t,family:f,group:f,category:c,blob:st.blob,mime:st.blob.type||'audio/*',size:st.blob.size||0,createdAt:new Date().toISOString(),source:'scene-editor'});try{if(typeof renderSounds==='function')await renderSounds()}catch(e){}const sel=sndSelect(layer);if(sel){let op=[...sel.options].find(x=>x.value===key||String(x.textContent||'').trim()===n);if(!op){op=document.createElement('option');op.value=key;op.textContent=n;sel.appendChild(op)}sel.value=op.value;sel.dispatchEvent(new Event('change',{bubbles:true}))}close();toast('“'+n+'” guardado en Sonidos y asignado a esta capa.')}catch(e){console.error(e);toast('No se pudo guardar el sonido.','bad')}finally{save.disabled=false;save.textContent='Guardar y usar'}};
+ o.classList.add('open');setTimeout(()=>name.focus(),80);
+}
+function installCreate(root=document){(root||document).querySelectorAll('.sound-layer-card').forEach(layer=>{if(layer.querySelector('.dv110-create-sound'))return;const b=document.createElement('button');b.type='button';b.className='btn small dv110-create-sound';b.textContent='＋ Crear sonido nuevo';b.onclick=e=>{e.preventDefault();e.stopPropagation();createSound(layer)};const rows=[...layer.querySelectorAll('.row')],r=rows.find(x=>/Elegir archivo|Grabar/i.test(x.textContent||''))||layer;r.appendChild(b)})}
 
-    function clearActiveCallback(){
-      if(activeId){
-        callbacks.delete(String(activeId));
-        activeId='';
-      }
-    }
-
-    function nativeStop50(){
-      serial++;
-      clearActiveCallback();
-      try{bridge.stop()}catch(e){}
-    }
-
-    window.dv6NativeTtsEvent=function(id,event,error){
-      const key=String(id||'');
-      if(!key.startsWith('dv50-')){
-        if(typeof previousEvent==='function')return previousEvent(id,event,error);
-        return;
-      }
-      const cb=callbacks.get(key);
-      if(!cb)return;
-      if(event==='start'){cb.start?.();return}
-      callbacks.delete(key);
-      if(activeId===key)activeId='';
-      if(event==='done')cb.done?.();
-      else if(event==='stop')cb.stop?.();
-      else if(event==='error')cb.error?.(error||'error');
-    };
-
-    function nativeSpeak50(text,speaker,cb={}){
-      const p=nativeParams(speaker);
-      if(!p.voice){
-        cb.error?.('No hay una voz Supertonic disponible.');
-        return false;
-      }
-
-      const mySerial=++serial;
-      clearActiveCallback();
-      try{bridge.stop()}catch(e){}
-
-      const id='dv50-'+Date.now()+'-'+mySerial;
-      setTimeout(()=>{
-        if(mySerial!==serial)return;
-        callbacks.set(id,cb);
-        activeId=id;
-        try{
-          const ok=bridge.speak(
-            String(text||''),
-            String(p.voice.name||''),
-            Number(p.rate||1),
-            Number(p.pitch||1),
-            Math.max(0,Math.min(1,Number(p.volume||1))),
-            id
-          );
-          if(!ok){
-            callbacks.delete(id);
-            if(activeId===id)activeId='';
-            cb.error?.('El puente Android no pudo iniciar la voz.');
-          }
-        }catch(e){
-          callbacks.delete(id);
-          if(activeId===id)activeId='';
-          cb.error?.(String(e?.message||e));
-        }
-      },360);
-      return true;
-    }
-
-    if(typeof previewVoice==='function'){
-      previewVoice=function(name,text,statusEl){
-        if(playing||paused){
-          statusEl.textContent='Detén la escena para probar una voz sin alterar la reproducción.';
-          statusEl.style.color='var(--warn)';
-          return;
-        }
-        const token=++dv6PreviewToken;
-        previewing=true;
-        const phrase=typeof applyPronunciationRules==='function'
-          ? applyPronunciationRules(text||'Prueba de voz',name)
-          : String(text||'Prueba de voz');
-        const p=nativeParams(name);
-        statusEl.textContent=`Preparando ${p.voice?.name||'Supertonic'}…`;
-        statusEl.style.color='var(--warn)';
-        const done=(msg,color)=>{
-          if(token!==dv6PreviewToken)return;
-          previewing=false;
-          statusEl.textContent=msg;
-          if(color)statusEl.style.color=color;
-        };
-        nativeSpeak50(phrase,name,{
-          start:()=>{
-            if(token!==dv6PreviewToken)return;
-            statusEl.textContent=`Reproduciendo ${p.voice?.name||'Supertonic'}…`;
-            statusEl.style.color='var(--aqua)';
-          },
-          done:()=>done('Prueba terminada.','var(--aqua)'),
-          stop:()=>done('Prueba detenida.','var(--warn)'),
-          error:e=>done(`No se pudo reproducir la prueba: ${e||'error'}.`,'var(--warn)')
-        });
-      };
-    }
-
-    if(typeof previewPersonalPronunciation==='function'){
-      previewPersonalPronunciation=function(characterKey,row){
-        const ch=charLib?.[characterKey];
-        if(!ch)return;
-        const btn=row.querySelector('.character-pron-test');
-        const feedback=row.closest('.character-pron-box')?.querySelector('.character-pron-feedback');
-        const to=row.querySelector('.cpTo')?.value.trim()||'';
-        const setFeedback=(msg,kind='')=>{
-          if(!feedback)return;
-          feedback.textContent=msg;
-          feedback.className='prompt-status character-pron-feedback'+(kind?` ${kind}`:'');
-        };
-        if(!to){setFeedback('Escribe primero cómo debe pronunciarse.','warn');return}
-        if(playing||paused){setFeedback('Detén la escena antes de probar esta pronunciación.','warn');return}
-        const token=++dv6PreviewToken;
-        previewing=true;
-        if(btn){btn.textContent='■';btn.disabled=true}
-        const done=(msg,kind='')=>{
-          if(token!==dv6PreviewToken)return;
-          previewing=false;
-          if(btn){btn.textContent='▶';btn.disabled=false}
-          setFeedback(msg,kind);
-        };
-        setFeedback('Preparando voz…','warn');
-        nativeSpeak50(to,ch.name||characterKey,{
-          start:()=>{if(token===dv6PreviewToken)setFeedback(`Reproduciendo: “${to}”`,'good')},
-          done:()=>done('Prueba terminada.','good'),
-          stop:()=>done('Prueba detenida.','warn'),
-          error:e=>done(`No se pudo reproducir la pronunciación: ${e||'error'}.`,'warn')
-        });
-      };
-    }
-
-    if(typeof speakOne==='function'){
-      speakOne=function(ev,advance=true){
-        clearTimeout(interruptTimer);
-        const token=++speechToken;
-        const text=typeof applyPronunciationRules==='function'
-          ? applyPronunciationRules(ev.text,ev.speaker)
-          : String(ev.text||'');
-        let cutByInterrupt=false;
-
-        nativeSpeak50(text,ev.speaker,{
-          start:()=>{
-            if(token!==speechToken)return;
-            playing=true;paused=false;
-            if(typeof setAmbientDucking==='function')setAmbientDucking(true);
-            const state=document.getElementById('stateLabel');
-            if(state)state.textContent='reproduciendo';
-
-            const next=queue?.[queueIndex+1];
-            if(advance && next?.type==='speech' && next.mode==='interrupt'){
-              const ms=estimateSpeechMs(ev.text,ev.speaker);
-              const lead=Math.min(1400,Math.max(500,ms*.22));
-              interruptTimer=setTimeout(()=>{
-                if(!playing||token!==speechToken)return;
-                cutByInterrupt=true;
-                speechToken++;
-                nativeStop50();
-                if(queueIndex<queue.length-1){
-                  queueIndex++;
-                  const ps=document.getElementById('playerStatus');
-                  if(ps){
-                    ps.textContent=`${displayName(next.speaker)} interrumpe la intervención anterior.`;
-                    ps.className='status warn';
-                  }
-                  playCurrent();
-                }
-              },Math.max(500,ms-lead));
-            }
-            if(typeof updatePlayer==='function')updatePlayer();
-          },
-          done:()=>{
-            clearTimeout(interruptTimer);
-            if(typeof setAmbientDucking==='function')setAmbientDucking(false);
-            if(token!==speechToken||cutByInterrupt)return;
-            if(advance&&playing)nextAuto();
-          },
-          stop:()=>{
-            clearTimeout(interruptTimer);
-            if(typeof setAmbientDucking==='function')setAmbientDucking(false);
-          },
-          error:e=>{
-            clearTimeout(interruptTimer);
-            if(typeof setAmbientDucking==='function')setAmbientDucking(false);
-            if(token!==speechToken||cutByInterrupt||previewing)return;
-            const ps=document.getElementById('playerStatus');
-            if(ps){
-              ps.textContent='La voz Supertonic no pudo reproducirse: '+(e||'error');
-              ps.className='status bad';
-            }
-            if(advance&&playing)nextAuto();
-          }
-        });
-      };
-    }
-
-    if(typeof stopSpeechOnly==='function'){
-      stopSpeechOnly=function(){
-        clearTimeout(interruptTimer);
-        speechToken++;
-        if(typeof setAmbientDucking==='function')setAmbientDucking(false);
-        try{speechSynthesis.cancel()}catch(e){}
-        nativeStop50();
-      };
-    }
-
-    console.info('DramaVoice 6 v50: barras estables + puente Supertonic sincronizado.');
-  }
+const mo=new MutationObserver(()=>{versionInfo();installCreate(document)});mo.observe(document.documentElement,{childList:true,subtree:true});
+versionInfo();installCreate(document);setTimeout(versionInfo,500);setTimeout(()=>installCreate(document),700);
+console.info('DramaVoice 6 v1.1.0 · edición y respaldo.');
 })();
 </script>
-
 </body></html>
