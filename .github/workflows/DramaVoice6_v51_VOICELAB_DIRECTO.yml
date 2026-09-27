@@ -1,0 +1,160 @@
+name: Build DramaVoice 6 v51 VoiceLab Directo
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/DramaVoice6_v51_VOICELAB_DIRECTO.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Clone sherpa-onnx v1.13.8
+        run: git clone --depth 1 --branch v1.13.8 https://github.com/k2-fsa/sherpa-onnx.git sherpa-onnx
+
+      - name: Download official Supertonic package
+        run: |
+          curl -L --fail --retry 5 "https://huggingface.co/csukuangfj2/sherpa-onnx-apk/resolve/main/tts-engine-new/1.13.8/sherpa-onnx-1.13.8-arm64-v8a-eng-tts-engine-sherpa-onnx-supertonic-3-tts-int8-2026-05-11.apk?download=true" -o official-supertonic.apk
+          rm -rf official-apk
+          mkdir -p official-apk
+          unzip -q official-supertonic.apk -d official-apk
+          test -d official-apk/assets
+          test -d official-apk/lib/arm64-v8a
+
+      - name: Embed model and native libraries directly
+        run: |
+          APP="sherpa-onnx/android/SherpaOnnxTts/app/src/main"
+          mkdir -p "$APP/assets" "$APP/jniLibs/arm64-v8a"
+          cp -a official-apk/assets/. "$APP/assets/"
+          cp -a official-apk/lib/arm64-v8a/. "$APP/jniLibs/arm64-v8a/"
+
+      - name: Patch VoiceLab v51
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path("sherpa-onnx/android/SherpaOnnxTts")
+          gradle = root / "app/build.gradle"
+          g = gradle.read_text(encoding="utf-8")
+          g = g.replace('applicationId "com.k2fsa.sherpa.onnx"', 'applicationId "com.dramavoice6.voicelab"')
+          g = g.replace('versionCode 20260910', 'versionCode 51')
+          g = g.replace('versionName "1.13.8"', 'versionName "51.0-voicelab"')
+          gradle.write_text(g, encoding="utf-8")
+
+          manifest = root / "app/src/main/AndroidManifest.xml"
+          m = manifest.read_text(encoding="utf-8")
+          m = m.replace('android:authorities="com.k2fsa.sherpa.onnx.fileprovider"',
+                        'android:authorities="com.dramavoice6.voicelab.fileprovider"')
+          manifest.write_text(m, encoding="utf-8")
+
+          strings = root / "app/src/main/res/values/strings.xml"
+          s = strings.read_text(encoding="utf-8")
+          s = s.replace('<string name="app_name">TTS</string>',
+                        '<string name="app_name">DV6 VoiceLab v51</string>')
+          s = s.replace('<string name="sid_label">Speaker ID</string>',
+                        '<string name="sid_label">Voz Supertonic (0–9)</string>')
+          s = s.replace('<string name="speed_label">Speech speed (large->fast)</string>',
+                        '<string name="speed_label">Velocidad</string>')
+          s = s.replace('<string name="text_hint">Please input your text here</string>',
+                        '<string name="text_hint">Escribe aquí una frase de prueba</string>')
+          s = s.replace('<string name="generate">Generate</string>',
+                        '<string name="generate">Generar y escuchar</string>')
+          s = s.replace('<string name="play">Play</string>',
+                        '<string name="play">Repetir</string>')
+          s = s.replace('<string name="stop">Stop</string>',
+                        '<string name="stop">Detener</string>')
+          s = s.replace('<string name="save">Save</string>',
+                        '<string name="save">Guardar</string>')
+          s = s.replace('<string name="share">Share</string>',
+                        '<string name="share">Compartir</string>')
+          strings.write_text(s, encoding="utf-8")
+
+          main = root / "app/src/main/java/com/k2fsa/sherpa/onnx/MainActivity.kt"
+          t = main.read_text(encoding="utf-8")
+          t = t.replace('val sampleText = ""',
+                        'val sampleText = "Hola. Esta es una prueba directa de Supertonic dentro de DramaVoice."')
+          t = t.replace('"com.k2fsa.sherpa.onnx.fileprovider"',
+                        '"com.dramavoice6.voicelab.fileprovider"')
+
+          t = t.replace('modelDir = null\\n        ruleFsts = null',
+                        'modelDir = "sherpa-onnx-supertonic-3-tts-int8-2026-05-11"\\n        ruleFsts = null', 1)
+          t = t.replace('var isSupertonic = false', 'var isSupertonic = true', 1)
+          t = t.replace('var durationPredictor: String? = null', 'var durationPredictor: String? = "duration_predictor.int8.onnx"', 1)
+          t = t.replace('var textEncoder: String? = null', 'var textEncoder: String? = "text_encoder.int8.onnx"', 1)
+          t = t.replace('var vectorEstimator: String? = null', 'var vectorEstimator: String? = "vector_estimator.int8.onnx"', 1)
+          t = t.replace('var supertonicVocoder: String? = null', 'var supertonicVocoder: String? = "vocoder.int8.onnx"', 1)
+          t = t.replace('var ttsJson: String? = null', 'var ttsJson: String? = "tts.json"', 1)
+          t = t.replace('var unicodeIndexer: String? = null', 'var unicodeIndexer: String? = "unicode_indexer.bin"', 1)
+          t = t.replace('var voiceStyle: String? = null', 'var voiceStyle: String? = "voice.bin"', 1)
+          t = t.replace('var supertonicLang: String = "en"', 'var supertonicLang: String = "es"', 1)
+
+          needle = '            ruleFars = ruleFars ?: "",\\n            isKitten = isKitten,'
+          repl = '            ruleFars = ruleFars ?: "",\\n            numThreads = 4,\\n            isKitten = isKitten,'
+          if needle not in t:
+              raise RuntimeError("No se encontró el punto para configurar 4 hilos.")
+          t = t.replace(needle, repl, 1)
+
+          required = [
+              'modelDir = "sherpa-onnx-supertonic-3-tts-int8-2026-05-11"',
+              'var isSupertonic = true',
+              'var supertonicLang: String = "es"',
+              'numThreads = 4',
+          ]
+          for x in required:
+              if x not in t:
+                  raise RuntimeError(f"Falta parche requerido: {x}")
+
+          main.write_text(t, encoding="utf-8")
+          print("VoiceLab v51 listo: Supertonic directo, español, 10 voces.")
+          PY
+
+      - name: Restore persistent VoiceLab signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: dv6-voicelab-debug-keystore-v1
+
+      - name: Ensure persistent VoiceLab signing key
+        run: |
+          mkdir -p "$HOME/.android"
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            keytool -genkeypair -v \
+              -keystore "$HOME/.android/debug.keystore" \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=DV6 VoiceLab,O=DramaVoice,C=PA"
+          fi
+
+      - name: Build VoiceLab APK
+        run: |
+          cd sherpa-onnx/android/SherpaOnnxTts
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Prepare APK
+        run: |
+          cp sherpa-onnx/android/SherpaOnnxTts/app/build/outputs/apk/debug/app-debug.apk DramaVoice6-v51-VoiceLab-Directo.apk
+          ls -lh DramaVoice6-v51-VoiceLab-Directo.apk
+
+      - name: Upload VoiceLab artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DramaVoice6-v51-VoiceLab-Directo
+          path: DramaVoice6-v51-VoiceLab-Directo.apk
+          if-no-files-found: error
