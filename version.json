@@ -1,17 +1,14 @@
 {
-  "version": 49,
-  "build": "2026.09.26.49",
+  "version": 50,
+  "build": "2026.09.26.50",
   "date": "26 sep 2026",
-  "title": "Interfaz Android y edición consolidada",
+  "title": "Barras fijas y audio Supertonic sincronizado",
   "updateRequired": false,
   "changes": [
-    "Editar una foto, voz o pronunciación mantiene abierto el mismo personaje y la misma posición.",
-    "Las cápsulas compactas de personajes conservan su tamaño pero reducen el espacio vacío entre una y otra.",
-    "La biblioteca de sonidos permite renombrar y eliminar familias y categorías sin borrar sonidos silenciosamente.",
-    "La grabación desde Android prioriza audio MP4/AAC y desactiva procesamientos que podían producir grabaciones problemáticas.",
-    "Cada sonido de una escena recibe un color y todas sus capas conservan ese mismo color.",
-    "CAPA 1, CAPA 2 y siguientes tienen mayor jerarquía visual.",
-    "La pestaña activa de la navegación superior se centra automáticamente y evita quedar fuera de vista.",
-    "Buscar actualización muestra Buscando y siempre devuelve un estado visible."
+    "El logo y la navegación superior permanecen inmóviles al desplazarse verticalmente; las pestañas solo se desplazan horizontalmente.",
+    "La barra inferior de acciones de Historia permanece fija mientras se edita el capítulo.",
+    "Las pruebas de voz Supertonic esperan a que Android termine de cancelar la locución anterior antes de iniciar la nueva.",
+    "Se evita que STOP y la nueva síntesis se pisen entre sí con el motor FIX COLA.",
+    "La reproducción continua utiliza el mismo puente Supertonic sincronizado."
   ]
 }

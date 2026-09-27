@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>DramaVoice 6 v49</title>
-<meta name="dv6-version" content="49">
+<title>DramaVoice 6 v50</title>
+<meta name="dv6-version" content="50">
 
 <meta name="theme-color" content="#07090d">
 <meta name="application-name" content="DramaVoice 6">
@@ -931,7 +931,7 @@ Todavía tengo trabajo pendiente.
         </div>
         <div id="projectStatus" class="status"></div>
         <div class="dv6-version-line">
-          <span class="dv6-version-current">Versión instalada: v49</span>
+          <span class="dv6-version-current">Versión instalada: v50 Android</span>
           <button class="btn small" id="checkUpdatesBtn">Buscar actualización</button>
         </div>        
         <div class="reset-box">
@@ -3851,7 +3851,7 @@ if(dv6InstallBtn)dv6InstallBtn.addEventListener('click',async()=>{
 dv6RefreshInstallUi();
 
 // v44 — actualizaciones inteligentes de la PWA
-const DV6_APP_VERSION=49;
+const DV6_APP_VERSION=50;
 const DV6_VERSION_URL='./version.json';
 let dv6UpdateInfo=null;
 let dv6UpdateRegistration=null;
@@ -4476,7 +4476,7 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
   /* La envoltura Android sigue siendo v48; la interfaz web pasa a v49. */
   setTimeout(()=>{
     const line=document.querySelector('.dv6-version-current');
-    if(line)line.textContent='Versión instalada: v48 Android · interfaz v49';
+    if(line)line.textContent='Versión instalada: v50 Android · interfaz v49';
 
     const sub=document.querySelector('.brand .sub');
     if(sub&&sub.textContent.includes('v48')){
@@ -4489,4 +4489,337 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
   }catch(e){}
 })();
 </script>
+
+<style id="dv50-stable-bars-style">
+.dv50-top-shell{
+  position:sticky;
+  top:0;
+  z-index:140;
+  background:linear-gradient(180deg,rgba(7,9,13,.995),rgba(7,9,13,.965));
+  -webkit-backdrop-filter:blur(14px);
+  backdrop-filter:blur(14px);
+  padding:4px 0 6px;
+  margin:0 0 10px;
+}
+.dv50-top-shell .brand{
+  position:static!important;
+  top:auto!important;
+  z-index:auto!important;
+  margin-bottom:4px!important;
+}
+.dv50-top-shell .tabs{
+  position:static!important;
+  top:auto!important;
+  z-index:auto!important;
+  margin:0!important;
+  padding:6px 0 8px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  overscroll-behavior-x:contain;
+  touch-action:pan-x;
+  -webkit-overflow-scrolling:touch;
+}
+.dv50-top-shell .tab{flex:0 0 auto}
+
+#historia.active{padding-bottom:88px}
+#historia.active .history-actionbar{
+  position:fixed!important;
+  left:50%!important;
+  right:auto!important;
+  bottom:0!important;
+  transform:translateX(-50%)!important;
+  width:min(892px,calc(100vw - 20px))!important;
+  z-index:139!important;
+  margin:0!important;
+  border-radius:16px 16px 0 0;
+  padding:9px 7px max(10px,env(safe-area-inset-bottom))!important;
+  background:linear-gradient(180deg,rgba(5,7,11,.90),#070a10 28%)!important;
+  -webkit-backdrop-filter:blur(14px);
+  backdrop-filter:blur(14px);
+  box-shadow:0 -8px 24px rgba(0,0,0,.35);
+}
+@media(max-width:520px){
+  .dv50-top-shell{padding-top:2px}
+  #historia.active .history-actionbar{width:calc(100vw - 12px)!important}
+}
+</style>
+
+<script id="dv50-native-audio-script">
+(function(){
+  'use strict';
+  if(window.__DV50_PATCHED)return;
+  window.__DV50_PATCHED=true;
+
+  function installTopShell(){
+    const app=document.querySelector('.app');
+    const brand=app?.querySelector(':scope > .brand');
+    const tabs=app?.querySelector(':scope > .tabs');
+    if(!app||!brand||!tabs||brand.closest('.dv50-top-shell'))return;
+    const shell=document.createElement('div');
+    shell.className='dv50-top-shell';
+    app.insertBefore(shell,brand);
+    shell.appendChild(brand);
+    shell.appendChild(tabs);
+  }
+  installTopShell();
+
+  let tries=0;
+  const timer=setInterval(()=>{
+    tries++;
+    if(typeof window.DramaVoiceNativeTTS==='undefined' ||
+       !window.__DV6_NATIVE_BRIDGE_V48_PATCHED){
+      if(tries>120)clearInterval(timer);
+      return;
+    }
+    clearInterval(timer);
+    installNativeAudioFix();
+  },150);
+
+  function installNativeAudioFix(){
+    if(window.__DV50_NATIVE_AUDIO_FIXED)return;
+    window.__DV50_NATIVE_AUDIO_FIXED=true;
+
+    const bridge=window.DramaVoiceNativeTTS;
+    const previousEvent=window.dv6NativeTtsEvent;
+    const callbacks=new Map();
+    let serial=0;
+    let activeId='';
+
+    function currentVoice(speaker){
+      const isNarr=typeof isNarratorName==='function' && isNarratorName(speaker);
+      const ch=typeof characterRecordForName==='function'
+        ? (characterRecordForName(speaker)||{})
+        : {};
+      let voice=null;
+      if(isNarr && typeof getNarratorVoice==='function')voice=getNarratorVoice();
+      if(!voice && typeof getVoice==='function')voice=getVoice(ch.voiceURI);
+      if(!voice && typeof getNarratorVoice==='function')voice=getNarratorVoice();
+      if(!voice && Array.isArray(window.voices))voice=window.voices[0]||null;
+      return {voice,ch,isNarr};
+    }
+
+    function nativeParams(speaker){
+      const x=currentVoice(speaker);
+      const rate=x.isNarr?.96:Number(x.ch?.rate||1);
+      const pitch=x.isNarr?.96:Number(x.ch?.pitch||1);
+      const volume=typeof effectiveVoiceVolume==='function'
+        ? Number(effectiveVoiceVolume())
+        : 1;
+      return {voice:x.voice,rate,pitch,volume};
+    }
+
+    function clearActiveCallback(){
+      if(activeId){
+        callbacks.delete(String(activeId));
+        activeId='';
+      }
+    }
+
+    function nativeStop50(){
+      serial++;
+      clearActiveCallback();
+      try{bridge.stop()}catch(e){}
+    }
+
+    window.dv6NativeTtsEvent=function(id,event,error){
+      const key=String(id||'');
+      if(!key.startsWith('dv50-')){
+        if(typeof previousEvent==='function')return previousEvent(id,event,error);
+        return;
+      }
+      const cb=callbacks.get(key);
+      if(!cb)return;
+      if(event==='start'){cb.start?.();return}
+      callbacks.delete(key);
+      if(activeId===key)activeId='';
+      if(event==='done')cb.done?.();
+      else if(event==='stop')cb.stop?.();
+      else if(event==='error')cb.error?.(error||'error');
+    };
+
+    function nativeSpeak50(text,speaker,cb={}){
+      const p=nativeParams(speaker);
+      if(!p.voice){
+        cb.error?.('No hay una voz Supertonic disponible.');
+        return false;
+      }
+
+      const mySerial=++serial;
+      clearActiveCallback();
+      try{bridge.stop()}catch(e){}
+
+      const id='dv50-'+Date.now()+'-'+mySerial;
+      setTimeout(()=>{
+        if(mySerial!==serial)return;
+        callbacks.set(id,cb);
+        activeId=id;
+        try{
+          const ok=bridge.speak(
+            String(text||''),
+            String(p.voice.name||''),
+            Number(p.rate||1),
+            Number(p.pitch||1),
+            Math.max(0,Math.min(1,Number(p.volume||1))),
+            id
+          );
+          if(!ok){
+            callbacks.delete(id);
+            if(activeId===id)activeId='';
+            cb.error?.('El puente Android no pudo iniciar la voz.');
+          }
+        }catch(e){
+          callbacks.delete(id);
+          if(activeId===id)activeId='';
+          cb.error?.(String(e?.message||e));
+        }
+      },360);
+      return true;
+    }
+
+    if(typeof previewVoice==='function'){
+      previewVoice=function(name,text,statusEl){
+        if(playing||paused){
+          statusEl.textContent='Detén la escena para probar una voz sin alterar la reproducción.';
+          statusEl.style.color='var(--warn)';
+          return;
+        }
+        const token=++dv6PreviewToken;
+        previewing=true;
+        const phrase=typeof applyPronunciationRules==='function'
+          ? applyPronunciationRules(text||'Prueba de voz',name)
+          : String(text||'Prueba de voz');
+        const p=nativeParams(name);
+        statusEl.textContent=`Preparando ${p.voice?.name||'Supertonic'}…`;
+        statusEl.style.color='var(--warn)';
+        const done=(msg,color)=>{
+          if(token!==dv6PreviewToken)return;
+          previewing=false;
+          statusEl.textContent=msg;
+          if(color)statusEl.style.color=color;
+        };
+        nativeSpeak50(phrase,name,{
+          start:()=>{
+            if(token!==dv6PreviewToken)return;
+            statusEl.textContent=`Reproduciendo ${p.voice?.name||'Supertonic'}…`;
+            statusEl.style.color='var(--aqua)';
+          },
+          done:()=>done('Prueba terminada.','var(--aqua)'),
+          stop:()=>done('Prueba detenida.','var(--warn)'),
+          error:e=>done(`No se pudo reproducir la prueba: ${e||'error'}.`,'var(--warn)')
+        });
+      };
+    }
+
+    if(typeof previewPersonalPronunciation==='function'){
+      previewPersonalPronunciation=function(characterKey,row){
+        const ch=charLib?.[characterKey];
+        if(!ch)return;
+        const btn=row.querySelector('.character-pron-test');
+        const feedback=row.closest('.character-pron-box')?.querySelector('.character-pron-feedback');
+        const to=row.querySelector('.cpTo')?.value.trim()||'';
+        const setFeedback=(msg,kind='')=>{
+          if(!feedback)return;
+          feedback.textContent=msg;
+          feedback.className='prompt-status character-pron-feedback'+(kind?` ${kind}`:'');
+        };
+        if(!to){setFeedback('Escribe primero cómo debe pronunciarse.','warn');return}
+        if(playing||paused){setFeedback('Detén la escena antes de probar esta pronunciación.','warn');return}
+        const token=++dv6PreviewToken;
+        previewing=true;
+        if(btn){btn.textContent='■';btn.disabled=true}
+        const done=(msg,kind='')=>{
+          if(token!==dv6PreviewToken)return;
+          previewing=false;
+          if(btn){btn.textContent='▶';btn.disabled=false}
+          setFeedback(msg,kind);
+        };
+        setFeedback('Preparando voz…','warn');
+        nativeSpeak50(to,ch.name||characterKey,{
+          start:()=>{if(token===dv6PreviewToken)setFeedback(`Reproduciendo: “${to}”`,'good')},
+          done:()=>done('Prueba terminada.','good'),
+          stop:()=>done('Prueba detenida.','warn'),
+          error:e=>done(`No se pudo reproducir la pronunciación: ${e||'error'}.`,'warn')
+        });
+      };
+    }
+
+    if(typeof speakOne==='function'){
+      speakOne=function(ev,advance=true){
+        clearTimeout(interruptTimer);
+        const token=++speechToken;
+        const text=typeof applyPronunciationRules==='function'
+          ? applyPronunciationRules(ev.text,ev.speaker)
+          : String(ev.text||'');
+        let cutByInterrupt=false;
+
+        nativeSpeak50(text,ev.speaker,{
+          start:()=>{
+            if(token!==speechToken)return;
+            playing=true;paused=false;
+            if(typeof setAmbientDucking==='function')setAmbientDucking(true);
+            const state=document.getElementById('stateLabel');
+            if(state)state.textContent='reproduciendo';
+
+            const next=queue?.[queueIndex+1];
+            if(advance && next?.type==='speech' && next.mode==='interrupt'){
+              const ms=estimateSpeechMs(ev.text,ev.speaker);
+              const lead=Math.min(1400,Math.max(500,ms*.22));
+              interruptTimer=setTimeout(()=>{
+                if(!playing||token!==speechToken)return;
+                cutByInterrupt=true;
+                speechToken++;
+                nativeStop50();
+                if(queueIndex<queue.length-1){
+                  queueIndex++;
+                  const ps=document.getElementById('playerStatus');
+                  if(ps){
+                    ps.textContent=`${displayName(next.speaker)} interrumpe la intervención anterior.`;
+                    ps.className='status warn';
+                  }
+                  playCurrent();
+                }
+              },Math.max(500,ms-lead));
+            }
+            if(typeof updatePlayer==='function')updatePlayer();
+          },
+          done:()=>{
+            clearTimeout(interruptTimer);
+            if(typeof setAmbientDucking==='function')setAmbientDucking(false);
+            if(token!==speechToken||cutByInterrupt)return;
+            if(advance&&playing)nextAuto();
+          },
+          stop:()=>{
+            clearTimeout(interruptTimer);
+            if(typeof setAmbientDucking==='function')setAmbientDucking(false);
+          },
+          error:e=>{
+            clearTimeout(interruptTimer);
+            if(typeof setAmbientDucking==='function')setAmbientDucking(false);
+            if(token!==speechToken||cutByInterrupt||previewing)return;
+            const ps=document.getElementById('playerStatus');
+            if(ps){
+              ps.textContent='La voz Supertonic no pudo reproducirse: '+(e||'error');
+              ps.className='status bad';
+            }
+            if(advance&&playing)nextAuto();
+          }
+        });
+      };
+    }
+
+    if(typeof stopSpeechOnly==='function'){
+      stopSpeechOnly=function(){
+        clearTimeout(interruptTimer);
+        speechToken++;
+        if(typeof setAmbientDucking==='function')setAmbientDucking(false);
+        try{speechSynthesis.cancel()}catch(e){}
+        nativeStop50();
+      };
+    }
+
+    console.info('DramaVoice 6 v50: barras estables + puente Supertonic sincronizado.');
+  }
+})();
+</script>
+
 </body></html>
