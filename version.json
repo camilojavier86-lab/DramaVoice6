@@ -1,18 +1,17 @@
 {
-  "version": 47,
-  "build": "2026.09.26.5",
+  "version": 49,
+  "build": "2026.09.26.49",
   "date": "26 sep 2026",
-  "title": "Correcciones consolidadas de voces y personajes",
+  "title": "Interfaz Android y edición consolidada",
   "updateRequired": false,
   "changes": [
-    "Actualizar voces ahora confirma visualmente cada comprobación y muestra el resultado real del catálogo TTS.",
-    "El botón de prueba de pronunciación personal ya no falla en silencio: reproduce exactamente el texto de SE PRONUNCIA y muestra el estado o el error.",
-    "Las pruebas de pronunciación y de voz usan una voz española de respaldo cuando el personaje aún no tiene una voz válida asignada.",
-    "Se añadió un pequeño margen entre cancelar y reproducir una prueba para evitar pérdidas de audio en Android.",
-    "Se eliminó Agregar personaje: los personajes nacen únicamente del análisis de la narración.",
-    "El nombre corto sigue siendo la forma normal de identificar un personaje; si existe una sola identidad compatible puede reutilizarse como alias.",
-    "Los nombres completos distintos permanecen como personajes separados cuando la historia necesita distinguir personas con el mismo nombre.",
-    "Se corrigió la versión interna incluida en los respaldos exportados a v47.",
-    "Se conserva la detección automática de Supertonic 1–10 y todas las funciones existentes de v46."
+    "Editar una foto, voz o pronunciación mantiene abierto el mismo personaje y la misma posición.",
+    "Las cápsulas compactas de personajes conservan su tamaño pero reducen el espacio vacío entre una y otra.",
+    "La biblioteca de sonidos permite renombrar y eliminar familias y categorías sin borrar sonidos silenciosamente.",
+    "La grabación desde Android prioriza audio MP4/AAC y desactiva procesamientos que podían producir grabaciones problemáticas.",
+    "Cada sonido de una escena recibe un color y todas sus capas conservan ese mismo color.",
+    "CAPA 1, CAPA 2 y siguientes tienen mayor jerarquía visual.",
+    "La pestaña activa de la navegación superior se centra automáticamente y evita quedar fuera de vista.",
+    "Buscar actualización muestra Buscando y siempre devuelve un estado visible."
   ]
 }

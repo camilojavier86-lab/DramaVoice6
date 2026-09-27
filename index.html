@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>DramaVoice 6 v47</title>
-<meta name="dv6-version" content="46">
+<title>DramaVoice 6 v49</title>
+<meta name="dv6-version" content="49">
 
 <meta name="theme-color" content="#07090d">
 <meta name="application-name" content="DramaVoice 6">
@@ -931,7 +931,7 @@ Todavía tengo trabajo pendiente.
         </div>
         <div id="projectStatus" class="status"></div>
         <div class="dv6-version-line">
-          <span class="dv6-version-current">Versión instalada: v47</span>
+          <span class="dv6-version-current">Versión instalada: v49</span>
           <button class="btn small" id="checkUpdatesBtn">Buscar actualización</button>
         </div>        
         <div class="reset-box">
@@ -2430,7 +2430,7 @@ async function importSceneSoundFile(file,eventType,suggestedLabel=''){
  return {key,label,duration};
 }
 function supportedRecorderMime(){
- const list=['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4'];
+ const list=['audio/mp4;codecs=mp4a.40.2','audio/mp4','audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus'];
  if(typeof MediaRecorder==='undefined')return '';
  return list.find(x=>!MediaRecorder.isTypeSupported||MediaRecorder.isTypeSupported(x))||'';
 }
@@ -2445,7 +2445,7 @@ async function toggleSceneRecording(button,eventType,suggestedLabel,onSaved,stat
    if(statusEl)statusEl.textContent='Grabación no disponible en este dispositivo.';return;
  }
  try{
-   const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+   const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
    const mime=supportedRecorderMime();
    const recorder=mime?new MediaRecorder(stream,{mimeType:mime}):new MediaRecorder(stream);
    const chunks=[];
@@ -3637,8 +3637,8 @@ async function exportProject(){
  const sounds=[];for(const k of await dbKeys()){const raw=await dbGet(k),blob=soundRecordToBlob(raw);if(!blob)continue;const rec=normalizeSoundRecord(raw,k);sounds.push({key:k,meta:{...rec,blob:undefined},data:await blobToDataURL(blob)})}
  const photos=[];for(const k of await photoDbKeys()){const blob=await photoDbBlob(k);if(blob)photos.push({key:String(k),data:await blobToDataURL(blob)})}
  const placePhotos=[];for(const k of await placePhotoDbKeys()){const blob=await placePhotoDbBlob(k);if(blob)placePhotos.push({key:String(k),data:await blobToDataURL(blob)})}
- const data={format:'DramaVoice6-project',version:47,exportedAt:new Date().toISOString(),story:$('#story').value,chapterTitle,scenes,charLib,placeLib,soundTaxonomy,soundOverrides,settings,pronRules,generalImagePrompt:customGeneralImagePrompt,sceneLocations,resumePositions,sounds,photos,placePhotos};
- const blob=new Blob([JSON.stringify(data)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='DramaVoice6_Proyecto_v47.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);$('#projectStatus').textContent='Proyecto v47 exportado con personajes, fotos, sonidos, capas y configuración.';$('#projectStatus').className='status good';
+ const data={format:'DramaVoice6-project',version:49,exportedAt:new Date().toISOString(),story:$('#story').value,chapterTitle,scenes,charLib,placeLib,soundTaxonomy,soundOverrides,settings,pronRules,generalImagePrompt:customGeneralImagePrompt,sceneLocations,resumePositions,sounds,photos,placePhotos};
+ const blob=new Blob([JSON.stringify(data)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='DramaVoice6_Proyecto_v49.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);$('#projectStatus').textContent='Proyecto v49 exportado con personajes, fotos, sonidos, capas y configuración.';$('#projectStatus').className='status good';
 }
 function mergeImportedLibrary(current,incoming){
  const merged={...(current||{})};
@@ -3851,7 +3851,7 @@ if(dv6InstallBtn)dv6InstallBtn.addEventListener('click',async()=>{
 dv6RefreshInstallUi();
 
 // v44 — actualizaciones inteligentes de la PWA
-const DV6_APP_VERSION=47;
+const DV6_APP_VERSION=49;
 const DV6_VERSION_URL='./version.json';
 let dv6UpdateInfo=null;
 let dv6UpdateRegistration=null;
@@ -4007,5 +4007,486 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
   },15*60*1000);
 }
 
+</script>
+<style id="dv49-patch-style">
+/* DramaVoice 6 · interfaz v49 */
+#libraryList{gap:5px!important}
+#libraryList>.library-accordion.card{margin:0!important}
+
+#checkUpdatesBtn{
+  transition:transform .08s ease,filter .12s ease,opacity .12s ease
+}
+#checkUpdatesBtn:active{transform:scale(.96);filter:brightness(1.25)}
+#checkUpdatesBtn.dv49-checking{opacity:.72;cursor:wait}
+
+.sound-event-card{
+  border-left:4px solid var(--event-color,#22e6d6)!important
+}
+.sound-event-card[open]{
+  border-left-color:var(--event-color,#22e6d6)!important
+}
+.sound-event-num{
+  border-color:var(--event-color,#22e6d6)!important;
+  color:var(--event-color,#22e6d6)!important
+}
+.sound-event-type{color:var(--event-color,#8ff8ee)!important}
+.sound-layer-card{
+  border-left:3px solid var(--event-color,#22e6d6)!important
+}
+.sound-layer-title{
+  font-size:13px!important;
+  line-height:1.2;
+  color:var(--event-color,#8ff8ee)!important;
+  letter-spacing:.06em
+}
+
+.dv49-taxonomy-manage{
+  grid-column:1/-1;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#0a1018;
+  padding:10px
+}
+.dv49-taxonomy-manage-title{
+  font-size:11px;
+  font-weight:950;
+  color:#8ff8ee;
+  margin-bottom:7px
+}
+.dv49-taxonomy-row{
+  display:grid;
+  grid-template-columns:110px minmax(0,1fr) auto auto;
+  gap:6px;
+  align-items:center;
+  margin-top:6px
+}
+.dv49-taxonomy-row .btn{padding:8px 9px}
+
+@media(max-width:520px){
+  .app{padding-left:10px;padding-right:10px}
+  .tabs{gap:6px;scroll-snap-type:x proximity}
+  .tab{
+    padding:10px 12px;
+    font-size:14px;
+    scroll-snap-align:center
+  }
+  .dv49-taxonomy-row{grid-template-columns:1fr 1fr}
+  .dv49-taxonomy-row .btn{width:100%}
+}
+</style>
+
+<script id="dv49-patch-script">
+(function(){
+  'use strict';
+  if(window.__DV49_PATCHED)return;
+  window.__DV49_PATCHED=true;
+
+  /* Mantener exactamente el personaje que se está editando. */
+  if(typeof renderLibrary==='function'){
+    const baseRenderLibrary=renderLibrary;
+    renderLibrary=async function(){
+      const root=document.getElementById('libraryList');
+      const keepKey=typeof openLibraryCharacter==='string'?openLibraryCharacter:'';
+      const oldNode=root&&keepKey
+        ? Array.from(root.querySelectorAll('details.char-collapse')).find(x=>x.dataset.key===keepKey)
+        : null;
+      const oldTop=oldNode?oldNode.getBoundingClientRect().top:null;
+      const oldScroll=window.scrollY;
+
+      const result=await baseRenderLibrary.apply(this,arguments);
+
+      if(root&&keepKey){
+        const fresh=Array.from(root.querySelectorAll('details.char-collapse'))
+          .find(x=>x.dataset.key===keepKey);
+
+        if(fresh){
+          fresh.open=true;
+          requestAnimationFrame(()=>{
+            const delta=oldTop==null?0:fresh.getBoundingClientRect().top-oldTop;
+            if(Math.abs(delta)>1)window.scrollBy(0,delta);
+          });
+        }else{
+          window.scrollTo(0,oldScroll);
+        }
+      }
+      return result;
+    };
+  }
+
+  /* Un color por sonido/evento; todas sus capas heredan ese color. */
+  if(typeof renderSceneSoundEditor==='function'){
+    const baseRenderSceneSoundEditor=renderSceneSoundEditor;
+    const palette=[
+      '#22e6d6','#8c52ff','#ffb84d','#4de3a2',
+      '#ff6b9d','#4aa8ff','#c6f36a','#ff7a59'
+    ];
+
+    renderSceneSoundEditor=function(root,scene,sceneIndex,lib){
+      const result=baseRenderSceneSoundEditor.apply(this,arguments);
+      Array.from(root.querySelectorAll('.sound-event-card')).forEach((card,i)=>{
+        const color=palette[i%palette.length];
+        card.style.setProperty('--event-color',color);
+        Array.from(card.querySelectorAll('.sound-layer-card')).forEach(layer=>{
+          layer.style.setProperty('--event-color',color);
+        });
+      });
+      return result;
+    };
+  }
+
+  /* Preferir formatos que Android reproduce de forma más fiable. */
+  if(typeof supportedRecorderMime==='function'){
+    supportedRecorderMime=function(){
+      const list=[
+        'audio/mp4;codecs=mp4a.40.2',
+        'audio/mp4',
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus'
+      ];
+      if(typeof MediaRecorder==='undefined')return '';
+      return list.find(x=>!MediaRecorder.isTypeSupported||MediaRecorder.isTypeSupported(x))||'';
+    };
+  }
+
+  async function renameFamily(type,oldName,newName){
+    type=upperClosed(type);
+    oldName=upperClosed(oldName);
+    newName=upperClosed(newName);
+    if(!oldName||!newName||oldName===newName)return false;
+
+    if(soundTaxonomy[type]?.[newName] &&
+       !confirm('Ya existe esa familia. ¿Deseas unir ambas?'))return false;
+
+    const cats=[...(soundTaxonomy[type]?.[oldName]||[])];
+    soundTaxonomy[type]??={};
+    soundTaxonomy[type][newName]=[
+      ...new Set([...(soundTaxonomy[type][newName]||[]),...cats])
+    ].sort();
+    delete soundTaxonomy[type][oldName];
+
+    for(const key of await dbKeys()){
+      const raw=await dbGet(key);
+      if(!raw)continue;
+      const rec=normalizeSoundRecord(raw,key);
+      if(rec.type===type&&rec.family===oldName){
+        await dbPut(key,{
+          ...rec,
+          blob:soundRecordToBlob(raw),
+          family:newName,
+          group:newName
+        });
+      }
+    }
+    saveSoundTaxonomy();
+    return true;
+  }
+
+  async function deleteFamily(type,family){
+    type=upperClosed(type);
+    family=upperClosed(family);
+    if(!family)return false;
+
+    let count=0;
+    for(const key of await dbKeys()){
+      const raw=await dbGet(key);
+      if(!raw)continue;
+      const rec=normalizeSoundRecord(raw,key);
+      if(rec.type===type&&rec.family===family)count++;
+    }
+
+    const msg=count
+      ? `La familia ${family} contiene ${count} sonido(s). Se moverán a SIN FAMILIA / GENERAL. ¿Continuar?`
+      : `¿Eliminar la familia ${family}?`;
+
+    if(!confirm(msg))return false;
+
+    ensureCategory(type,'SIN FAMILIA','GENERAL');
+
+    for(const key of await dbKeys()){
+      const raw=await dbGet(key);
+      if(!raw)continue;
+      const rec=normalizeSoundRecord(raw,key);
+      if(rec.type===type&&rec.family===family){
+        await dbPut(key,{
+          ...rec,
+          blob:soundRecordToBlob(raw),
+          family:'SIN FAMILIA',
+          group:'SIN FAMILIA',
+          category:'GENERAL'
+        });
+      }
+    }
+
+    if(soundTaxonomy[type])delete soundTaxonomy[type][family];
+    saveSoundTaxonomy();
+    return true;
+  }
+
+  async function renameCategory(type,family,oldName,newName){
+    type=upperClosed(type);
+    family=upperClosed(family);
+    oldName=upperClosed(oldName);
+    newName=upperClosed(newName);
+
+    if(!family||!oldName||!newName||oldName===newName)return false;
+
+    ensureCategory(type,family,newName);
+    soundTaxonomy[type][family]=(soundTaxonomy[type][family]||[])
+      .filter(x=>x!==oldName);
+
+    for(const key of await dbKeys()){
+      const raw=await dbGet(key);
+      if(!raw)continue;
+      const rec=normalizeSoundRecord(raw,key);
+      if(rec.type===type&&rec.family===family&&rec.category===oldName){
+        await dbPut(key,{
+          ...rec,
+          blob:soundRecordToBlob(raw),
+          category:newName
+        });
+      }
+    }
+
+    saveSoundTaxonomy();
+    return true;
+  }
+
+  async function deleteCategory(type,family,category){
+    type=upperClosed(type);
+    family=upperClosed(family);
+    category=upperClosed(category);
+    if(!family||!category)return false;
+
+    let count=0;
+    for(const key of await dbKeys()){
+      const raw=await dbGet(key);
+      if(!raw)continue;
+      const rec=normalizeSoundRecord(raw,key);
+      if(rec.type===type&&rec.family===family&&rec.category===category)count++;
+    }
+
+    const msg=count
+      ? `La categoría ${category} contiene ${count} sonido(s). Se moverán a GENERAL. ¿Continuar?`
+      : `¿Eliminar la categoría ${category}?`;
+
+    if(!confirm(msg))return false;
+
+    ensureCategory(type,family,'GENERAL');
+
+    for(const key of await dbKeys()){
+      const raw=await dbGet(key);
+      if(!raw)continue;
+      const rec=normalizeSoundRecord(raw,key);
+      if(rec.type===type&&rec.family===family&&rec.category===category){
+        await dbPut(key,{
+          ...rec,
+          blob:soundRecordToBlob(raw),
+          category:'GENERAL'
+        });
+      }
+    }
+
+    soundTaxonomy[type][family]=(soundTaxonomy[type][family]||[])
+      .filter(x=>x!==category);
+
+    saveSoundTaxonomy();
+    return true;
+  }
+
+  function fillSelect(sel,items,current=''){
+    if(!sel)return;
+    const keep=items.includes(current)?current:(items[0]||'');
+    sel.innerHTML=items.map(x=>
+      `<option value="${esc(x)}">${esc(x)}</option>`
+    ).join('');
+    if(keep)sel.value=keep;
+  }
+
+  function refreshTaxonomyManager(){
+    const ft=document.getElementById('dv49FamilyType');
+    const fs=document.getElementById('dv49FamilySelect');
+    const ct=document.getElementById('dv49CategoryType');
+    const cf=document.getElementById('dv49CategoryFamily');
+    const cs=document.getElementById('dv49CategorySelect');
+
+    if(ft&&fs)fillSelect(fs,taxonomyFamilies(ft.value),fs.value);
+
+    if(ct&&cf){
+      fillSelect(cf,taxonomyFamilies(ct.value),cf.value);
+      fillSelect(cs,taxonomyCategories(ct.value,cf.value),cs?.value||'');
+    }
+  }
+
+  const taxGrid=document.querySelector('.sound-taxonomy-grid');
+  if(taxGrid&&!document.getElementById('dv49TaxonomyManage')){
+    const box=document.createElement('div');
+    box.className='dv49-taxonomy-manage';
+    box.id='dv49TaxonomyManage';
+
+    box.innerHTML=`
+      <div class="dv49-taxonomy-manage-title">
+        Editar o eliminar clasificación
+      </div>
+
+      <div class="dv49-taxonomy-row">
+        <select id="dv49FamilyType">
+          <option>AMBIENTE</option>
+          <option>EFECTO</option>
+          <option>VOCALIZACIÓN</option>
+        </select>
+        <select id="dv49FamilySelect"></select>
+        <button class="btn small" id="dv49RenameFamily">Renombrar</button>
+        <button class="btn small danger" id="dv49DeleteFamily">Eliminar</button>
+      </div>
+
+      <div class="dv49-taxonomy-row">
+        <select id="dv49CategoryType">
+          <option>AMBIENTE</option>
+          <option>EFECTO</option>
+          <option>VOCALIZACIÓN</option>
+        </select>
+        <select id="dv49CategoryFamily"></select>
+        <select id="dv49CategorySelect"></select>
+        <span></span>
+      </div>
+
+      <div class="row" style="margin-top:6px">
+        <button class="btn small" id="dv49RenameCategory">
+          Renombrar categoría
+        </button>
+        <button class="btn small danger" id="dv49DeleteCategory">
+          Eliminar categoría
+        </button>
+      </div>
+    `;
+
+    taxGrid.appendChild(box);
+
+    ['dv49FamilyType','dv49CategoryType','dv49CategoryFamily'].forEach(id=>{
+      document.getElementById(id)?.addEventListener(
+        'change',
+        refreshTaxonomyManager
+      );
+    });
+
+    document.getElementById('dv49RenameFamily').onclick=async()=>{
+      const t=dv49FamilyType.value;
+      const o=dv49FamilySelect.value;
+      const n=prompt('Nuevo nombre de la familia:',o);
+      if(n&&await renameFamily(t,o,n)){
+        await renderSounds();
+        refreshTaxonomyManager();
+      }
+    };
+
+    document.getElementById('dv49DeleteFamily').onclick=async()=>{
+      if(await deleteFamily(
+        dv49FamilyType.value,
+        dv49FamilySelect.value
+      )){
+        await renderSounds();
+        refreshTaxonomyManager();
+      }
+    };
+
+    document.getElementById('dv49RenameCategory').onclick=async()=>{
+      const t=dv49CategoryType.value;
+      const f=dv49CategoryFamily.value;
+      const o=dv49CategorySelect.value;
+      const n=prompt('Nuevo nombre de la categoría:',o);
+
+      if(n&&await renameCategory(t,f,o,n)){
+        await renderSounds();
+        refreshTaxonomyManager();
+      }
+    };
+
+    document.getElementById('dv49DeleteCategory').onclick=async()=>{
+      if(await deleteCategory(
+        dv49CategoryType.value,
+        dv49CategoryFamily.value,
+        dv49CategorySelect.value
+      )){
+        await renderSounds();
+        refreshTaxonomyManager();
+      }
+    };
+
+    refreshTaxonomyManager();
+  }
+
+  /* Buscar actualización siempre confirma visualmente qué está haciendo. */
+  if(typeof dv6CheckForUpdates==='function'){
+    const baseCheck=dv6CheckForUpdates;
+
+    dv6CheckForUpdates=async function(opts={}){
+      const manual=!!opts.manual;
+      const btn=document.getElementById('checkUpdatesBtn');
+      const status=document.getElementById('projectStatus');
+
+      if(manual&&btn){
+        btn.classList.add('dv49-checking');
+        btn.disabled=true;
+        btn.textContent='Buscando…';
+      }
+
+      if(manual&&status){
+        status.textContent='Comprobando si hay una versión nueva…';
+        status.className='status warn';
+      }
+
+      try{
+        return await baseCheck.apply(this,arguments);
+      }finally{
+        if(manual&&btn){
+          setTimeout(()=>{
+            btn.classList.remove('dv49-checking');
+            btn.disabled=false;
+            btn.textContent='Buscar actualización';
+          },500);
+        }
+      }
+    };
+  }
+
+  /* La pestaña activa queda centrada y visible. */
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      setTimeout(()=>{
+        tab.scrollIntoView({
+          behavior:'smooth',
+          block:'nearest',
+          inline:'center'
+        });
+      },30);
+    });
+  });
+
+  const activeTab=document.querySelector('.tab.active');
+  if(activeTab){
+    setTimeout(()=>{
+      activeTab.scrollIntoView({
+        block:'nearest',
+        inline:'center'
+      });
+    },80);
+  }
+
+  /* La envoltura Android sigue siendo v48; la interfaz web pasa a v49. */
+  setTimeout(()=>{
+    const line=document.querySelector('.dv6-version-current');
+    if(line)line.textContent='Versión instalada: v48 Android · interfaz v49';
+
+    const sub=document.querySelector('.brand .sub');
+    if(sub&&sub.textContent.includes('v48')){
+      sub.textContent='v48 · puente Android TTS · interfaz v49';
+    }
+  },900);
+
+  try{
+    if(typeof renderScenes==='function')renderScenes();
+  }catch(e){}
+})();
 </script>
 </body></html>
