@@ -1,17 +1,14 @@
 {
-  "version": 10100,
-  "displayVersion": "1.1.0",
-  "build": "2026.09.27.110",
-  "date": "27 sep 2026",
-  "title": "Edición de escenas y respaldo Android",
+  "version": 50,
+  "build": "2026.09.26.50",
+  "date": "26 sep 2026",
+  "title": "Barras fijas y audio Supertonic sincronizado",
   "updateRequired": false,
   "changes": [
-    "La versión visible aparece solo en Ajustes.",
-    "Se conserva la barra superior fija y el espacio de la barra de estado del teléfono.",
-    "El editor de sonidos mantiene abierto el evento y la posición al modificar capas.",
-    "Cada capa permite crear un sonido nuevo con nombre, tipo, familia, categoría y audio.",
-    "El sonido creado desde una capa se guarda en la biblioteca y queda asignado a esa capa.",
-    "Exportar contenido usa Guardar/Compartir de Android cuando la descarga blob normal no funciona.",
-    "Se retira únicamente el parche web Supertonic v50; no se modifica el motor base de voz."
+    "El logo y la navegación superior permanecen inmóviles al desplazarse verticalmente; las pestañas solo se desplazan horizontalmente.",
+    "La barra inferior de acciones de Historia permanece fija mientras se edita el capítulo.",
+    "Las pruebas de voz Supertonic esperan a que Android termine de cancelar la locución anterior antes de iniciar la nueva.",
+    "Se evita que STOP y la nueva síntesis se pisen entre sí con el motor FIX COLA.",
+    "La reproducción continua utiliza el mismo puente Supertonic sincronizado."
   ]
 }
