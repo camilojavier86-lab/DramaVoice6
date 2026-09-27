@@ -1,14 +1,14 @@
 {
-  "version": 50,
-  "build": "2026.09.26.50",
-  "date": "26 sep 2026",
-  "title": "Barras fijas y audio Supertonic sincronizado",
+  "version": 10001,
+  "displayVersion": "1.0.1",
+  "build": "2026.09.27.10001",
+  "date": "27 sep 2026",
+  "title": "Respaldo seguro en Android",
   "updateRequired": false,
   "changes": [
-    "El logo y la navegación superior permanecen inmóviles al desplazarse verticalmente; las pestañas solo se desplazan horizontalmente.",
-    "La barra inferior de acciones de Historia permanece fija mientras se edita el capítulo.",
-    "Las pruebas de voz Supertonic esperan a que Android termine de cancelar la locución anterior antes de iniciar la nueva.",
-    "Se evita que STOP y la nueva síntesis se pisen entre sí con el motor FIX COLA.",
-    "La reproducción continua utiliza el mismo puente Supertonic sincronizado."
+    "Exportar proyecto prepara primero el respaldo completo sin cambiar ninguna otra función de DramaVoice.",
+    "Un segundo toque en Guardar respaldo abre Compartir/Guardar de Android con una activación de usuario válida.",
+    "El respaldo incluye sonidos, fotos de personajes, fotos de lugares, escenas, capas y configuración.",
+    "No se modifica el editor de escenas, las voces ni la navegación en esta actualización."
   ]
 }

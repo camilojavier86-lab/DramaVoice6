@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>DramaVoice 6 v50</title>
-<meta name="dv6-version" content="50">
+<meta name="dv6-version" content="10001">
 
 <meta name="theme-color" content="#07090d">
 <meta name="application-name" content="DramaVoice 6">
@@ -931,7 +931,7 @@ Todavía tengo trabajo pendiente.
         </div>
         <div id="projectStatus" class="status"></div>
         <div class="dv6-version-line">
-          <span class="dv6-version-current">Versión instalada: v50 Android</span>
+          <span class="dv6-version-current">Versión instalada: v1.0.1</span>
           <button class="btn small" id="checkUpdatesBtn">Buscar actualización</button>
         </div>        
         <div class="reset-box">
@@ -3632,13 +3632,145 @@ $('#storyFile').onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{
 function blobToDataURL(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(blob)})}
 function dataURLToBlob(data){const [head,b64]=data.split(',');const mime=(head.match(/data:([^;]+)/)||[])[1]||'application/octet-stream';const bin=atob(b64),arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return new Blob([arr],{type:mime})}
 
+
+let dvPreparedProjectBackup=null;
+
 async function exportProject(){
- $('#projectStatus').textContent='Preparando respaldo…';
- const sounds=[];for(const k of await dbKeys()){const raw=await dbGet(k),blob=soundRecordToBlob(raw);if(!blob)continue;const rec=normalizeSoundRecord(raw,k);sounds.push({key:k,meta:{...rec,blob:undefined},data:await blobToDataURL(blob)})}
- const photos=[];for(const k of await photoDbKeys()){const blob=await photoDbBlob(k);if(blob)photos.push({key:String(k),data:await blobToDataURL(blob)})}
- const placePhotos=[];for(const k of await placePhotoDbKeys()){const blob=await placePhotoDbBlob(k);if(blob)placePhotos.push({key:String(k),data:await blobToDataURL(blob)})}
- const data={format:'DramaVoice6-project',version:49,exportedAt:new Date().toISOString(),story:$('#story').value,chapterTitle,scenes,charLib,placeLib,soundTaxonomy,soundOverrides,settings,pronRules,generalImagePrompt:customGeneralImagePrompt,sceneLocations,resumePositions,sounds,photos,placePhotos};
- const blob=new Blob([JSON.stringify(data)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='DramaVoice6_Proyecto_v49.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);$('#projectStatus').textContent='Proyecto v49 exportado con personajes, fotos, sonidos, capas y configuración.';$('#projectStatus').className='status good';
+ const btn=$('#exportProjectBtn'),st=$('#projectStatus');
+
+ // Segundo toque: ya existe el archivo y este toque conserva la activación
+ // del usuario necesaria para abrir el panel nativo de Compartir/Guardar.
+ if(dvPreparedProjectBackup?.file){
+   const file=dvPreparedProjectBackup.file;
+   try{
+     if(typeof navigator.share==='function' &&
+        typeof navigator.canShare==='function' &&
+        navigator.canShare({files:[file]})){
+       await navigator.share({
+         files:[file],
+         title:'Respaldo DramaVoice 6',
+         text:'Respaldo completo de DramaVoice 6'
+       });
+       st.textContent='✓ Respaldo enviado al sistema de Android. Guárdalo en Archivos, Drive o el destino que elegiste.';
+       st.className='status good';
+       btn.textContent='Exportar proyecto';
+       dvPreparedProjectBackup=null;
+       return;
+     }
+   }catch(err){
+     if(err?.name==='AbortError'){
+       st.textContent='Guardado cancelado. El respaldo sigue preparado; toca “Guardar respaldo” cuando quieras intentarlo otra vez.';
+       st.className='status warn';
+       return;
+     }
+     st.textContent='Android no pudo abrir Compartir: '+(err?.message||err);
+     st.className='status warn';
+   }
+
+   // Fallback tradicional. Se conserva por compatibilidad con navegador/PWA.
+   try{
+     const url=URL.createObjectURL(file);
+     const a=document.createElement('a');
+     a.href=url;
+     a.download=file.name;
+     document.body.appendChild(a);
+     a.click();
+     a.remove();
+     setTimeout(()=>URL.revokeObjectURL(url),15000);
+     st.textContent='Se intentó la descarga normal. Si Android no mostró el archivo, el respaldo sigue preparado para volver a intentarlo.';
+     st.className='status warn';
+   }catch(err){
+     st.textContent='El respaldo está preparado, pero este contenedor de Android no permite guardarlo todavía.';
+     st.className='status bad';
+   }
+   return;
+ }
+
+ btn.disabled=true;
+ const originalText=btn.textContent;
+ btn.textContent='Preparando…';
+ st.textContent='Preparando respaldo. No cierres DramaVoice…';
+ st.className='status warn';
+
+ try{
+   const sounds=[];
+   const soundKeys=await dbKeys();
+   let n=0;
+   for(const k of soundKeys){
+     const raw=await dbGet(k),blob=soundRecordToBlob(raw);
+     if(!blob)continue;
+     const rec=normalizeSoundRecord(raw,k);
+     sounds.push({
+       key:k,
+       meta:{...rec,blob:undefined},
+       data:await blobToDataURL(blob)
+     });
+     n++;
+     if(n%5===0)st.textContent=`Preparando respaldo… ${n}/${soundKeys.length} sonidos`;
+   }
+
+   const photos=[];
+   const photoKeys=await photoDbKeys();
+   for(let i=0;i<photoKeys.length;i++){
+     const k=photoKeys[i],blob=await photoDbBlob(k);
+     if(blob)photos.push({key:String(k),data:await blobToDataURL(blob)});
+     if((i+1)%5===0)st.textContent=`Preparando respaldo… ${sounds.length} sonidos · ${i+1}/${photoKeys.length} fotos`;
+   }
+
+   const placePhotos=[];
+   const placeKeys=await placePhotoDbKeys();
+   for(let i=0;i<placeKeys.length;i++){
+     const k=placeKeys[i],blob=await placePhotoDbBlob(k);
+     if(blob)placePhotos.push({key:String(k),data:await blobToDataURL(blob)});
+   }
+
+   const data={
+     format:'DramaVoice6-project',
+     version:'1.0.1',
+     exportedAt:new Date().toISOString(),
+     story:$('#story').value,
+     chapterTitle,
+     scenes,
+     charLib,
+     placeLib,
+     soundTaxonomy,
+     soundOverrides,
+     settings,
+     pronRules,
+     generalImagePrompt:customGeneralImagePrompt,
+     sceneLocations,
+     resumePositions,
+     sounds,
+     photos,
+     placePhotos
+   };
+
+   const day=new Date().toISOString().slice(0,10);
+   const file=new File(
+     [JSON.stringify(data)],
+     `DramaVoice6_Respaldo_${day}_v1.0.1.json`,
+     {type:'application/json'}
+   );
+
+   dvPreparedProjectBackup={
+     file,
+     sounds:sounds.length,
+     photos:photos.length,
+     placePhotos:placePhotos.length
+   };
+
+   btn.disabled=false;
+   btn.textContent='Guardar respaldo';
+   st.textContent=`✓ Respaldo listo: ${sounds.length} sonido(s) · ${photos.length} foto(s) · ${placePhotos.length} foto(s) de lugar. Toca “Guardar respaldo”.`;
+   st.className='status good';
+ }catch(err){
+   console.error('DramaVoice export',err);
+   dvPreparedProjectBackup=null;
+   btn.disabled=false;
+   btn.textContent=originalText||'Exportar proyecto';
+   st.textContent='No se pudo preparar el respaldo: '+(err?.message||err);
+   st.className='status bad';
+ }
 }
 function mergeImportedLibrary(current,incoming){
  const merged={...(current||{})};
@@ -3851,7 +3983,7 @@ if(dv6InstallBtn)dv6InstallBtn.addEventListener('click',async()=>{
 dv6RefreshInstallUi();
 
 // v44 — actualizaciones inteligentes de la PWA
-const DV6_APP_VERSION=50;
+const DV6_APP_VERSION=10001;
 const DV6_VERSION_URL='./version.json';
 let dv6UpdateInfo=null;
 let dv6UpdateRegistration=null;
