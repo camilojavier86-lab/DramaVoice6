@@ -1,0 +1,60 @@
+name: Limpiar workflows antiguos de DramaVoice 6
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/DramaVoice6_LIMPIAR_REPOSITORIO.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Eliminar workflows obsoletos
+        shell: bash
+        run: |
+          set -e
+          rm -f ".github/workflows/DramaVoice6_Supertonic_FIX_AUDIO.yml"
+          rm -f ".github/workflows/DramaVoice6_Supertonic_FIX_AUDIO_2.yml"
+          rm -f ".github/workflows/DramaVoice6_Supertonic_FIX_COLA.yml"
+          rm -f ".github/workflows/DramaVoice6_v1_1_0_EDICION_RESPALDO.yml"
+          rm -f ".github/workflows/DramaVoice6_v49_ACTUALIZACION_COMPLETA.yml"
+          rm -f ".github/workflows/DramaVoice6_v50_BARRAS_Y_VOCES.yml"
+          rm -f ".github/workflows/DramaVoice6_v51_VOICELAB_DIRECTO_FINAL.yml"
+          rm -f ".github/workflows/DramaVoice6_v52_SUPERTONIC_DIRECTO_INTEGRADO_MEMFIX.yml"
+          rm -f ".github/workflows/DramaVoice6_v53_SUPERTONIC_DIRECTO_SAFE.yml"
+
+      - name: Conservar archivos esenciales
+        shell: bash
+        run: |
+          set -e
+          test -s index.html
+          test -s service-worker.js
+          test -s version.json
+          test -s manifest.webmanifest
+          test -s icon-192.png
+          test -s icon-512.png
+          test -s .github/workflows/DramaVoice6_EMERGENCIA_RESTAURAR_ESTABLE.yml
+          test -s .github/workflows/DramaVoice6_v48_Puente_Android.yml
+
+      - name: Guardar limpieza
+        shell: bash
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A .github/workflows
+          if git diff --cached --quiet; then
+            echo "No hay workflows obsoletos pendientes."
+            exit 0
+          fi
+          git commit -m "Clean obsolete DramaVoice experimental workflows"
+          git push
