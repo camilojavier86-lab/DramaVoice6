@@ -1,21 +1,14 @@
 {
-  "version": 10100,
+  "version": 10101,
   "displayVersion": "1.1.0",
-  "build": "2026.09.28-10100",
+  "build": "2026.09.28-10101",
   "date": "28 sep 2026",
-  "title": "Producción sonora y reproductor DramaVoice",
+  "title": "Hotfix de estabilidad",
   "updateRequired": false,
   "changes": [
-    "Evita el duplicado temporal de tarjetas al abrir Escenas después de analizar una historia.",
-    "Los prompts pegados fuera de las escenas se vinculan de forma estricta al personaje correspondiente y la ficha muestra el prompt en lugar del resumen narrativo contaminado.",
-    "Elegir archivo, Grabar y Crear sonido nuevo desde una capa abren el editor completo del sonido antes de guardarlo en Biblioteca.",
-    "Los sonidos creados desde Escenas guardan nombre, descripción, tipo, familia, categoría, palabras clave, archivo original y duración.",
-    "Cada evento de sonido permite escuchar la mezcla completa de todas sus capas respetando volumen, recortes y retardos.",
-    "El Reproductor elimina información repetida, mantiene visible el lugar actual, resalta hablante, capítulo y escena y usa controles más grandes.",
-    "Play y Pausa se unifican en un único botón central redondo; anterior, siguiente y detener se conservan.",
-    "Al terminar el capítulo, Detener se transforma en Nuevo capítulo y lleva a la captura de Historia.",
-    "El reproductor añade halo de voz, fondo atmosférico, waveform, pulso de SFX, transición de ubicación y anillo de progreso sin animar los rostros.",
-    "El APK aplica un inset superior real para que DramaVoice no dibuje debajo de la muesca o barra de estado.",
-    "Se conserva Android TTS nativo, datos locales, firma persistente y actualizador sin cierre manual."
+    "Elimina el ciclo de MutationObserver que podía congelar DramaVoice al iniciar.",
+    "Mantiene la interfaz v1.1.0 y todas las mejoras consolidadas.",
+    "Corrige el texto base del encabezado para que no aparezca v47 ni Supertonic mientras carga.",
+    "Conserva Android TTS nativo y la firma definitiva del APK."
   ]
 }
