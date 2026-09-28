@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>DramaVoice 6 v50</title>
-<meta name="dv6-version" content="10003">
+<title>DramaVoice 6 v1.0.4</title>
+<meta name="dv6-version" content="10004">
 
 <meta name="theme-color" content="#07090d">
 <meta name="application-name" content="DramaVoice 6">
@@ -931,7 +931,7 @@ Todavía tengo trabajo pendiente.
         </div>
         <div id="projectStatus" class="status"></div>
         <div class="dv6-version-line">
-          <span class="dv6-version-current">Versión instalada: v1.0.3</span>
+          <span class="dv6-version-current">Versión instalada: v1.0.4</span>
           <button class="btn small" id="checkUpdatesBtn">Buscar actualización</button>
         </div>        
         <div class="reset-box">
@@ -3983,7 +3983,7 @@ if(dv6InstallBtn)dv6InstallBtn.addEventListener('click',async()=>{
 dv6RefreshInstallUi();
 
 // v44 — actualizaciones inteligentes de la PWA
-const DV6_APP_VERSION=10003;
+const DV6_APP_VERSION=10004;
 const DV6_VERSION_URL='./version.json';
 let dv6UpdateInfo=null;
 let dv6UpdateRegistration=null;
@@ -5089,4 +5089,136 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
     setTimeout(()=>{try{loadVoices()}catch(e){}},2200);
   },250);
 })();
-</script>\n</body></html>
+</script>\n<script id="dv6-editor-stable-v104">
+(()=>{
+  if(window.__DV6_EDITOR_STABLE_V104)return;
+  window.__DV6_EDITOR_STABLE_V104=true;
+
+  const originalRenderScenes=window.renderScenes;
+  if(typeof originalRenderScenes!=='function'){
+    console.warn('DV6 v1.0.4: renderScenes no disponible; parche de editor no aplicado.');
+    return;
+  }
+
+  function currentLogicalEditorKey(){
+    try{
+      if(typeof openSceneSoundEditor!=='undefined')return String(openSceneSoundEditor||'');
+    }catch(e){}
+    return null;
+  }
+
+  function editorSnapshot(){
+    const root=document.querySelector('#sceneList');
+    if(!root)return null;
+
+    const sceneCards=[...root.querySelectorAll('.scene-card')];
+    const openScenes=[];
+    sceneCards.forEach((card,index)=>{
+      const d=card.querySelector('.scene-details');
+      if(d?.open)openScenes.push(index);
+    });
+
+    const domOpen=root.querySelector('.sound-event-card[open]');
+    const logical=currentLogicalEditorKey();
+    const editorKey=logical===null ? String(domOpen?.dataset?.editorKey||'') : logical;
+
+    let anchor=domOpen;
+    let layerIndex=-1;
+    let focusClass='';
+    let focusTag='';
+
+    const active=document.activeElement;
+    if(domOpen && active && domOpen.contains(active)){
+      const layer=active.closest?.('.sound-layer-card');
+      if(layer){
+        const layers=[...domOpen.querySelectorAll('.sound-layer-card')];
+        layerIndex=layers.indexOf(layer);
+        anchor=layer;
+      }else{
+        anchor=active.closest?.('.sound-event-body') || domOpen;
+      }
+
+      focusTag=String(active.tagName||'').toLowerCase();
+      const generic=new Set(['btn','small','aqua','danger','recording-live']);
+      focusClass=[...active.classList].find(c=>!generic.has(c))||'';
+    }
+
+    return {
+      openScenes,
+      editorKey,
+      layerIndex,
+      focusClass,
+      focusTag,
+      anchorTop:anchor?.getBoundingClientRect?.().top ?? null,
+      scrollY:window.scrollY
+    };
+  }
+
+  function restoreEditorSnapshot(state){
+    if(!state)return;
+    const root=document.querySelector('#sceneList');
+    if(!root)return;
+
+    const sceneCards=[...root.querySelectorAll('.scene-card')];
+    for(const index of state.openScenes||[]){
+      const d=sceneCards[index]?.querySelector('.scene-details');
+      if(d)d.open=true;
+    }
+
+    let editor=null;
+    if(state.editorKey){
+      editor=[...root.querySelectorAll('.sound-event-card')].find(
+        x=>String(x.dataset?.editorKey||'')===String(state.editorKey)
+      )||null;
+
+      if(editor){
+        const parent=editor.closest('.scene-details');
+        if(parent)parent.open=true;
+        editor.open=true;
+        try{
+          if(typeof openSceneSoundEditor!=='undefined'){
+            openSceneSoundEditor=String(state.editorKey);
+          }
+        }catch(e){}
+      }
+    }
+
+    let anchor=editor;
+    if(editor && Number.isInteger(state.layerIndex) && state.layerIndex>=0){
+      anchor=editor.querySelectorAll('.sound-layer-card')[state.layerIndex]||editor;
+    }
+
+    if(editor && state.focusClass){
+      const scope=(Number.isInteger(state.layerIndex)&&state.layerIndex>=0)
+        ? (editor.querySelectorAll('.sound-layer-card')[state.layerIndex]||editor)
+        : editor;
+      const selector=(state.focusTag||'')+'.'+CSS.escape(state.focusClass);
+      const candidate=scope.querySelector(selector);
+      if(candidate){
+        try{candidate.focus({preventScroll:true})}catch(e){}
+      }
+    }
+
+    if(anchor && state.anchorTop!=null){
+      const newTop=anchor.getBoundingClientRect().top;
+      const delta=newTop-state.anchorTop;
+      if(Number.isFinite(delta)&&Math.abs(delta)>0.5){
+        window.scrollBy(0,delta);
+      }
+    }else if(Number.isFinite(state.scrollY)){
+      window.scrollTo(0,state.scrollY);
+    }
+  }
+
+  window.renderScenes=async function(...args){
+    const state=editorSnapshot();
+    const result=await originalRenderScenes.apply(this,args);
+    restoreEditorSnapshot(state);
+    requestAnimationFrame(()=>restoreEditorSnapshot(state));
+    return result;
+  };
+
+  console.info('DV6 v1.0.4: editor de sonidos estable activo.');
+})();
+</script>
+</body></html>

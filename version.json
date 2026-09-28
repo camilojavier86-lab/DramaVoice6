@@ -1,13 +1,15 @@
 {
-  "version": 10003,
-  "displayVersion": "1.0.3",
-  "build": "2026.09.27.10003",
+  "version": 10004,
+  "displayVersion": "1.0.4",
+  "build": "2026.09.27.10004",
   "date": "27 sep 2026",
-  "title": "Recuperar voz Android predeterminada",
+  "title": "Editor de sonidos estable",
   "updateRequired": false,
   "changes": [
-    "Añade un fallback de voz Android predeterminada cuando no existe catálogo de voces.",
-    "No modifica el APK, Supertonic, sonidos, fotos, escenas ni datos locales.",
-    "Esta versión se limita exclusivamente a recuperar reproducción de voz."
+    "Mantiene abierto el mismo evento de sonido mientras editas.",
+    "Conserva visible la misma capa y la posición de desplazamiento después de cambios que vuelven a dibujar la escena.",
+    "Evita que el editor salte hacia arriba al cambiar selección, tipo, archivo, capa u otros datos que refrescan Escenas.",
+    "No modifica las voces Android, personajes, sonidos guardados ni el contenedor APK.",
+    "No modifica el comportamiento de la barra superior ni de la muesca del teléfono."
   ]
-}\n
+}
