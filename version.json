@@ -1,15 +1,16 @@
 {
-  "version": 10004,
-  "displayVersion": "1.0.4",
-  "build": "2026.09.27.10004",
+  "version": 10005,
+  "displayVersion": "1.0.5",
+  "build": "2026.09.27-10005",
   "date": "27 sep 2026",
-  "title": "Editor de sonidos estable",
+  "title": "Actualizador moderno y sonidos por capa",
   "updateRequired": false,
   "changes": [
-    "Mantiene abierto el mismo evento de sonido mientras editas.",
-    "Conserva visible la misma capa y la posición de desplazamiento después de cambios que vuelven a dibujar la escena.",
-    "Evita que el editor salte hacia arriba al cambiar selección, tipo, archivo, capa u otros datos que refrescan Escenas.",
-    "No modifica las voces Android, personajes, sonidos guardados ni el contenedor APK.",
-    "No modifica el comportamiento de la barra superior ni de la muesca del teléfono."
+    "Buscar actualizaciones ahora comprueba, descarga, aplica y refresca DramaVoice dentro de la propia app, sin pedir cerrar y volver a abrir.",
+    "Ajustes muestra por separado versión instalada, compilación, plataforma, motor de voz y estado de actualización.",
+    "La versión oficial visible pasa a v1.0.5; v54 deja de mostrarse como si fuera la versión funcional de DramaVoice.",
+    "Cada capa de sonido permite Crear sonido nuevo, elegir archivo o grabar, definir tipo, familia y categoría, y asignarlo automáticamente a esa capa.",
+    "Elimina el texto residual \\n que podía aparecer suelto en pantalla.",
+    "Conserva Android TTS y no modifica el contenedor Android ni el comportamiento de la muesca."
   ]
 }

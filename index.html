@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>DramaVoice 6 v1.0.4</title>
-<meta name="dv6-version" content="10004">
+<title>DramaVoice 6 v1.0.5</title>
+<meta name="dv6-version" content="10005">
 
 <meta name="theme-color" content="#07090d">
 <meta name="application-name" content="DramaVoice 6">
@@ -931,7 +931,7 @@ Todavía tengo trabajo pendiente.
         </div>
         <div id="projectStatus" class="status"></div>
         <div class="dv6-version-line">
-          <span class="dv6-version-current">Versión instalada: v1.0.4</span>
+          <span class="dv6-version-current">Versión instalada: v1.0.5</span>
           <button class="btn small" id="checkUpdatesBtn">Buscar actualización</button>
         </div>        
         <div class="reset-box">
@@ -3983,7 +3983,7 @@ if(dv6InstallBtn)dv6InstallBtn.addEventListener('click',async()=>{
 dv6RefreshInstallUi();
 
 // v44 — actualizaciones inteligentes de la PWA
-const DV6_APP_VERSION=10004;
+const DV6_APP_VERSION=10005;
 const DV6_VERSION_URL='./version.json';
 let dv6UpdateInfo=null;
 let dv6UpdateRegistration=null;
@@ -5220,5 +5220,410 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
 
   console.info('DV6 v1.0.4: editor de sonidos estable activo.');
 })();
+</script>
+<script id="dv6-v105-patch">
+(()=>{
+  if(window.__DV6_V105)return;
+  window.__DV6_V105=true;
+
+  const DV105_VERSION=10005;
+  const DV105_DISPLAY='1.0.5';
+  const DV105_BUILD='2026.09.27-10005';
+  const DV105_RETURN_KEY='dv6-v105-return-after-update';
+  let dv105Checking=false;
+  let dv105Recorder=null;
+  let dv105Draft=null;
+
+  function dv105InjectStyles(){
+    if(document.getElementById('dv105-styles'))return;
+    const style=document.createElement('style');
+    style.id='dv105-styles';
+    style.textContent=`
+      .dv6-version-line[data-dv105="1"]{display:block;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+      .dv105-version-card{border:1px solid var(--line);border-radius:16px;background:#0a1018;overflow:hidden}
+      .dv105-version-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 14px;border-bottom:1px solid var(--line);font-size:12px}
+      .dv105-version-row:last-of-type{border-bottom:0}
+      .dv105-version-row span{color:var(--muted)}
+      .dv105-version-row strong{font-size:13px;text-align:right}
+      .dv105-version-actions{padding:12px 14px;display:grid;gap:8px}
+      .dv105-version-actions .btn{min-height:44px;width:100%}
+      .dv105-update-status{font-size:10px;color:var(--muted);min-height:15px}
+      .dv105-create-sound{border-color:#22e6d655!important;color:#8ff8ee!important}
+      .dv105-modal{position:fixed;inset:0;z-index:1500;background:#000c;display:none;align-items:flex-end;justify-content:center;padding:12px}
+      .dv105-modal.show{display:flex}
+      .dv105-modal-card{width:min(680px,100%);max-height:90dvh;overflow:auto;border:1px solid #22e6d655;background:#0b111a;border-radius:22px;padding:15px;box-shadow:0 25px 90px #000f}
+      .dv105-modal-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+      .dv105-modal-head h3{margin:0;font-size:18px}
+      .dv105-form{display:grid;grid-template-columns:110px minmax(0,1fr);gap:8px 10px;align-items:center}
+      .dv105-form .label{margin:0;font-size:9px}
+      .dv105-source-box{margin-top:12px;padding:10px;border:1px solid var(--line);border-radius:14px;background:#080d14}
+      .dv105-source-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+      .dv105-source-status{font-size:10px;color:var(--muted);margin-top:8px;min-height:15px}
+      .dv105-modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+      @media(min-width:700px){.dv105-modal{align-items:center}}
+    `;
+    document.head.appendChild(style);
+  }
+
+  function dv105CleanLiteralNewline(){
+    if(!document.body)return;
+    const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+    const remove=[];
+    let node;
+    while((node=walker.nextNode())){
+      const parent=node.parentElement;
+      if(!parent||['SCRIPT','STYLE','TEXTAREA'].includes(parent.tagName))continue;
+      if(String(node.textContent||'').trim()==='\\n')remove.push(node);
+    }
+    remove.forEach(n=>n.remove());
+  }
+
+  function dv105SetBrand(){
+    const sub=document.querySelector('.brand .sub');
+    const text=`v${DV105_DISPLAY} · Android TTS nativo`;
+    if(sub&&sub.textContent!==text)sub.textContent=text;
+  }
+
+  function dv105VersionPanel(){
+    const line=document.querySelector('.dv6-version-line');
+    if(!line)return;
+    if(line.dataset.dv105!=='1'){
+      line.dataset.dv105='1';
+      line.innerHTML=`
+        <div class="dv105-version-card">
+          <div class="dv105-version-row"><span>Versión instalada</span><strong id="dv105InstalledVersion">v${DV105_DISPLAY}</strong></div>
+          <div class="dv105-version-row"><span>Compilación</span><strong id="dv105Build">${DV105_BUILD}</strong></div>
+          <div class="dv105-version-row"><span>Plataforma</span><strong>App Android</strong></div>
+          <div class="dv105-version-row"><span>Motor de voz</span><strong>Android TTS nativo</strong></div>
+          <div class="dv105-version-row"><span>Estado</span><strong id="dv105UpdateState">✅ Actualizado</strong></div>
+          <div class="dv105-version-actions">
+            <button class="btn" id="checkUpdatesBtn">Buscar actualizaciones</button>
+            <div class="dv105-update-status" id="dv105UpdateStatus">DramaVoice está listo para buscar actualizaciones sin cerrar la app.</div>
+          </div>
+        </div>`;
+    }
+    const btn=document.getElementById('checkUpdatesBtn');
+    if(btn&&!btn.dataset.dv105Bound){
+      btn.dataset.dv105Bound='1';
+      btn.onclick=()=>dv105CheckForUpdates({manual:true});
+    }
+  }
+
+  function dv105SetUpdateUi(state,status=''){
+    const stateEl=document.getElementById('dv105UpdateState');
+    const statusEl=document.getElementById('dv105UpdateStatus');
+    const btn=document.getElementById('checkUpdatesBtn');
+    if(stateEl)stateEl.textContent=state;
+    if(statusEl&&status)statusEl.textContent=status;
+    if(btn)btn.disabled=dv105Checking;
+  }
+
+  function dv105RemoteDisplay(info){
+    return String(info?.displayVersion||info?.version||'').replace(/^v/i,'');
+  }
+
+  function dv105SaveReturnState(){
+    try{
+      const tab=document.querySelector('.tab.active')?.dataset?.tab||'historia';
+      const settingsPage=typeof activeSettingsPage!=='undefined'?String(activeSettingsPage||''):'';
+      sessionStorage.setItem(DV105_RETURN_KEY,JSON.stringify({tab,settingsPage,scrollY:window.scrollY}));
+    }catch(e){}
+  }
+
+  function dv105RestoreReturnState(){
+    try{
+      const raw=sessionStorage.getItem(DV105_RETURN_KEY);if(!raw)return;
+      sessionStorage.removeItem(DV105_RETURN_KEY);
+      const state=JSON.parse(raw);
+      if(state.tab&&typeof goTab==='function')goTab(state.tab);
+      if(state.tab==='ajustes'&&state.settingsPage&&typeof openSettingsPage==='function')openSettingsPage(state.settingsPage);
+      requestAnimationFrame(()=>window.scrollTo(0,Math.max(0,Number(state.scrollY)||0)));
+    }catch(e){}
+  }
+
+  function dv105WaitForWorker(worker){
+    return new Promise(resolve=>{
+      if(!worker||worker.state==='installed'||worker.state==='activated'){resolve();return}
+      const done=()=>{if(worker.state==='installed'||worker.state==='activated'||worker.state==='redundant'){worker.removeEventListener('statechange',done);resolve()}};
+      worker.addEventListener('statechange',done);
+      setTimeout(()=>{try{worker.removeEventListener('statechange',done)}catch(e){}resolve()},7000);
+    });
+  }
+
+  async function dv105ApplyUpdate(info){
+    dv105SaveReturnState();
+    try{if(typeof saveResume==='function')saveResume()}catch(e){}
+    try{if(typeof dv6ReloadingForUpdate!=='undefined')dv6ReloadingForUpdate=true}catch(e){}
+    dv105SetUpdateUi('⬇️ Actualizando…',`Descargando DramaVoice v${dv105RemoteDisplay(info)}…`);
+    const reg=(typeof dv6UpdateRegistration!=='undefined'&&dv6UpdateRegistration) || await navigator.serviceWorker.getRegistration('./');
+    if(reg){
+      try{await reg.update()}catch(e){}
+      if(reg.installing)await dv105WaitForWorker(reg.installing);
+      const waiting=reg.waiting;
+      if(waiting){
+        dv105SetUpdateUi('⚙️ Aplicando…','Aplicando la nueva versión dentro de DramaVoice…');
+        let reloaded=false;
+        const reload=()=>{if(reloaded)return;reloaded=true;location.reload()};
+        navigator.serviceWorker.addEventListener('controllerchange',reload,{once:true});
+        waiting.postMessage({type:'SKIP_WAITING'});
+        setTimeout(reload,1800);
+        return;
+      }
+    }
+    dv105SetUpdateUi('⚙️ Aplicando…','Refrescando DramaVoice…');
+    setTimeout(()=>location.reload(),250);
+  }
+
+  async function dv105CheckForUpdates({manual=false}={}){
+    if(dv105Checking)return null;
+    dv105Checking=true;
+    if(manual)dv105SetUpdateUi('🔎 Buscando…','Comprobando la versión disponible…');
+    try{
+      const response=await fetch(`./version.json?t=${Date.now()}`,{cache:'no-store',headers:{'Cache-Control':'no-cache'}});
+      if(!response.ok)throw new Error(`HTTP ${response.status}`);
+      const info=await response.json();
+      const remote=Number(info.version||0);
+      if(remote>DV105_VERSION){
+        const label=dv105RemoteDisplay(info);
+        dv105SetUpdateUi(`⬆️ v${label} disponible`,`Nueva versión encontrada: v${label}.`);
+        if(manual){
+          await dv105ApplyUpdate(info);
+          return info;
+        }
+      }else if(manual){
+        dv105SetUpdateUi('✅ Actualizado',`Ya estás usando DramaVoice v${DV105_DISPLAY} · compilación ${DV105_BUILD}.`);
+      }else{
+        dv105SetUpdateUi('✅ Actualizado');
+      }
+      return info;
+    }catch(err){
+      if(manual)dv105SetUpdateUi('⚠️ Sin comprobar','No se pudo comprobar la actualización. Revisa la conexión e inténtalo de nuevo.');
+      console.warn('DramaVoice 6 v1.0.5: comprobación de actualización falló',err);
+      return null;
+    }finally{
+      dv105Checking=false;
+      const btn=document.getElementById('checkUpdatesBtn');if(btn)btn.disabled=false;
+    }
+  }
+
+  try{
+    dv6ShowUpdate=function(info){
+      const label=dv105RemoteDisplay(info);
+      dv105SetUpdateUi(`⬆️ v${label} disponible`,`Hay una actualización disponible. Pulsa “Buscar actualizaciones” para aplicarla.`);
+    };
+    dv6CheckForUpdates=dv105CheckForUpdates;
+  }catch(e){}
+
+  function dv105Modal(){
+    let modal=document.getElementById('dv105SoundModal');
+    if(modal)return modal;
+    modal=document.createElement('div');
+    modal.id='dv105SoundModal';
+    modal.className='dv105-modal';
+    modal.setAttribute('aria-hidden','true');
+    modal.innerHTML=`
+      <div class="dv105-modal-card" role="dialog" aria-modal="true">
+        <div class="dv105-modal-head"><h3>Crear sonido nuevo</h3><button class="btn small" id="dv105SoundClose">×</button></div>
+        <div class="dv105-form">
+          <span class="label">Nombre</span><input id="dv105SoundName" placeholder="Nombre del sonido">
+          <span class="label">Tipo</span><select id="dv105SoundType"><option value="ambiente">Ambiente</option><option value="sfx">SFX</option><option value="vocalizacion">Vocalización</option></select>
+          <span class="label">Familia</span><input id="dv105SoundFamily" list="dv105FamilyList" placeholder="Ej. PUERTA"><datalist id="dv105FamilyList"></datalist>
+          <span class="label">Categoría</span><input id="dv105SoundCategory" list="dv105CategoryList" placeholder="Ej. CIERRE"><datalist id="dv105CategoryList"></datalist>
+        </div>
+        <div class="dv105-source-box">
+          <div class="label">Fuente de audio</div>
+          <div class="dv105-source-actions">
+            <label class="btn small" for="dv105SoundFile">📁 Elegir archivo</label>
+            <input id="dv105SoundFile" type="file" accept="audio/*" style="display:none">
+            <button class="btn small" id="dv105SoundRecord">● Grabar</button>
+          </div>
+          <div class="dv105-source-status" id="dv105SoundSourceStatus">Selecciona un archivo o graba un sonido.</div>
+        </div>
+        <div class="dv105-modal-actions"><button class="btn" id="dv105SoundCancel">Cancelar</button><button class="btn primary" id="dv105SoundSave">Guardar y asignar</button></div>
+      </div>`;
+    document.body.appendChild(modal);
+    document.getElementById('dv105SoundClose').onclick=dv105CloseSoundModal;
+    document.getElementById('dv105SoundCancel').onclick=dv105CloseSoundModal;
+    document.getElementById('dv105SoundType').onchange=()=>{dv105RefreshTaxonomyLists();dv105SuggestTaxonomy()};
+    document.getElementById('dv105SoundFamily').oninput=dv105RefreshTaxonomyLists;
+    document.getElementById('dv105SoundFile').onchange=e=>{
+      const file=e.target.files?.[0];if(!file||!dv105Draft)return;
+      dv105Draft.blob=file;dv105Draft.originalName=file.name;
+      document.getElementById('dv105SoundSourceStatus').textContent=`✓ Archivo listo: ${file.name}`;
+    };
+    document.getElementById('dv105SoundRecord').onclick=dv105ToggleRecording;
+    document.getElementById('dv105SoundSave').onclick=dv105SaveNewSound;
+    return modal;
+  }
+
+  function dv105RefreshTaxonomyLists(){
+    const type=document.getElementById('dv105SoundType')?.value||'sfx';
+    const canonical=eventTypeToSoundType(type);
+    const family=(document.getElementById('dv105SoundFamily')?.value||'').trim();
+    const familyList=document.getElementById('dv105FamilyList');
+    const categoryList=document.getElementById('dv105CategoryList');
+    if(familyList)familyList.innerHTML=taxonomyFamilies(canonical).map(x=>`<option value="${esc(x)}">`).join('');
+    if(categoryList)categoryList.innerHTML=taxonomyCategories(canonical,upperClosed(family)).map(x=>`<option value="${esc(x)}">`).join('');
+  }
+
+  function dv105SuggestTaxonomy(){
+    const name=(document.getElementById('dv105SoundName')?.value||'').trim();
+    const type=document.getElementById('dv105SoundType')?.value||'sfx';
+    if(!name)return;
+    try{
+      const meta=guessPendingMeta(name,type);
+      const family=document.getElementById('dv105SoundFamily');
+      const category=document.getElementById('dv105SoundCategory');
+      if(family&&!family.value)family.value=meta.family||'';
+      if(category&&!category.value)category.value=meta.category||'';
+      dv105RefreshTaxonomyLists();
+    }catch(e){}
+  }
+
+  function dv105OpenSoundModal(sceneIndex,eventIndex,layerIndex=null){
+    const scene=scenes?.[sceneIndex],ev=scene?.events?.[eventIndex];if(!ev)return;
+    ensureEventLayers(ev);
+    const layer=layerIndex==null?null:ev.layers?.[layerIndex];
+    dv105Draft={sceneIndex,eventIndex,layerIndex,blob:null,originalName:'',stream:null};
+    const modal=dv105Modal();
+    const suggested=layerIndex==null?primaryEventCue(ev):(layer?.autoCue||`${ev.name} capa ${layerIndex+2}`);
+    document.getElementById('dv105SoundName').value=suggested||'';
+    document.getElementById('dv105SoundType').value=layerIndex==null?ev.type:(layer?.type||ev.type);
+    document.getElementById('dv105SoundFamily').value='';
+    document.getElementById('dv105SoundCategory').value='';
+    document.getElementById('dv105SoundFile').value='';
+    document.getElementById('dv105SoundSourceStatus').textContent='Selecciona un archivo o graba un sonido.';
+    document.getElementById('dv105SoundRecord').textContent='● Grabar';
+    dv105RefreshTaxonomyLists();dv105SuggestTaxonomy();
+    modal.classList.add('show');modal.setAttribute('aria-hidden','false');
+  }
+
+  function dv105StopRecorderTracks(){
+    try{dv105Recorder?.stream?.getTracks?.().forEach(t=>t.stop())}catch(e){}
+  }
+
+  function dv105CloseSoundModal(){
+    if(dv105Recorder?.recorder?.state&&dv105Recorder.recorder.state!=='inactive'){
+      try{dv105Recorder.recorder.stop()}catch(e){}
+    }
+    dv105StopRecorderTracks();dv105Recorder=null;dv105Draft=null;
+    const modal=document.getElementById('dv105SoundModal');
+    if(modal){modal.classList.remove('show');modal.setAttribute('aria-hidden','true')}
+  }
+
+  async function dv105ToggleRecording(){
+    const btn=document.getElementById('dv105SoundRecord');
+    const status=document.getElementById('dv105SoundSourceStatus');
+    if(dv105Recorder?.recorder&&dv105Recorder.recorder.state!=='inactive'){
+      dv105Recorder.recorder.stop();return;
+    }
+    if(!dv105Draft||!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==='undefined'){
+      if(status)status.textContent='La grabación no está disponible en este dispositivo.';return;
+    }
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      const mime=typeof supportedRecorderMime==='function'?supportedRecorderMime():'';
+      const recorder=mime?new MediaRecorder(stream,{mimeType:mime}):new MediaRecorder(stream);
+      const chunks=[];
+      recorder.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+      recorder.onstop=()=>{
+        const realType=recorder.mimeType||mime||chunks[0]?.type||'audio/webm';
+        const blob=new Blob(chunks,{type:realType});
+        stream.getTracks().forEach(t=>t.stop());
+        dv105Recorder=null;
+        if(btn)btn.textContent='● Grabar';
+        if(!dv105Draft)return;
+        if(!blob.size){if(status)status.textContent='La grabación quedó vacía.';return}
+        dv105Draft.blob=blob;
+        dv105Draft.originalName=`grabacion-${Date.now()}.${realType.includes('ogg')?'ogg':realType.includes('mp4')?'m4a':'webm'}`;
+        if(status)status.textContent='✓ Grabación lista para guardar.';
+      };
+      recorder.onerror=()=>{if(status)status.textContent='La grabación falló.'};
+      recorder.start(250);
+      dv105Recorder={recorder,stream};
+      if(btn)btn.textContent='■ Detener';
+      if(status)status.textContent='Grabando… toca Detener cuando termines.';
+    }catch(err){
+      if(status)status.textContent='No se pudo acceder al micrófono.';
+    }
+  }
+
+  async function dv105SaveNewSound(){
+    if(!dv105Draft)return;
+    const name=cleanSoundLabel((document.getElementById('dv105SoundName')?.value||'').trim());
+    const eventType=document.getElementById('dv105SoundType')?.value||'sfx';
+    const family=upperClosed(document.getElementById('dv105SoundFamily')?.value||'');
+    const category=upperClosed(document.getElementById('dv105SoundCategory')?.value||'');
+    const status=document.getElementById('dv105SoundSourceStatus');
+    if(!name){if(status)status.textContent='Escribe un nombre para el sonido.';return}
+    if(!family){if(status)status.textContent='Selecciona o crea una familia.';return}
+    if(!category){if(status)status.textContent='Selecciona o crea una categoría.';return}
+    if(!dv105Draft.blob){if(status)status.textContent='Selecciona un archivo o graba un sonido.';return}
+    const canonical=eventTypeToSoundType(eventType);
+    ensureCategory(canonical,family,category);
+    const key=await uniqueSoundKey(name);
+    const duration=await audioDuration(dv105Draft.blob);
+    await dbPut(key,{blob:dv105Draft.blob,originalName:dv105Draft.originalName||name,label:name,type:canonical,family,group:family,category,loop:false,duration,mimeType:dv105Draft.blob.type||''});
+    const {sceneIndex,eventIndex,layerIndex}=dv105Draft;
+    const ev=scenes?.[sceneIndex]?.events?.[eventIndex];
+    if(!ev)return;
+    ensureEventLayers(ev);
+    if(layerIndex==null){
+      ev.manualSoundKey=key;
+      try{
+        const sig=soundOverrideSignature(primaryEventCue(ev),ev.type,ev.speaker||'');
+        soundOverrides[sig]=key;saveSoundOverrides();
+      }catch(e){}
+    }else{
+      const layer=ev.layers?.[layerIndex];
+      if(layer){layer.soundKey=key;layer.autoCue='';layer.type=eventType}
+    }
+    dv105StopRecorderTracks();dv105Recorder=null;dv105Draft=null;
+    const modal=document.getElementById('dv105SoundModal');if(modal){modal.classList.remove('show');modal.setAttribute('aria-hidden','true')}
+    refreshActiveQueue(sceneIndex);
+    try{await renderSounds()}catch(e){}
+    renderScenes();
+  }
+
+  function dv105DecorateSoundLayers(){
+    document.querySelectorAll('.sound-event-card').forEach(details=>{
+      const key=String(details.dataset.editorKey||'');
+      const parts=key.split(':').map(Number);
+      if(parts.length!==2||parts.some(Number.isNaN))return;
+      const [sceneIndex,eventIndex]=parts;
+      const primaryActions=details.querySelector('.primary-layer .sound-layer-actions');
+      if(primaryActions&&!primaryActions.querySelector('.dv105-create-sound')){
+        const btn=document.createElement('button');btn.type='button';btn.className='btn small dv105-create-sound';btn.textContent='＋ Crear sonido nuevo';
+        btn.onclick=e=>{e.preventDefault();e.stopPropagation();dv105OpenSoundModal(sceneIndex,eventIndex,null)};
+        primaryActions.appendChild(btn);
+      }
+      details.querySelectorAll('.extraLayers .sound-layer-card').forEach(card=>{
+        const layerIndex=Number(card.dataset.layerIndex);
+        const actions=card.querySelector('.sound-layer-actions');
+        if(!actions||actions.querySelector('.dv105-create-sound')||Number.isNaN(layerIndex))return;
+        const btn=document.createElement('button');btn.type='button';btn.className='btn small dv105-create-sound';btn.textContent='＋ Crear sonido nuevo';
+        btn.onclick=e=>{e.preventDefault();e.stopPropagation();dv105OpenSoundModal(sceneIndex,eventIndex,layerIndex)};
+        actions.appendChild(btn);
+      });
+    });
+  }
+
+  function dv105RefreshUi(){
+    dv105InjectStyles();
+    dv105CleanLiteralNewline();
+    dv105SetBrand();
+    dv105VersionPanel();
+    dv105DecorateSoundLayers();
+  }
+
+  dv105RefreshUi();
+  const observer=new MutationObserver(()=>dv105RefreshUi());
+  if(document.body)observer.observe(document.body,{childList:true,subtree:true,characterData:true});
+  setTimeout(dv105RefreshUi,450);
+  setTimeout(dv105RefreshUi,1400);
+  setTimeout(dv105RestoreReturnState,350);
+  setTimeout(()=>dv105CheckForUpdates({manual:false}).catch(()=>{}),1200);
+})();
+
 </script>
 </body></html>
