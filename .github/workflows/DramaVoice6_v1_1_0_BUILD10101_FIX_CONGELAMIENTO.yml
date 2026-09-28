@@ -1,0 +1,155 @@
+name: DramaVoice 6 v1.1.0 - Hotfix congelamiento build10101
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  hotfix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Aplicar hotfix build10101
+        shell: bash
+        run: |
+          set -e
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, re
+
+          INDEX=Path("index.html")
+          VERSION=Path("version.json")
+          SW=Path("service-worker.js")
+
+          for p in (INDEX,VERSION,SW):
+              if not p.exists():
+                  raise SystemExit(f"ERROR: falta {p}")
+
+          html=INDEX.read_text(encoding="utf-8")
+
+          bad="const observer=new MutationObserver(()=>refreshUi());if(document.body)observer.observe(document.body,{childList:true,subtree:true});"
+          good="""let dv110RefreshScheduled=false;
+          let observer=null;
+          function scheduleRefreshUi(){
+            if(dv110RefreshScheduled)return;
+            dv110RefreshScheduled=true;
+            requestAnimationFrame(()=>{
+              try{
+                if(observer)observer.disconnect();
+                refreshUi();
+              }finally{
+                dv110RefreshScheduled=false;
+                if(observer&&document.body)observer.observe(document.body,{childList:true,subtree:true});
+              }
+            });
+          }
+          observer=new MutationObserver(scheduleRefreshUi);
+          if(document.body)observer.observe(document.body,{childList:true,subtree:true});"""
+
+          if bad not in html:
+              if "observer=new MutationObserver(scheduleRefreshUi)" not in html:
+                  raise SystemExit("ERROR: no encontré el observador defectuoso de v1.1.0.")
+          else:
+              html=html.replace(bad,good,1)
+
+          html=re.sub(
+              r'v47\s*·\s*correcciones consolidadas\s*·\s*Supertonic',
+              'v1.1.0 · Android TTS nativo',
+              html,
+              count=1,
+              flags=re.I
+          )
+
+          html,n=re.subn(
+              r'<meta name="dv6-version" content="[^"]*">',
+              '<meta name="dv6-version" content="10101">',
+              html,count=1
+          )
+          if n!=1:
+              raise SystemExit("ERROR: no se pudo actualizar meta dv6-version.")
+
+          html,n=re.subn(
+              r'const\s+DV6_APP_VERSION\s*=\s*\d+\s*;',
+              'const DV6_APP_VERSION=10101;',
+              html,count=1
+          )
+          if n!=1:
+              raise SystemExit("ERROR: no se pudo actualizar DV6_APP_VERSION.")
+
+          html=html.replace("const DV105_VERSION=10100;","const DV105_VERSION=10101;")
+          html=html.replace("const DV105_BUILD='2026.09.28-10100';","const DV105_BUILD='2026.09.28-10101';")
+
+          INDEX.write_text(html,encoding="utf-8")
+
+          VERSION.write_text(json.dumps({
+              "version":10101,
+              "displayVersion":"1.1.0",
+              "build":"2026.09.28-10101",
+              "date":"28 sep 2026",
+              "title":"Hotfix de estabilidad",
+              "updateRequired":False,
+              "changes":[
+                  "Elimina el ciclo de MutationObserver que podía congelar DramaVoice al iniciar.",
+                  "Mantiene la interfaz v1.1.0 y todas las mejoras consolidadas.",
+                  "Corrige el texto base del encabezado para que no aparezca v47 ni Supertonic mientras carga.",
+                  "Conserva Android TTS nativo y la firma definitiva del APK."
+              ]
+          },ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+
+          sw=SW.read_text(encoding="utf-8")
+          sw,n=re.subn(
+              r"const\s+DV6_SW_VERSION\s*=\s*['\"][^'\"]+['\"]\s*;",
+              "const DV6_SW_VERSION='1.1.0-10101';",
+              sw,count=1
+          )
+          if n!=1:
+              raise SystemExit("ERROR: no se pudo actualizar DV6_SW_VERSION.")
+          SW.write_text(sw,encoding="utf-8")
+
+          print("Hotfix build10101 aplicado.")
+          PY
+
+      - name: Validar hotfix
+        shell: bash
+        run: |
+          set -e
+
+          grep -q 'observer=new MutationObserver(scheduleRefreshUi)' index.html
+          grep -q 'DV6_APP_VERSION=10101;' index.html
+          grep -q 'content="10101"' index.html
+          grep -q "const DV105_VERSION=10101;" index.html
+          grep -q "const DV105_BUILD='2026.09.28-10101';" index.html
+          grep -q '"displayVersion": "1.1.0"' version.json
+          grep -q '"build": "2026.09.28-10101"' version.json
+          grep -q "DV6_SW_VERSION='1.1.0-10101'" service-worker.js
+
+          if grep -q 'new MutationObserver(()=>refreshUi())' index.html; then
+            echo "ERROR: todavía existe el observador recursivo."
+            exit 1
+          fi
+
+          git diff --check
+          echo "OK: hotfix v1.1.0 build10101 validado."
+
+      - name: Publicar hotfix
+        shell: bash
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add index.html version.json service-worker.js
+
+          if git diff --cached --quiet; then
+            echo "El hotfix ya estaba aplicado."
+            exit 0
+          fi
+
+          git commit -m "DramaVoice 6 v1.1.0 build10101: hotfix congelamiento"
+          git push
