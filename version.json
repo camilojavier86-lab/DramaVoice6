@@ -1,16 +1,21 @@
 {
-  "version": 10005,
-  "displayVersion": "1.0.5",
-  "build": "2026.09.27-10005",
-  "date": "27 sep 2026",
-  "title": "Actualizador moderno y sonidos por capa",
+  "version": 10100,
+  "displayVersion": "1.1.0",
+  "build": "2026.09.28-10100",
+  "date": "28 sep 2026",
+  "title": "Producción sonora y reproductor DramaVoice",
   "updateRequired": false,
   "changes": [
-    "Buscar actualizaciones ahora comprueba, descarga, aplica y refresca DramaVoice dentro de la propia app, sin pedir cerrar y volver a abrir.",
-    "Ajustes muestra por separado versión instalada, compilación, plataforma, motor de voz y estado de actualización.",
-    "La versión oficial visible pasa a v1.0.5; v54 deja de mostrarse como si fuera la versión funcional de DramaVoice.",
-    "Cada capa de sonido permite Crear sonido nuevo, elegir archivo o grabar, definir tipo, familia y categoría, y asignarlo automáticamente a esa capa.",
-    "Elimina el texto residual \\n que podía aparecer suelto en pantalla.",
-    "Conserva Android TTS y no modifica el contenedor Android ni el comportamiento de la muesca."
+    "Evita el duplicado temporal de tarjetas al abrir Escenas después de analizar una historia.",
+    "Los prompts pegados fuera de las escenas se vinculan de forma estricta al personaje correspondiente y la ficha muestra el prompt en lugar del resumen narrativo contaminado.",
+    "Elegir archivo, Grabar y Crear sonido nuevo desde una capa abren el editor completo del sonido antes de guardarlo en Biblioteca.",
+    "Los sonidos creados desde Escenas guardan nombre, descripción, tipo, familia, categoría, palabras clave, archivo original y duración.",
+    "Cada evento de sonido permite escuchar la mezcla completa de todas sus capas respetando volumen, recortes y retardos.",
+    "El Reproductor elimina información repetida, mantiene visible el lugar actual, resalta hablante, capítulo y escena y usa controles más grandes.",
+    "Play y Pausa se unifican en un único botón central redondo; anterior, siguiente y detener se conservan.",
+    "Al terminar el capítulo, Detener se transforma en Nuevo capítulo y lleva a la captura de Historia.",
+    "El reproductor añade halo de voz, fondo atmosférico, waveform, pulso de SFX, transición de ubicación y anillo de progreso sin animar los rostros.",
+    "El APK aplica un inset superior real para que DramaVoice no dibuje debajo de la muesca o barra de estado.",
+    "Se conserva Android TTS nativo, datos locales, firma persistente y actualizador sin cierre manual."
   ]
 }

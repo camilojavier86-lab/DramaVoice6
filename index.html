@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>DramaVoice 6 v1.0.5</title>
-<meta name="dv6-version" content="10005">
+<title>DramaVoice 6 v1.1.0</title>
+<meta name="dv6-version" content="10100">
 
 <meta name="theme-color" content="#07090d">
 <meta name="application-name" content="DramaVoice 6">
@@ -931,7 +931,7 @@ Todavía tengo trabajo pendiente.
         </div>
         <div id="projectStatus" class="status"></div>
         <div class="dv6-version-line">
-          <span class="dv6-version-current">Versión instalada: v1.0.5</span>
+          <span class="dv6-version-current">Versión instalada: v1.1.0</span>
           <button class="btn small" id="checkUpdatesBtn">Buscar actualización</button>
         </div>        
         <div class="reset-box">
@@ -3983,7 +3983,7 @@ if(dv6InstallBtn)dv6InstallBtn.addEventListener('click',async()=>{
 dv6RefreshInstallUi();
 
 // v44 — actualizaciones inteligentes de la PWA
-const DV6_APP_VERSION=10005;
+const DV6_APP_VERSION=10100;
 const DV6_VERSION_URL='./version.json';
 let dv6UpdateInfo=null;
 let dv6UpdateRegistration=null;
@@ -5226,9 +5226,9 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
   if(window.__DV6_V105)return;
   window.__DV6_V105=true;
 
-  const DV105_VERSION=10005;
-  const DV105_DISPLAY='1.0.5';
-  const DV105_BUILD='2026.09.27-10005';
+  const DV105_VERSION=10100;
+  const DV105_DISPLAY='1.1.0';
+  const DV105_BUILD='2026.09.28-10100';
   const DV105_RETURN_KEY='dv6-v105-return-after-update';
   let dv105Checking=false;
   let dv105Recorder=null;
@@ -5623,6 +5623,534 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
   setTimeout(dv105RefreshUi,1400);
   setTimeout(dv105RestoreReturnState,350);
   setTimeout(()=>dv105CheckForUpdates({manual:false}).catch(()=>{}),1200);
+})();
+
+</script>
+<script id="dv6-v110-patch">
+(()=>{
+  if(window.__DV6_V110)return;
+  window.__DV6_V110=true;
+
+  const DV110_VERSION=10100;
+  const DV110_DISPLAY='1.1.0';
+  const DV110_BUILD='2026.09.28-10100';
+  let dv110SceneRendering=false;
+  let dv110ScenePending=false;
+  let dv110MixAudios=[];
+  let dv110MixTimers=[];
+  let dv110MixButton=null;
+  let dv110Recorder=null;
+  let dv110SoundDraft=null;
+  let dv110LastLocation='';
+  let dv110MotionTimer=null;
+
+  function injectStyles(){
+    if(document.getElementById('dv110-styles'))return;
+    const style=document.createElement('style');
+    style.id='dv110-styles';
+    style.textContent=`
+      /* Escenas / sonido */
+      .dv110-mix-preview{margin-top:8px;width:100%;min-height:42px;border-color:#7c5cff77!important;background:linear-gradient(135deg,#111827,#101626)!important}
+      .dv110-sound-modal{position:fixed;inset:0;z-index:1900;background:#000c;display:none;align-items:flex-end;justify-content:center;padding:12px}
+      .dv110-sound-modal.show{display:flex}
+      .dv110-sound-card{width:min(720px,100%);max-height:92dvh;overflow:auto;border:1px solid #33ead966;background:linear-gradient(180deg,#0b111a,#080c13);border-radius:22px;padding:15px;box-shadow:0 28px 100px #000e}
+      .dv110-sound-head{display:flex;align-items:center;gap:10px;justify-content:space-between;margin-bottom:12px}
+      .dv110-sound-head h3{margin:0;font-size:18px}
+      .dv110-sound-grid{display:grid;grid-template-columns:105px minmax(0,1fr);gap:9px 10px;align-items:center}
+      .dv110-sound-grid .label{margin:0;font-size:9px}
+      .dv110-sound-grid textarea{min-height:72px;resize:vertical}
+      .dv110-source{margin-top:12px;border:1px solid var(--line);background:#080d14;border-radius:14px;padding:11px}
+      .dv110-source-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+      .dv110-source-meta{font-size:10px;color:var(--muted);margin-top:8px;line-height:1.4}
+      .dv110-save-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+      .dv110-create-sound{border-color:#33ead966!important;color:#93fff4!important}\n      .dv110-library-description{grid-column:1/-1;margin-top:5px;padding:7px 9px;border-radius:10px;background:#0a1018;border:1px solid var(--line);font-size:10px;color:#aeb8c7;line-height:1.4}
+      @media(min-width:700px){.dv110-sound-modal{align-items:center}}
+
+      /* Prompt de personaje */
+      .cast-description,.character-description{white-space:pre-wrap;line-height:1.45}
+      .dv110-prompt-pending{color:var(--muted);font-style:italic}
+
+      /* Reproductor DramaVoice */
+      #reproductor .player{position:relative;overflow:hidden;isolation:isolate;background-color:#05080d}
+      #reproductor .player::before{content:'';position:absolute;inset:-25%;z-index:-2;pointer-events:none;background:radial-gradient(circle at 28% 24%,#22e7d31f,transparent 34%),radial-gradient(circle at 74% 46%,#7c4dff24,transparent 38%),radial-gradient(circle at 45% 82%,#36a3ff12,transparent 40%);animation:dv110Atmosphere 16s ease-in-out infinite alternate}
+      #reproductor .player::after{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,#03070a22,#03070aaa 72%,#03070ae8)}
+      @keyframes dv110Atmosphere{0%{transform:translate3d(-2%,0,0) scale(1)}50%{transform:translate3d(2%,-1%,0) scale(1.035)}100%{transform:translate3d(0,2%,0) scale(1.015)}}
+
+      #playerPortrait{position:relative!important;isolation:isolate;--dv110-progress:0deg}
+      #playerPortrait::before{content:'';position:absolute;inset:-8px;border-radius:inherit;z-index:-2;background:conic-gradient(from -90deg,#34eadf var(--dv110-progress),#5b42d933 var(--dv110-progress),#5b42d933 360deg);opacity:.9;filter:drop-shadow(0 0 10px #38e8d744)}
+      #playerPortrait::after{content:'';position:absolute;inset:-13px;border-radius:inherit;z-index:-3;border:2px solid #47f5e650;opacity:.15;transform:scale(.98)}
+      #reproductor .player.dv110-playing #playerPortrait::after{animation:dv110Halo 1.8s ease-out infinite}
+      @keyframes dv110Halo{0%{opacity:.12;transform:scale(.98)}55%{opacity:.38}100%{opacity:0;transform:scale(1.10)}}
+      #reproductor .player.dv110-sfx-pulse #playerPortrait::after{animation:dv110Sfx .38s ease-out 1!important;border-color:#a56cffcc}
+      @keyframes dv110Sfx{0%{opacity:.7;transform:scale(.98)}100%{opacity:0;transform:scale(1.16)}}
+      #reproductor .player.dv110-paused *,#reproductor .player.dv110-paused::before{animation-play-state:paused!important}
+
+      .dv110-wave{height:30px;display:flex;align-items:center;justify-content:center;gap:4px;margin:7px auto 4px;max-width:210px;opacity:.72}
+      .dv110-wave span{display:block;width:3px;height:7px;border-radius:4px;background:linear-gradient(180deg,#77fff3,#8258ff);transform-origin:center;animation:dv110Wave 1.05s ease-in-out infinite;animation-play-state:paused}
+      #reproductor .player.dv110-playing .dv110-wave span{animation-play-state:running}
+      .dv110-wave span:nth-child(2n){animation-delay:-.42s}.dv110-wave span:nth-child(3n){animation-delay:-.72s}.dv110-wave span:nth-child(5n){animation-delay:-.18s}
+      @keyframes dv110Wave{0%,100%{transform:scaleY(.5);opacity:.5}50%{transform:scaleY(3.1);opacity:1}}
+
+      #playerVisualNote,#playerPlacePhotoNote{display:none!important}
+      #playerSpeaker{font-size:clamp(17px,4.8vw,22px)!important;font-weight:850!important;letter-spacing:.04em;margin-top:8px}
+      #playerSpeakerMeta{font-size:10px!important;color:var(--muted)!important;margin-top:3px}
+      #playerLocation{display:inline-flex!important;align-items:center;justify-content:center;max-width:92%;margin:7px auto 0;padding:5px 10px;border-radius:999px;background:#11201e;border:1px solid #35e7d644;color:#aefbf4!important;font-size:11px!important;font-weight:700;line-height:1.2}
+      #playerLocation:empty{display:none!important}
+      #playerLocation.dv110-location-change{animation:dv110Location .42s ease-out}
+      @keyframes dv110Location{0%{opacity:.25;transform:translateY(6px) scale(.97);box-shadow:0 0 0 #35e7d600}100%{opacity:1;transform:none;box-shadow:0 0 18px #35e7d622}}
+      #playerChapter,#playerScene{font-size:11px!important;line-height:1.35;color:#cbd3df!important}
+      #playerChapter{margin-top:9px!important;font-weight:700}
+      #playerScene{color:#909aaa!important}
+      #playerChapter::before{content:'📖 '}
+      #playerScene::before{content:'🎬 '}
+
+      #reproductor .controls{position:relative!important;display:grid!important;grid-template-columns:1fr 78px 1fr!important;align-items:center!important;min-height:78px;gap:10px;margin-top:8px}
+      #reproductor .controls .btn{min-width:52px;min-height:52px;border-radius:18px;font-size:20px;background:linear-gradient(180deg,#151c29,#0c111a);border:1px solid #39465d;box-shadow:0 8px 24px #0007;transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease}
+      #reproductor .controls .btn:active{transform:scale(.91);box-shadow:0 2px 10px #0009}
+      #prevBtn{grid-column:1;grid-row:1;justify-self:start}
+      #playBtn{grid-column:2;grid-row:1;justify-self:center;width:72px!important;height:72px!important;min-width:72px!important;min-height:72px!important;border-radius:50%!important;font-size:28px!important;background:radial-gradient(circle at 34% 28%,#46f4e2,#8360ff 64%,#4b34b8)!important;border:1px solid #b7fff8aa!important;color:#071014!important;box-shadow:0 0 0 5px #6e55ff18,0 0 28px #5aeadd55,0 13px 30px #000b!important}
+      #pauseBtn{display:none!important}
+      #nextBtn{grid-column:3;grid-row:1;justify-self:start}
+      #stopBtn{grid-column:3;grid-row:1;justify-self:end;min-width:52px!important}
+      #stopBtn.dv110-new-chapter{font-size:12px!important;line-height:1.05;padding:7px 9px!important;min-width:82px!important;color:#b7fff8!important;border-color:#35e7d677!important;background:linear-gradient(135deg,#10201f,#1a1540)!important}
+    `;
+    document.head.appendChild(style);
+  }
+
+  function cleanVersionUi(){
+    const sub=document.querySelector('.brand .sub');
+    if(sub)sub.textContent=`v${DV110_DISPLAY} · Android TTS nativo`;
+    const version=document.getElementById('dv105InstalledVersion');if(version)version.textContent='v'+DV110_DISPLAY;
+    const build=document.getElementById('dv105Build');if(build)build.textContent=DV110_BUILD;
+  }
+
+  /* ---------- Render de escenas sin carreras ---------- */
+  try{
+    const originalRenderScenes=window.renderScenes;
+    if(typeof originalRenderScenes==='function'&&!originalRenderScenes.__dv110Serialized){
+      const serialized=async function(...args){
+        if(dv110SceneRendering){dv110ScenePending=true;return}
+        dv110SceneRendering=true;
+        try{
+          do{
+            dv110ScenePending=false;
+            await originalRenderScenes.apply(this,args);
+          }while(dv110ScenePending);
+        }finally{
+          dv110SceneRendering=false;
+          decorateSceneEditors();
+        }
+      };
+      serialized.__dv110Serialized=true;
+      window.renderScenes=serialized;
+    }
+  }catch(e){console.warn('DV6 v1.1.0: no pude serializar Escenas',e)}
+
+  async function decorateSoundLibraryMeta(){
+    try{
+      const records=[];
+      for(const key of await dbKeys()){
+        const raw=await dbGet(key);if(!raw||raw instanceof Blob)continue;
+        const rec=normalizeSoundRecord(raw,key);records.push({key,rec});
+      }
+      document.querySelectorAll('#sonidos .sound-mini').forEach(row=>{
+        if(row.querySelector('.dv110-library-description'))return;
+        const label=row.querySelector('.sound-mini-name')?.textContent?.trim()||'';
+        const item=records.find(x=>norm(x.rec.label)===norm(label));if(!item)return;
+        const description=String(item.rec.description||'').trim();
+        const keywords=Array.isArray(item.rec.keywords)?item.rec.keywords.filter(Boolean):[];
+        if(!description&&!keywords.length)return;
+        const meta=document.createElement('div');meta.className='dv110-library-description';
+        meta.textContent=[description,keywords.length?'Etiquetas: '+keywords.join(', '):''].filter(Boolean).join(' · ');
+        row.appendChild(meta);
+      });
+    }catch(e){}
+  }
+  try{
+    const oldRenderSounds=window.renderSounds;
+    if(typeof oldRenderSounds==='function')window.renderSounds=async function(...args){const r=await oldRenderSounds.apply(this,args);await decorateSoundLibraryMeta();return r};
+  }catch(e){}
+
+  /* ---------- Prompts estrictos por personaje ---------- */
+  function escapeRx(s){return String(s||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
+  function storyPreamble(raw){
+    const text=String(raw||'').replace(/\r/g,'');
+    const m=text.search(/^\s*\[ESCENA\s*:/im);
+    return m>=0?text.slice(0,m):text;
+  }
+  function knownCharacterNames(){
+    const names=new Set();
+    try{Object.values(charLib||{}).forEach(ch=>{if(ch?.name&&!isNarratorName(ch.name))names.add(displayName(ch.name))})}catch(e){}
+    try{(scenes||[]).forEach(s=>(s.events||[]).forEach(ev=>{if((ev.type==='speech'||ev.type==='vocalizacion')&&ev.speaker&&!isNarratorName(ev.speaker))names.add(displayName(ev.speaker))}))}catch(e){}
+    return [...names].sort((a,b)=>b.length-a.length);
+  }
+  function lineStartsCharacter(line,name){
+    const rx=new RegExp('^\\s*'+escapeRx(name)+'\\s*(?:[,—–\\-:|]|$)','i');
+    return rx.test(String(line||''));
+  }
+  function explicitPromptStart(line,name){
+    const n=escapeRx(name);
+    return [
+      new RegExp('^\\s*\\[PROMPT(?:\\s+PERSONAJE)?\\s*:\\s*'+n+'(?:\\s*\\|\\s*(.*))?\\]\\s*$','i'),
+      new RegExp('^\\s*PROMPT(?:\\s+PERSONAJE)?\\s+'+n+'\\s*:\\s*(.*)$','i'),
+      new RegExp('^\\s*\\[PROMPT(?:\\s+PERSONAJE)?\\s*:\\s*'+n+'\\s*\\]\\s*$','i')
+    ].map(rx=>String(line||'').match(rx)).find(Boolean)||null;
+  }
+  function anyPromptBoundary(line,currentName){
+    const t=String(line||'');
+    if(/^\s*\[(?:ESCENA|FIN\s+CAPITULO|FIN\s+CAPÍTULO)\s*:/i.test(t))return true;
+    if(/^\s*\[PROMPT/i.test(t)||/^\s*PROMPT(?:\s+PERSONAJE)?\s+/i.test(t))return true;
+    return knownCharacterNames().some(n=>norm(n)!==norm(currentName)&&lineStartsCharacter(t,n));
+  }
+  function strictPromptFor(raw,name){
+    const pre=storyPreamble(raw),lines=pre.split('\n');
+    const exact=escapeRx(name);
+
+    const oneLine=new RegExp('^\\s*\\[PROMPT(?:\\s+PERSONAJE)?\\s*:\\s*'+exact+'\\s*\\|\\s*(.+?)\\]\\s*$','im');
+    const one=pre.match(oneLine);if(one?.[1])return one[1].trim();
+
+    for(let i=0;i<lines.length;i++){
+      const match=explicitPromptStart(lines[i],name);
+      if(!match)continue;
+      const gathered=[];
+      const remainder=String(match[1]||'').trim();if(remainder)gathered.push(remainder);
+      for(let j=i+1;j<lines.length;j++){
+        if(anyPromptBoundary(lines[j],name))break;
+        gathered.push(lines[j]);
+      }
+      const text=gathered.join('\n').trim();if(text)return text;
+    }
+
+    // Formato habitual pegado fuera de las escenas: un bloque que empieza por el nombre exacto.
+    for(let i=0;i<lines.length;i++){
+      if(!lineStartsCharacter(lines[i],name))continue;
+      // Evita confundir etiquetas del guion con un prompt.
+      if(/^\s*\[/.test(lines[i]))continue;
+      const gathered=[lines[i].trim()];
+      for(let j=i+1;j<lines.length;j++){
+        if(anyPromptBoundary(lines[j],name))break;
+        if(!String(lines[j]).trim()&&gathered.length&&gathered[gathered.length-1]==='')break;
+        gathered.push(lines[j]);
+      }
+      const text=gathered.join('\n').trim();
+      if(text.length>=30)return text;
+    }
+    return '';
+  }
+  function syncStrictPrompts(){
+    const raw=document.getElementById('story')?.value||'';
+    let changed=false;
+    try{
+      Object.entries(charLib||{}).forEach(([key,ch])=>{
+        if(!ch||isNarratorName(ch.name||key))return;
+        const found=strictPromptFor(raw,ch.name||key);
+        if(found&&String(ch.visualPromptAuto||'').trim()!==found){ch.visualPromptAuto=found;changed=true}
+        if(Array.isArray(ch.narrativeFacts)&&ch.narrativeFacts.length){ch.narrativeFacts=[];changed=true}
+        if(ch.narrativeSummary){ch.narrativeSummary='';changed=true}
+      });
+      if(changed&&typeof saveLib==='function')saveLib();
+    }catch(e){console.warn('DV6 v1.1.0: prompt',e)}
+  }
+  try{
+    window.buildAutoVisualPrompt=(raw,ch)=>strictPromptFor(raw,ch?.name||'')||String(ch?.visualPromptAuto||'').trim();
+    window.enrichCharacterNarrative=(record,raw,name)=>{
+      const out={...(record||{})};
+      const found=strictPromptFor(raw,name);
+      if(found)out.visualPromptAuto=found;
+      out.narrativeFacts=[];
+      out.narrativeSummary='';
+      return out;
+    };
+  }catch(e){}
+
+  function decoratePromptDescriptions(){
+    try{
+      document.querySelectorAll('#reparto details.char-collapse[data-key]').forEach(det=>{
+        const ch=charLib?.[det.dataset.key];if(!ch)return;
+        const box=det.querySelector('.cast-description');if(!box)return;
+        const prompt=(typeof activeVisualPrompt==='function'?activeVisualPrompt(ch):'')||'';
+        box.innerHTML=`<div class="label-mini">PROMPT DEL PERSONAJE</div>${prompt?esc(prompt):'<span class="dv110-prompt-pending">PROMPT PENDIENTE</span>'}`;
+      });
+      document.querySelectorAll('#personajes details.char-collapse[data-key]').forEach(det=>{
+        const ch=charLib?.[det.dataset.key];if(!ch)return;
+        const box=det.querySelector('.character-description');if(!box)return;
+        const prompt=(typeof activeVisualPrompt==='function'?activeVisualPrompt(ch):'')||'';
+        box.innerHTML=`<div class="character-description-title">PROMPT DEL PERSONAJE</div>${prompt?esc(prompt):'<span class="dv110-prompt-pending">PROMPT PENDIENTE</span>'}`;
+      });
+    }catch(e){}
+  }
+  try{
+    const oldAnalyze=window.analyze;
+    if(typeof oldAnalyze==='function'){
+      window.analyze=function(...args){
+        const result=oldAnalyze.apply(this,args);
+        syncStrictPrompts();
+        try{renderCast();renderLibrary()}catch(e){}
+        setTimeout(decoratePromptDescriptions,0);
+        return result;
+      };
+      const btn=document.getElementById('analyzeBtn');if(btn)btn.onclick=window.analyze;
+    }
+  }catch(e){}
+
+  /* ---------- Creación completa de sonidos desde Escenas ---------- */
+  function draftPositionFromElement(el){
+    const details=el.closest('.sound-event-card');if(!details)return null;
+    const parts=String(details.dataset.editorKey||'').split(':').map(Number);
+    if(parts.length!==2||parts.some(Number.isNaN))return null;
+    const extra=el.closest('.extraLayers .sound-layer-card');
+    return {sceneIndex:parts[0],eventIndex:parts[1],layerIndex:extra?Number(extra.dataset.layerIndex):null};
+  }
+  function getDraftEvent(pos){
+    const ev=scenes?.[pos?.sceneIndex]?.events?.[pos?.eventIndex];
+    if(ev&&typeof ensureEventLayers==='function')ensureEventLayers(ev);
+    return ev||null;
+  }
+  function soundModal(){
+    let modal=document.getElementById('dv110SoundModal');if(modal)return modal;
+    modal=document.createElement('div');modal.id='dv110SoundModal';modal.className='dv110-sound-modal';modal.setAttribute('aria-hidden','true');
+    modal.innerHTML=`<div class="dv110-sound-card" role="dialog" aria-modal="true">
+      <div class="dv110-sound-head"><h3>Crear sonido para esta capa</h3><button class="btn small" id="dv110CloseSound">×</button></div>
+      <div class="dv110-sound-grid">
+        <span class="label">Nombre</span><input id="dv110SoundName" placeholder="Nombre del sonido">
+        <span class="label">Descripción</span><textarea id="dv110SoundDescription" placeholder="Qué se escucha y cómo debe sentirse"></textarea>
+        <span class="label">Tipo</span><select id="dv110SoundType"><option value="ambiente">Ambiente</option><option value="sfx">Efecto / SFX</option><option value="vocalizacion">Vocalización</option></select>
+        <span class="label">Familia</span><input id="dv110SoundFamily" list="dv110FamilyList" placeholder="Selecciona o escribe una familia"><datalist id="dv110FamilyList"></datalist>
+        <span class="label">Categoría</span><input id="dv110SoundCategory" list="dv110CategoryList" placeholder="Selecciona o escribe una categoría"><datalist id="dv110CategoryList"></datalist>
+        <span class="label">Palabras clave</span><input id="dv110SoundKeywords" placeholder="Ej. metal, puerta, golpe, oficina">
+      </div>
+      <div class="dv110-source">
+        <div class="label">Audio de esta capa</div>
+        <div class="dv110-source-actions"><label class="btn small" for="dv110SoundFile">📁 Elegir archivo</label><input id="dv110SoundFile" type="file" accept="audio/*" style="display:none"><button class="btn small" id="dv110Record">● Grabar</button></div>
+        <div class="dv110-source-meta" id="dv110SourceMeta">Todavía no hay audio seleccionado.</div>
+      </div>
+      <div class="dv110-save-row"><button class="btn" id="dv110CancelSound">Cancelar</button><button class="btn primary" id="dv110SaveSound">Guardar y asignar</button></div>
+    </div>`;
+    document.body.appendChild(modal);
+    document.getElementById('dv110CloseSound').onclick=closeSoundModal;
+    document.getElementById('dv110CancelSound').onclick=closeSoundModal;
+    document.getElementById('dv110SoundType').onchange=refreshSoundTaxonomy;
+    document.getElementById('dv110SoundFamily').oninput=refreshSoundTaxonomy;
+    document.getElementById('dv110SoundFile').onchange=async e=>{
+      const file=e.target.files?.[0];if(!file||!dv110SoundDraft)return;
+      dv110SoundDraft.blob=file;dv110SoundDraft.originalName=file.name;dv110SoundDraft.duration=await audioDuration(file);
+      updateSourceMeta();
+    };
+    document.getElementById('dv110Record').onclick=toggleDraftRecording;
+    document.getElementById('dv110SaveSound').onclick=saveDraftSound;
+    return modal;
+  }
+  function refreshSoundTaxonomy(){
+    const type=document.getElementById('dv110SoundType')?.value||'sfx';
+    const canonical=eventTypeToSoundType(type);
+    const family=upperClosed(document.getElementById('dv110SoundFamily')?.value||'');
+    const famList=document.getElementById('dv110FamilyList'),catList=document.getElementById('dv110CategoryList');
+    if(famList)famList.innerHTML=taxonomyFamilies(canonical).map(x=>`<option value="${esc(x)}">`).join('');
+    if(catList)catList.innerHTML=(family?taxonomyCategories(canonical,family):[]).map(x=>`<option value="${esc(x)}">`).join('');
+  }
+  function updateSourceMeta(){
+    const el=document.getElementById('dv110SourceMeta');if(!el||!dv110SoundDraft)return;
+    if(!dv110SoundDraft.blob){el.textContent='Todavía no hay audio seleccionado.';return}
+    el.textContent=`✓ ${dv110SoundDraft.originalName||'Grabación'} · ${typeof fmtDuration==='function'?fmtDuration(dv110SoundDraft.duration||0):''}`;
+  }
+  function openSoundModal(pos,blob=null,originalName=''){
+    const ev=getDraftEvent(pos);if(!ev)return;
+    const layer=pos.layerIndex==null?null:ev.layers?.[pos.layerIndex];
+    const cue=pos.layerIndex==null?(typeof primaryEventCue==='function'?primaryEventCue(ev):ev.name):(layer?.autoCue||`${ev.name} capa ${pos.layerIndex+2}`);
+    dv110SoundDraft={...pos,blob,originalName,duration:0};
+    const modal=soundModal();
+    document.getElementById('dv110SoundName').value=cue||'';
+    document.getElementById('dv110SoundDescription').value='';
+    document.getElementById('dv110SoundType').value=pos.layerIndex==null?ev.type:(layer?.type||ev.type);
+    document.getElementById('dv110SoundFamily').value='';
+    document.getElementById('dv110SoundCategory').value='';
+    document.getElementById('dv110SoundKeywords').value='';
+    document.getElementById('dv110SoundFile').value='';
+    refreshSoundTaxonomy();
+    modal.classList.add('show');modal.setAttribute('aria-hidden','false');
+    if(blob){audioDuration(blob).then(d=>{if(dv110SoundDraft){dv110SoundDraft.duration=d;updateSourceMeta()}})}else updateSourceMeta();
+  }
+  function stopRecorderTracks(){try{dv110Recorder?.stream?.getTracks?.().forEach(t=>t.stop())}catch(e){}}
+  function closeSoundModal(){
+    if(dv110Recorder?.recorder?.state&&dv110Recorder.recorder.state!=='inactive'){try{dv110Recorder.recorder.stop()}catch(e){}}
+    stopRecorderTracks();dv110Recorder=null;dv110SoundDraft=null;
+    const modal=document.getElementById('dv110SoundModal');if(modal){modal.classList.remove('show');modal.setAttribute('aria-hidden','true')}
+  }
+  async function toggleDraftRecording(){
+    const btn=document.getElementById('dv110Record'),meta=document.getElementById('dv110SourceMeta');
+    if(dv110Recorder?.recorder&&dv110Recorder.recorder.state!=='inactive'){dv110Recorder.recorder.stop();return}
+    if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==='undefined'){if(meta)meta.textContent='La grabación no está disponible.';return}
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      const mime=typeof supportedRecorderMime==='function'?supportedRecorderMime():'';
+      const recorder=mime?new MediaRecorder(stream,{mimeType:mime}):new MediaRecorder(stream);const chunks=[];
+      recorder.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data)};
+      recorder.onstop=async()=>{
+        const real=recorder.mimeType||mime||chunks[0]?.type||'audio/webm';
+        const blob=new Blob(chunks,{type:real});stream.getTracks().forEach(t=>t.stop());dv110Recorder=null;if(btn)btn.textContent='● Grabar';
+        if(!dv110SoundDraft||!blob.size)return;
+        dv110SoundDraft.blob=blob;dv110SoundDraft.originalName=`grabacion-${Date.now()}.${real.includes('ogg')?'ogg':real.includes('mp4')?'m4a':'webm'}`;dv110SoundDraft.duration=await audioDuration(blob);updateSourceMeta();
+      };
+      recorder.start(250);dv110Recorder={recorder,stream};if(btn)btn.textContent='■ Detener';if(meta)meta.textContent='Grabando…';
+    }catch(e){if(meta)meta.textContent='No se pudo acceder al micrófono.'}
+  }
+  async function saveDraftSound(){
+    if(!dv110SoundDraft)return;
+    const name=cleanSoundLabel(document.getElementById('dv110SoundName')?.value||'');
+    const description=String(document.getElementById('dv110SoundDescription')?.value||'').trim();
+    const eventType=document.getElementById('dv110SoundType')?.value||'sfx';
+    const family=upperClosed(document.getElementById('dv110SoundFamily')?.value||'');
+    const category=upperClosed(document.getElementById('dv110SoundCategory')?.value||'');
+    const keywords=String(document.getElementById('dv110SoundKeywords')?.value||'').split(',').map(x=>x.trim()).filter(Boolean);
+    const meta=document.getElementById('dv110SourceMeta');
+    if(!name){if(meta)meta.textContent='Falta el nombre del sonido.';return}
+    if(!family){if(meta)meta.textContent='Debes elegir o crear una familia.';return}
+    if(!category){if(meta)meta.textContent='Debes elegir o crear una categoría.';return}
+    if(!dv110SoundDraft.blob){if(meta)meta.textContent='Debes elegir un archivo o grabar el audio.';return}
+    const canonical=eventTypeToSoundType(eventType);ensureCategory(canonical,family,category);
+    const key=await uniqueSoundKey(name);
+    await dbPut(key,{blob:dv110SoundDraft.blob,originalName:dv110SoundDraft.originalName||name,label:name,description,keywords,type:canonical,family,group:family,category,loop:false,duration:Number(dv110SoundDraft.duration||0),mimeType:dv110SoundDraft.blob.type||''});
+    const pos={sceneIndex:dv110SoundDraft.sceneIndex,eventIndex:dv110SoundDraft.eventIndex,layerIndex:dv110SoundDraft.layerIndex};
+    const ev=getDraftEvent(pos);if(!ev)return;
+    if(pos.layerIndex==null){
+      ev.manualSoundKey=key;
+      try{const sig=soundOverrideSignature(primaryEventCue(ev),ev.type,ev.speaker||'');soundOverrides[sig]=key;saveSoundOverrides()}catch(e){}
+    }else{
+      const layer=ev.layers?.[pos.layerIndex];if(layer){layer.soundKey=key;layer.autoCue='';layer.type=eventType}
+    }
+    stopRecorderTracks();dv110Recorder=null;dv110SoundDraft=null;
+    const modal=document.getElementById('dv110SoundModal');if(modal){modal.classList.remove('show');modal.setAttribute('aria-hidden','true')}
+    refreshActiveQueue(pos.sceneIndex);try{await renderSounds()}catch(e){};await renderScenes();
+  }
+
+  /* Intercepta los controles antiguos para que ningún audio nuevo se guarde sin clasificar. */
+  document.addEventListener('change',e=>{
+    const input=e.target.closest?.('.primaryFile,.layerFile');if(!input)return;
+    const pos=draftPositionFromElement(input),file=input.files?.[0];if(!pos||!file)return;
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+    input.value='';openSoundModal(pos,file,file.name);
+  },true);
+  document.addEventListener('click',e=>{
+    const target=e.target.closest?.('.primaryRecord,.layerRecord,.dv105-create-sound,.dv110-create-sound');if(!target)return;
+    const pos=draftPositionFromElement(target);if(!pos)return;
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();openSoundModal(pos);
+  },true);
+
+  /* ---------- Preview conjunto de capas ---------- */
+  function stopMixPreview(){
+    dv110MixTimers.forEach(t=>clearTimeout(t));dv110MixTimers=[];
+    dv110MixAudios.forEach(a=>{try{a.pause();if(a._dvurl)URL.revokeObjectURL(a._dvurl)}catch(e){}});dv110MixAudios=[];
+    if(dv110MixButton){dv110MixButton.textContent='▶ Escuchar mezcla completa';dv110MixButton=null}
+  }
+  async function previewLayerOnce(layerEv){
+    const resolved=await resolveSoundRecord(layerEv.name||'',layerEv.type,layerEv.speaker||'',layerEv.manualSoundKey||'');if(!resolved)return false;
+    const blob=soundRecordToBlob(resolved.rec);if(!blob)return false;
+    const start=Math.max(0,Number(layerEv.trimStart||0)),end=Math.max(0,Number(layerEv.trimEnd||0)),delay=Math.max(0,Number(layerEv.delayMs||0));
+    const begin=()=>{
+      const url=URL.createObjectURL(blob),a=new Audio(url);a._dvurl=url;dv110MixAudios.push(a);
+      a.volume=layerEv.type==='ambiente'?effectiveAmbientVolume(layerEv.volume??1):effectiveSfxVolume(layerEv.volume??1);
+      let timer=null,done=false;
+      const cleanup=()=>{if(done)return;done=true;if(timer)clearInterval(timer);dv110MixAudios=dv110MixAudios.filter(x=>x!==a);try{a.pause();URL.revokeObjectURL(url)}catch(e){};if(!dv110MixAudios.length&&!dv110MixTimers.length&&dv110MixButton){dv110MixButton.textContent='▶ Escuchar mezcla completa';dv110MixButton=null}};
+      a.onloadedmetadata=()=>{if(start&&start<a.duration)try{a.currentTime=start}catch(e){}};a.onended=cleanup;a.onerror=cleanup;
+      if(end>start)timer=setInterval(()=>{if(a.currentTime>=end)cleanup()},35);
+      a.play().catch(cleanup);
+    };
+    if(delay){const t=setTimeout(()=>{dv110MixTimers=dv110MixTimers.filter(x=>x!==t);begin()},delay);dv110MixTimers.push(t)}else begin();
+    return true;
+  }
+  async function previewEventMix(sceneIndex,eventIndex,button){
+    if(dv110MixButton===button){stopMixPreview();return}
+    stopMixPreview();
+    const ev=scenes?.[sceneIndex]?.events?.[eventIndex];if(!ev)return;ensureEventLayers(ev);dv110MixButton=button;button.textContent='■ Detener mezcla';
+    const primary={...ev,name:primaryEventCue(ev)};await previewLayerOnce(primary);
+    for(const layer of ev.layers||[]){
+      if(!layer.soundKey&&!layer.autoCue)continue;
+      await previewLayerOnce({name:layer.autoCue||ev.name,type:layer.type||ev.type,speaker:ev.speaker||'',manualSoundKey:layer.soundKey||'',volume:layer.volume==null?1:layer.volume,trimStart:layer.trimStart||0,trimEnd:layer.trimEnd||0,delayMs:layer.delayMs||0});
+    }
+    if(!dv110MixAudios.length&&!dv110MixTimers.length){button.textContent='No hay capas listas';setTimeout(()=>{if(button.isConnected)button.textContent='▶ Escuchar mezcla completa'},1200);dv110MixButton=null}
+  }
+  function decorateSceneEditors(){
+    document.querySelectorAll('.sound-event-card').forEach(details=>{
+      const parts=String(details.dataset.editorKey||'').split(':').map(Number);if(parts.length!==2||parts.some(Number.isNaN))return;
+      const body=details.querySelector('.sound-event-body');if(!body)return;
+      if(!body.querySelector('.dv110-mix-preview')){
+        const btn=document.createElement('button');btn.type='button';btn.className='btn dv110-mix-preview';btn.textContent='▶ Escuchar mezcla completa';
+        btn.onclick=()=>previewEventMix(parts[0],parts[1],btn);body.appendChild(btn);
+      }
+      details.querySelectorAll('.sound-layer-actions').forEach(actions=>{
+        const existing=actions.querySelector('.dv105-create-sound,.dv110-create-sound');
+        if(existing){existing.classList.add('dv110-create-sound');existing.textContent='＋ Crear sonido nuevo';return}
+        const btn=document.createElement('button');btn.type='button';btn.className='btn small dv105-create-sound dv110-create-sound';btn.textContent='＋ Crear sonido nuevo';actions.appendChild(btn);
+      });
+    });
+  }
+
+  /* ---------- Reproductor ---------- */
+  function ensureWave(){
+    const portrait=document.getElementById('playerPortrait');if(!portrait)return;
+    let wave=document.getElementById('dv110Wave');if(wave)return;
+    wave=document.createElement('div');wave.id='dv110Wave';wave.className='dv110-wave';wave.innerHTML='<span></span>'.repeat(14);portrait.insertAdjacentElement('afterend',wave);
+  }
+  function playerFinished(){return document.getElementById('stateLabel')?.textContent==='terminado'}
+  function syncPlayerChrome(){
+    const player=document.querySelector('#reproductor .player'),play=document.getElementById('playBtn'),stop=document.getElementById('stopBtn');if(!player||!play||!stop)return;
+    const active=!!playing&&!paused&&!playerFinished();
+    player.classList.toggle('dv110-playing',active);player.classList.toggle('dv110-paused',!!paused);
+    play.textContent=active?'⏸':'▶';play.setAttribute('aria-label',active?'Pausar':'Reproducir');
+    if(playerFinished()){stop.textContent='＋ Nuevo\ncapítulo';stop.classList.add('dv110-new-chapter');stop.setAttribute('aria-label','Nuevo capítulo')}
+    else{stop.textContent='■';stop.classList.remove('dv110-new-chapter');stop.setAttribute('aria-label','Detener')}
+    const e=queue?.[queueIndex],portrait=document.getElementById('playerPortrait');
+    if(portrait&&e){const total=Math.max(1,estimatedEventMs(e)),p=Math.min(1,currentEventClockMs()/total);portrait.style.setProperty('--dv110-progress',`${Math.round(p*360)}deg`)}
+  }
+  function decoratePlayer(){
+    ensureWave();
+    const location=document.getElementById('playerLocation');if(location&&location.textContent&&!location.textContent.trim().startsWith('📍'))location.textContent='📍 '+location.textContent.trim();
+    const current=String(currentLocation||'');if(location&&current&&current!==dv110LastLocation){dv110LastLocation=current;location.classList.remove('dv110-location-change');void location.offsetWidth;location.classList.add('dv110-location-change')}
+    syncPlayerChrome();
+  }
+  function pulseSfx(){const p=document.querySelector('#reproductor .player');if(!p)return;p.classList.remove('dv110-sfx-pulse');void p.offsetWidth;p.classList.add('dv110-sfx-pulse');setTimeout(()=>p.classList.remove('dv110-sfx-pulse'),450)}
+  try{
+    const oldUpdatePlayer=window.updatePlayer;if(typeof oldUpdatePlayer==='function')window.updatePlayer=function(...a){const r=oldUpdatePlayer.apply(this,a);decoratePlayer();return r};
+    const oldPlayCurrent=window.playCurrent;if(typeof oldPlayCurrent==='function')window.playCurrent=function(...a){const ev=queue?.[queueIndex];const r=oldPlayCurrent.apply(this,a);if(ev?.type==='location'){const st=document.getElementById('playerStatus');if(st){st.textContent='';st.className='status'}}decoratePlayer();return r};
+    const oldPlaySoundEvent=window.playSoundEvent;if(typeof oldPlaySoundEvent==='function')window.playSoundEvent=async function(ev,...a){if(ev?.type==='sfx'||ev?.type==='vocalizacion')pulseSfx();const r=await oldPlaySoundEvent.call(this,ev,...a);decoratePlayer();return r};
+    const oldNextAuto=window.nextAuto;if(typeof oldNextAuto==='function')window.nextAuto=function(...a){const r=oldNextAuto.apply(this,a);setTimeout(decoratePlayer,0);return r};
+    const oldStopAll=window.stopAll;if(typeof oldStopAll==='function')window.stopAll=function(...a){const r=oldStopAll.apply(this,a);setTimeout(decoratePlayer,0);return r};
+  }catch(e){}
+
+  function togglePlayPause(){
+    if(playerFinished()&&queue.length){queueIndex=0;resetTimelineClock();playing=false;paused=false}
+    if(playing&&!paused){
+      try{if('speechSynthesis' in window&&speechSynthesis.speaking&&!speechSynthesis.paused)speechSynthesis.pause()}catch(e){}
+      pauseTimelineClock();paused=true;releaseWakeLock();const s=document.getElementById('stateLabel');if(s)s.textContent='pausado';updatePlayerPortrait();decoratePlayer();return;
+    }
+    if(paused){
+      try{if('speechSynthesis' in window&&speechSynthesis.paused)speechSynthesis.resume()}catch(e){}
+      paused=false;playing=true;timelineEventStartedAt=Date.now();startTimelineClock();const s=document.getElementById('stateLabel');if(s)s.textContent='reproduciendo';ensureWakeLock();updatePlayerPortrait();decoratePlayer();return;
+    }
+    if(queueIndex>=queue.length&&queue.length)queueIndex=0;playCurrent();decoratePlayer();
+  }
+  function stopOrNewChapter(){
+    if(playerFinished()){
+      try{stopAll()}catch(e){}
+      if(typeof goTab==='function')goTab('historia');
+      requestAnimationFrame(()=>{const story=document.getElementById('story');if(story){story.focus({preventScroll:false});story.scrollIntoView({behavior:'smooth',block:'center'})}});
+      return;
+    }
+    stopAll();updatePlayer();decoratePlayer();
+  }
+  function bindPlayerButtons(){
+    const play=document.getElementById('playBtn'),stop=document.getElementById('stopBtn'),pause=document.getElementById('pauseBtn');
+    if(play&&!play.dataset.dv110){play.dataset.dv110='1';play.onclick=togglePlayPause}
+    if(stop&&!stop.dataset.dv110){stop.dataset.dv110='1';stop.onclick=stopOrNewChapter}
+    if(pause)pause.style.display='none';
+  }
+  dv110MotionTimer=setInterval(()=>{try{decoratePlayer()}catch(e){}},180);
+
+  /* ---------- Observación UI ---------- */
+  function refreshUi(){injectStyles();cleanVersionUi();decorateSceneEditors();decoratePromptDescriptions();decoratePlayer();bindPlayerButtons();decorateSoundLibraryMeta()}
+  refreshUi();syncStrictPrompts();
+  const observer=new MutationObserver(()=>refreshUi());if(document.body)observer.observe(document.body,{childList:true,subtree:true});
+  setTimeout(refreshUi,300);setTimeout(refreshUi,1000);setTimeout(refreshUi,2200);
 })();
 
 </script>
