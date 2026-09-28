@@ -1,0 +1,223 @@
+name: Actualizar DramaVoice 6 v1.0.2 respaldo Android
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/DramaVoice6_v1_0_1_RESPALDO_SEGURO.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Aplicar solamente el arreglo de respaldo v1.0.2
+        shell: bash
+        run: |
+          set -e
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, re
+
+          index = Path("index.html")
+          text = index.read_text(encoding="utf-8")
+
+          replacements = [
+              (
+                  "   const file=dvPreparedProjectBackup.file;\n",
+                  "   const file=dvPreparedProjectBackup.file;\n   const shareFile=dvPreparedProjectBackup.shareFile||file;\n",
+                  "shareFile"
+              ),
+              (
+                  "navigator.canShare({files:[file]})",
+                  "navigator.canShare({files:[shareFile]})",
+                  "canShare"
+              ),
+              (
+                  "         files:[file],",
+                  "         files:[shareFile],",
+                  "navigator.share"
+              ),
+              (
+                  "     version:'1.0.1',",
+                  "     version:'1.0.2',",
+                  "versión del respaldo"
+              )
+          ]
+
+          for old, new, label in replacements:
+              if new in text:
+                  continue
+              count = text.count(old)
+              if count != 1:
+                  raise RuntimeError(f"{label}: se esperaba 1 coincidencia y se encontraron {count}.")
+              text = text.replace(old, new, 1)
+
+          old_block = """   const day=new Date().toISOString().slice(0,10);
+   const file=new File(
+     [JSON.stringify(data)],
+     `DramaVoice6_Respaldo_${day}_v1.0.1.json`,
+     {type:'application/json'}
+   );
+
+   dvPreparedProjectBackup={
+     file,
+"""
+          new_block = """   const day=new Date().toISOString().slice(0,10);
+   const jsonText=JSON.stringify(data);
+   const file=new File(
+     [jsonText],
+     `DramaVoice6_Respaldo_${day}_v1.0.2.json`,
+     {type:'application/json'}
+   );
+   const shareFile=new File(
+     [jsonText],
+     `DramaVoice6_Respaldo_${day}_v1.0.2.txt`,
+     {type:'text/plain'}
+   );
+
+   dvPreparedProjectBackup={
+     file,
+     shareFile,
+"""
+
+          if new_block not in text:
+              if text.count(old_block) != 1:
+                  raise RuntimeError("No se encontró una sola vez el bloque de creación del respaldo v1.0.1.")
+              text = text.replace(old_block, new_block, 1)
+
+          old_success = "       st.textContent='✓ Respaldo enviado al sistema de Android. Guárdalo en Archivos, Drive o el destino que elegiste.';"
+          new_success = "       st.textContent='✓ Respaldo enviado al sistema de Android. El archivo .txt contiene el respaldo completo de DramaVoice 6; guárdalo en Archivos, Drive o el destino que elegiste.';"
+          if old_success in text:
+              text = text.replace(old_success, new_success, 1)
+
+          # Permitir reimportar el mismo contenido aunque Android lo guarde como .txt.
+          m = re.search(r'<input\b[^>]*\bid=["\']importProjectInput["\'][^>]*>', text, flags=re.I)
+          if m:
+              tag = m.group(0)
+              desired = 'accept=".json,.txt,application/json,text/plain"'
+              if desired not in tag:
+                  if re.search(r'\baccept=["\'][^"\']*["\']', tag, flags=re.I):
+                      new_tag = re.sub(
+                          r'\baccept=["\'][^"\']*["\']',
+                          desired,
+                          tag,
+                          count=1,
+                          flags=re.I
+                      )
+                  else:
+                      new_tag = tag[:-1] + ' ' + desired + '>'
+                  text = text[:m.start()] + new_tag + text[m.end():]
+
+          text, n1 = re.subn(
+              r"const DV6_APP_VERSION=\d+;",
+              "const DV6_APP_VERSION=10002;",
+              text,
+              count=1
+          )
+          if n1 != 1:
+              raise RuntimeError("No se encontró DV6_APP_VERSION una sola vez.")
+
+          text, n2 = re.subn(
+              r'<meta name="dv6-version" content="\d+">',
+              '<meta name="dv6-version" content="10002">',
+              text,
+              count=1
+          )
+          if n2 != 1:
+              raise RuntimeError("No se encontró meta dv6-version una sola vez.")
+
+          text = re.sub(
+              r'Versión instalada: v[^<\n]+',
+              'Versión instalada: v1.0.2',
+              text,
+              count=1
+          )
+
+          index.write_text(text, encoding="utf-8")
+
+          version = {
+            "version": 10002,
+            "displayVersion": "1.0.2",
+            "build": "2026.09.27.10002",
+            "date": "27 sep 2026",
+            "title": "Respaldo compatible con Android",
+            "updateRequired": False,
+            "changes": [
+              "El contenido del respaldo sigue siendo JSON completo.",
+              "En Android se comparte como archivo .txt con tipo text/plain para mejorar compatibilidad con Web Share.",
+              "La importación acepta respaldos .json y .txt.",
+              "No se modifica el APK, el reproductor, las voces ni el editor de escenas."
+            ]
+          }
+          Path("version.json").write_text(
+              json.dumps(version, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8"
+          )
+
+          sw = Path("service-worker.js")
+          sw_text = sw.read_text(encoding="utf-8")
+          sw_text, n3 = re.subn(
+              r"const DV6_SW_VERSION='[^']+';",
+              "const DV6_SW_VERSION='1.0.2';",
+              sw_text,
+              count=1
+          )
+          if n3 != 1:
+              raise RuntimeError("No se encontró DV6_SW_VERSION una sola vez.")
+          sw.write_text(sw_text, encoding="utf-8")
+
+          final = index.read_text(encoding="utf-8")
+          required = [
+              "const DV6_APP_VERSION=10002;",
+              "const shareFile=dvPreparedProjectBackup.shareFile||file;",
+              "navigator.canShare({files:[shareFile]})",
+              "files:[shareFile],",
+              "{type:'text/plain'}",
+              "v1.0.2.txt",
+              "version:'1.0.2'"
+          ]
+          for token in required:
+              if token not in final:
+                  raise RuntimeError("Validación falló: " + token)
+
+          if "dv110-script" in final:
+              raise RuntimeError("Se detectó nuevamente el parche v1.1.0 defectuoso.")
+
+          print("Patch v1.0.2 validado.")
+          PY
+
+      - name: Validar que solo cambió el respaldo
+        shell: bash
+        run: |
+          set -e
+          grep -q 'const DV6_APP_VERSION=10002;' index.html
+          grep -q 'const shareFile=dvPreparedProjectBackup.shareFile||file;' index.html
+          grep -q "type:'text/plain'" index.html
+          grep -q '"displayVersion": "1.0.2"' version.json
+          grep -q "DV6_SW_VERSION='1.0.2'" service-worker.js
+          if grep -q 'dv110-script' index.html; then
+            echo "ERROR: apareció nuevamente el parche v1.1.0 defectuoso"
+            exit 1
+          fi
+
+      - name: Guardar actualización
+        shell: bash
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html version.json service-worker.js
+          if git diff --cached --quiet; then
+            echo "No hay cambios nuevos."
+            exit 0
+          fi
+          git commit -m "DramaVoice 6 v1.0.2: respaldo compatible Android"
+          git push
