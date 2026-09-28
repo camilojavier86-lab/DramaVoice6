@@ -1,0 +1,196 @@
+name: DramaVoice 6 v1.1.1 - Fix Historia a Escenas build10103
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Corregir sincronización Historia a Escenas
+        shell: bash
+        run: |
+          set -e
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, re
+
+          INDEX=Path("index.html")
+          VERSION=Path("version.json")
+          SW=Path("service-worker.js")
+
+          for p in (INDEX,VERSION,SW):
+              if not p.exists():
+                  raise SystemExit(f"ERROR: falta {p}")
+
+          html=INDEX.read_text(encoding="utf-8")
+
+          # 1) Al importar, la HISTORIA pasa a ser la fuente de verdad.
+          #    data.scenes solo se usa para respaldos antiguos que no contienen story.
+          old_import = """chapterTitle=data.chapterTitle||chapterTitle||'CAPÍTULO PEGADO';
+          scenes=Array.isArray(data.scenes)&&data.scenes.length?data.scenes:parseStory($('#story').value);syncPlacesFromScenes();"""
+          new_import = """const importedStory=String($('#story').value||'');
+          if(importedStory.trim()){
+            scenes=parseStory(importedStory);
+          }else{
+            chapterTitle=data.chapterTitle||chapterTitle||'CAPÍTULO PEGADO';
+            scenes=Array.isArray(data.scenes)?data.scenes:[];
+          }
+          syncPlacesFromScenes();"""
+
+          if old_import not in html:
+              if "const importedStory=String($('#story').value||'');" not in html:
+                  raise SystemExit("ERROR: no encontré el bloque de importación esperado.")
+          else:
+              html=html.replace(old_import,new_import,1)
+
+          # 2) Evitar doble render al analizar. goTab('escenas') hará el único render.
+          old_analyze = """saveLib();syncPlacesFromScenes();activeScene=0;queueIndex=0;buildQueue();updateHistoryCaptureUI(rawStory,true);renderScenes();renderCast();renderLibrary();renderPlaces();updatePlayer();renderPronRules();"""
+          new_analyze = """saveLib();syncPlacesFromScenes();activeScene=0;queueIndex=0;buildQueue();updateHistoryCaptureUI(rawStory,true);renderCast();renderLibrary();renderPlaces();updatePlayer();renderPronRules();"""
+
+          if old_analyze in html:
+              html=html.replace(old_analyze,new_analyze,1)
+          elif new_analyze not in html:
+              raise SystemExit("ERROR: no encontré la secuencia de analyze esperada.")
+
+          # 3) Render de Escenas: esperar biblioteca antes de vaciar la interfaz y
+          #    descartar resultados pertenecientes a una historia anterior.
+          old_render_head = """async function renderScenes(){
+           const root=$('#sceneList');root.innerHTML='';
+           const sceneHeading=$('#sceneChapterHeading');if(sceneHeading)sceneHeading.textContent='📖 '+(chapterTitle||'CAPÍTULO');
+           if(!scenes.length){root.innerHTML='<div class="card help">Todavía no hay un capítulo analizado.</div>';return}
+
+           buildQueue();
+           const lib=await soundLibraryIndex();"""
+
+          new_render_head = """let dv6SceneRenderGeneration=0;
+          async function renderScenes(){
+           const generation=++dv6SceneRenderGeneration;
+           const sceneSnapshot=scenes;
+           const titleSnapshot=chapterTitle;
+           const lib=await soundLibraryIndex();
+
+           if(generation!==dv6SceneRenderGeneration||sceneSnapshot!==scenes||titleSnapshot!==chapterTitle)return;
+
+           const root=$('#sceneList');root.innerHTML='';
+           const sceneHeading=$('#sceneChapterHeading');if(sceneHeading)sceneHeading.textContent='📖 '+(chapterTitle||'CAPÍTULO');
+           if(!scenes.length){root.innerHTML='<div class="card help">Todavía no hay un capítulo analizado.</div>';return}
+
+           buildQueue();"""
+
+          if old_render_head not in html:
+              if "let dv6SceneRenderGeneration=0;" not in html:
+                  raise SystemExit("ERROR: no encontré la cabecera original de renderScenes.")
+          else:
+              html=html.replace(old_render_head,new_render_head,1)
+
+          # 4) Versionado de hotfix.
+          html,n=re.subn(
+              r'<meta name="dv6-version" content="[^"]*">',
+              '<meta name="dv6-version" content="10103">',
+              html,count=1
+          )
+          if n!=1:
+              raise SystemExit("ERROR: no pude actualizar meta dv6-version.")
+
+          html,n=re.subn(
+              r'const\s+DV6_APP_VERSION\s*=\s*\d+\s*;',
+              'const DV6_APP_VERSION=10103;',
+              html,count=1
+          )
+          if n!=1:
+              raise SystemExit("ERROR: no pude actualizar DV6_APP_VERSION.")
+
+          replacements = [
+              (r"const\s+DV111_VERSION\s*=\s*\d+\s*;", "const DV111_VERSION=10103;"),
+              (r"const\s+DV111_BUILD\s*=\s*'[^']*'\s*;", "const DV111_BUILD='2026.09.28-10103';"),
+              (r"const\s+DV110_VERSION\s*=\s*\d+\s*;", "const DV110_VERSION=10103;"),
+              (r"const\s+DV110_BUILD\s*=\s*'[^']*'\s*;", "const DV110_BUILD='2026.09.28-10103';"),
+              (r"const\s+DV105_VERSION\s*=\s*\d+\s*;", "const DV105_VERSION=10103;"),
+              (r"const\s+DV105_BUILD\s*=\s*'[^']*'\s*;", "const DV105_BUILD='2026.09.28-10103';"),
+          ]
+          for rx,repl in replacements:
+              html=re.sub(rx,repl,html,count=1)
+
+          INDEX.write_text(html,encoding="utf-8")
+
+          VERSION.write_text(json.dumps({
+              "version":10103,
+              "displayVersion":"1.1.1",
+              "build":"2026.09.28-10103",
+              "date":"28 sep 2026",
+              "title":"Sincronización Historia → Escenas",
+              "updateRequired":False,
+              "changes":[
+                  "Al importar un respaldo, la historia actual vuelve a analizarse y pasa a ser la fuente de verdad para Escenas.",
+                  "Las escenas antiguas guardadas en un respaldo ya no pueden sustituir una historia más nueva.",
+                  "Evita el doble render de Escenas al pulsar Analizar historia.",
+                  "Una renderización antigua ya no puede vaciar o sobrescribir Escenas después de analizar una historia nueva.",
+                  "Conserva el reproductor nocturno, las transiciones visuales y la configuración del narrador de v1.1.1.",
+                  "No modifica el APK ni Android TTS."
+              ]
+          },ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+
+          sw=SW.read_text(encoding="utf-8")
+          sw,n=re.subn(
+              r"const\s+DV6_SW_VERSION\s*=\s*['\"][^'\"]+['\"]\s*;",
+              "const DV6_SW_VERSION='1.1.1-10103';",
+              sw,count=1
+          )
+          if n!=1:
+              raise SystemExit("ERROR: no pude actualizar DV6_SW_VERSION.")
+          SW.write_text(sw,encoding="utf-8")
+
+          print("Hotfix Historia → Escenas build10103 aplicado.")
+          PY
+
+      - name: Validar build10103
+        shell: bash
+        run: |
+          set -e
+
+          grep -q "const importedStory=String" index.html
+          grep -q "scenes=parseStory(importedStory)" index.html
+          grep -q "let dv6SceneRenderGeneration=0;" index.html
+          grep -q "sceneSnapshot!==scenes" index.html
+          grep -q "titleSnapshot!==chapterTitle" index.html
+          grep -q "DV6_APP_VERSION=10103;" index.html
+          grep -q "const DV111_VERSION=10103;" index.html
+          grep -q "const DV111_BUILD='2026.09.28-10103';" index.html
+          grep -q '"displayVersion": "1.1.1"' version.json
+          grep -q '"build": "2026.09.28-10103"' version.json
+          grep -q "DV6_SW_VERSION='1.1.1-10103'" service-worker.js
+
+          # Ya no debe existir la secuencia que renderizaba Escenas dos veces al analizar.
+          if grep -Fq "updateHistoryCaptureUI(rawStory,true);renderScenes();renderCast();" index.html; then
+            echo "ERROR: analyze todavía dispara renderScenes antes de goTab."
+            exit 1
+          fi
+
+          git diff --check
+          echo "OK: build10103 validada. Actualización web, sin APK."
+
+      - name: Publicar build10103
+        shell: bash
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add index.html version.json service-worker.js
+
+          if git diff --cached --quiet; then
+            echo "El hotfix ya estaba aplicado."
+            exit 0
+          fi
+
+          git commit -m "DramaVoice 6 v1.1.1 build10103: sincronizar Historia y Escenas"
+          git push
