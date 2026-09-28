@@ -1,0 +1,171 @@
+name: DramaVoice 6 - Mantenimiento y limpieza del repositorio
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  maintenance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verificar base actual
+        shell: bash
+        run: |
+          set -e
+          test -s index.html
+          test -s version.json
+          test -s service-worker.js
+          test -s manifest.webmanifest
+          test -s icon-192.png
+          test -s icon-512.png
+          grep -q '"displayVersion": "1.0.4"' version.json
+          grep -q "DV6_SW_VERSION='1.0.4'" service-worker.js
+          echo "Base v1.0.4 confirmada."
+
+      - name: Consolidar workflow de actualizaciones
+        shell: bash
+        run: |
+          set -e
+          src=".github/workflows/DramaVoice6_v1_0_4_EDITOR_ESTABLE.yml"
+          dst=".github/workflows/DramaVoice6_ACTUALIZAR.yml"
+
+          if [ -f "$src" ]; then
+            cp "$src" "$dst"
+          elif [ ! -s "$dst" ]; then
+            echo "ERROR: no existe el updater actual ni el updater fijo."
+            exit 1
+          fi
+
+          sed -i '1c\name: DramaVoice 6 - Aplicar actualización actual' "$dst"
+          test -s "$dst"
+
+      - name: Consolidar builder Android
+        shell: bash
+        run: |
+          set -e
+          src=".github/workflows/DramaVoice6_v54_ANDROID_TTS.yml"
+          dst=".github/workflows/DramaVoice6_ANDROID_BUILD.yml"
+
+          if [ -f "$src" ]; then
+            cp "$src" "$dst"
+          elif [ ! -s "$dst" ]; then
+            echo "ERROR: no existe el builder Android actual ni el builder fijo."
+            exit 1
+          fi
+
+          sed -i '1c\name: DramaVoice 6 - Build Android estable' "$dst"
+          grep -q "dramavoice6-signing-v54-v1" "$dst"
+
+      - name: Actualizar rollback de emergencia
+        shell: bash
+        run: |
+          set -e
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p=Path(".github/workflows/DramaVoice6_EMERGENCIA_RESTAURAR_ESTABLE.yml")
+          if not p.exists():
+              raise SystemExit("ERROR: no existe el rollback de emergencia.")
+
+          s=p.read_text(encoding="utf-8")
+
+          s=re.sub(
+              r'^name:.*$',
+              'name: EMERGENCIA Restaurar DramaVoice estable actual',
+              s,
+              count=1,
+              flags=re.M
+          )
+
+          s=re.sub(
+              r'\n  push:\n    paths:\n      - "\.github/workflows/DramaVoice6_EMERGENCIA_RESTAURAR_ESTABLE\.yml"\n',
+              '\n',
+              s,
+              count=1
+          )
+
+          s=s.replace(
+              "Restaurar archivos estables anteriores a v1.1.0",
+              "Restaurar base estable actual"
+          )
+
+          s,n=re.subn(
+              r'git checkout [0-9a-f]{40} -- index\.html version\.json service-worker\.js',
+              'git checkout c30efc7f694cda9c287428b59ffb3618e0fdefb6 -- index.html version.json service-worker.js',
+              s,
+              count=1
+          )
+
+          if n != 1:
+              raise SystemExit("ERROR: no se encontró el SHA del rollback anterior.")
+
+          s=s.replace(
+              'git commit -m "Emergency rollback: restore stable DramaVoice before v1.1.0"',
+              'git commit -m "Emergency rollback: restore current stable DramaVoice base"'
+          )
+
+          p.write_text(s,encoding="utf-8")
+          PY
+
+      - name: Eliminar workflows obsoletos y duplicados
+        shell: bash
+        run: |
+          set -e
+          rm -f ".github/workflows/DV6_v1.0.3.yml"
+          rm -f ".github/workflows/DV6_v1.0.3_FIX.yml"
+          rm -f ".github/workflows/DramaVoice6_LIMPIAR_REPOSITORIO.yml"
+          rm -f ".github/workflows/DramaVoice6_v1_0_1_RESPALDO_SEGURO.yml"
+          rm -f ".github/workflows/DramaVoice6_v1_0_2_RESPALDO_ANDROID.yml"
+          rm -f ".github/workflows/DramaVoice6_v1_0_4_EDITOR_ESTABLE.yml"
+          rm -f ".github/workflows/DramaVoice6_v54_ANDROID_TTS.yml"
+
+      - name: Validar estructura limpia
+        shell: bash
+        run: |
+          set -e
+          test -s ".github/workflows/DramaVoice6_ACTUALIZAR.yml"
+          test -s ".github/workflows/DramaVoice6_ANDROID_BUILD.yml"
+          test -s ".github/workflows/DramaVoice6_EMERGENCIA_RESTAURAR_ESTABLE.yml"
+          test -s ".github/workflows/DramaVoice6_MANTENIMIENTO.yml"
+
+          test ! -e ".github/workflows/DramaVoice6_v1_0_2_RESPALDO_ANDROID.yml"
+          test ! -e ".github/workflows/DV6_v1.0.3.yml"
+          test ! -e ".github/workflows/DramaVoice6_v1_0_4_EDITOR_ESTABLE.yml"
+          test ! -e ".github/workflows/DramaVoice6_v54_ANDROID_TTS.yml"
+
+          grep -q "dramavoice6-signing-v54-v1" ".github/workflows/DramaVoice6_ANDROID_BUILD.yml"
+          grep -q "c30efc7f694cda9c287428b59ffb3618e0fdefb6" ".github/workflows/DramaVoice6_EMERGENCIA_RESTAURAR_ESTABLE.yml"
+
+          if grep -q '^  push:' ".github/workflows/DramaVoice6_EMERGENCIA_RESTAURAR_ESTABLE.yml"; then
+            echo "ERROR: el rollback de emergencia todavía tiene ejecución automática."
+            exit 1
+          fi
+
+          echo "Estructura final:"
+          find .github/workflows -maxdepth 1 -type f -printf '%f\n' | sort
+
+      - name: Guardar limpieza
+        shell: bash
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A .github/workflows
+
+          if git diff --cached --quiet; then
+            echo "El repositorio ya estaba limpio."
+            exit 0
+          fi
+
+          git commit -m "DramaVoice 6: consolidate workflows and clean repository"
+          git push
