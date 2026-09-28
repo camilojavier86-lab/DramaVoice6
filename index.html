@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>DramaVoice 6 v50</title>
-<meta name="dv6-version" content="10001">
+<meta name="dv6-version" content="10003">
 
 <meta name="theme-color" content="#07090d">
 <meta name="application-name" content="DramaVoice 6">
@@ -931,7 +931,7 @@ Todavía tengo trabajo pendiente.
         </div>
         <div id="projectStatus" class="status"></div>
         <div class="dv6-version-line">
-          <span class="dv6-version-current">Versión instalada: v1.0.1</span>
+          <span class="dv6-version-current">Versión instalada: v1.0.3</span>
           <button class="btn small" id="checkUpdatesBtn">Buscar actualización</button>
         </div>        
         <div class="reset-box">
@@ -3983,7 +3983,7 @@ if(dv6InstallBtn)dv6InstallBtn.addEventListener('click',async()=>{
 dv6RefreshInstallUi();
 
 // v44 — actualizaciones inteligentes de la PWA
-const DV6_APP_VERSION=10001;
+const DV6_APP_VERSION=10003;
 const DV6_VERSION_URL='./version.json';
 let dv6UpdateInfo=null;
 let dv6UpdateRegistration=null;
@@ -4954,4 +4954,139 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
 })();
 </script>
 
-</body></html>
+<script id="dv103-system-tts-fallback">
+(function(){
+  'use strict';
+  if(window.__DV6_SYSTEM_TTS_FALLBACK_BOOTSTRAP) return;
+  window.__DV6_SYSTEM_TTS_FALLBACK_BOOTSTRAP=true;
+
+  const SYS_URI='dv6-system-default';
+  const SYS_VOICE={
+    name:'Android predeterminada',
+    voiceURI:SYS_URI,
+    lang:'es-PA',
+    localService:true,
+    default:true,
+    dv6SystemDefault:true
+  };
+
+  let tries=0;
+  const timer=setInterval(function(){
+    tries++;
+
+    const waitingForBridge =
+      (typeof DramaVoiceNativeTTS!=='undefined') &&
+      !window.__DV6_NATIVE_BRIDGE_V48_PATCHED &&
+      tries<12;
+
+    if(waitingForBridge) return;
+
+    if(typeof loadVoices!=='function' || typeof configureUtterance!=='function'){
+      if(tries>40) clearInterval(timer);
+      return;
+    }
+
+    clearInterval(timer);
+
+    if(window.__DV6_SYSTEM_TTS_FALLBACK_INSTALLED) return;
+    window.__DV6_SYSTEM_TTS_FALLBACK_INSTALLED=true;
+
+    const previousLoadVoices=loadVoices;
+    const previousConfigureUtterance=configureUtterance;
+
+    function fallbackIsActive(){
+      return Array.isArray(voices) &&
+             voices.length===1 &&
+             String(voices[0] && voices[0].voiceURI || '')===SYS_URI;
+    }
+
+    configureUtterance=function(u,speaker){
+      if(fallbackIsActive()){
+        try{
+          const ch=(typeof characterRecordForName==='function')
+            ? (characterRecordForName(speaker)||{})
+            : {};
+          const narrator=(typeof isNarratorName==='function') && isNarratorName(speaker);
+
+          // No fijamos una voz concreta. El sistema escoge la voz TTS predeterminada.
+          try{u.voice=null}catch(e){}
+          u.lang='es-PA';
+          u.rate=narrator ? .96 : Number(ch.rate||1);
+          u.pitch=narrator ? .96 : Number(ch.pitch||1);
+          u.volume=(typeof effectiveVoiceVolume==='function')
+            ? effectiveVoiceVolume()
+            : 1;
+          return;
+        }catch(e){}
+      }
+      return previousConfigureUtterance(u,speaker);
+    };
+
+    loadVoices=function(){
+      let result;
+      try{
+        result=previousLoadVoices.apply(this,arguments);
+      }catch(err){
+        console.warn('DV6 previous loadVoices',err);
+      }
+
+      try{
+        if(typeof speechSynthesis==='undefined') return result;
+
+        const realVoices=Array.isArray(voices)
+          ? voices.filter(v=>String(v && v.voiceURI || '')!==SYS_URI)
+          : [];
+
+        if(realVoices.length===0){
+          voices=[SYS_VOICE];
+
+          if(typeof $==='function'){
+            const count=$('#voiceCount');
+            if(count) count.textContent='1 voz';
+
+            const support=$('#ttsSupport');
+            if(support){
+              support.textContent='Android TTS listo · usando la voz predeterminada del teléfono.';
+              support.className='status good';
+            }
+
+            const summary=$('#settingsVoiceSummary');
+            if(summary) summary.textContent='Android TTS · voz predeterminada';
+
+            const diag=$('#voiceDiagnostics');
+            if(diag) diag.textContent='Total: 1 · Android predeterminada · fallback del sistema';
+          }
+
+          try{
+            if(typeof renderCast==='function') renderCast();
+            if(typeof renderPronRules==='function') renderPronRules();
+          }catch(e){}
+        }else{
+          voices=realVoices;
+        }
+      }catch(err){
+        console.warn('DV6 Android default fallback',err);
+      }
+
+      return result;
+    };
+
+    try{
+      if(typeof speechSynthesis!=='undefined'){
+        const oldVoicesChanged=speechSynthesis.onvoiceschanged;
+        speechSynthesis.onvoiceschanged=function(){
+          try{
+            if(typeof oldVoicesChanged==='function') oldVoicesChanged.apply(this,arguments);
+          }catch(e){}
+          try{loadVoices()}catch(e){}
+        };
+      }
+    }catch(e){}
+
+    try{loadVoices()}catch(e){}
+    setTimeout(()=>{try{loadVoices()}catch(e){}},350);
+    setTimeout(()=>{try{loadVoices()}catch(e){}},1100);
+    setTimeout(()=>{try{loadVoices()}catch(e){}},2200);
+  },250);
+})();
+</script>\n</body></html>

@@ -1,4 +1,4 @@
-const DV6_SW_VERSION='1.0.1';
+const DV6_SW_VERSION='1.0.3';
 const DV6_CACHE=`dramavoice6-v${DV6_SW_VERSION}`;
 
 self.addEventListener('install',event=>{
