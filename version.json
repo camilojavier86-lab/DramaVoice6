@@ -1,14 +1,18 @@
 {
-  "version": 10101,
-  "displayVersion": "1.1.0",
-  "build": "2026.09.28-10101",
+  "version": 10102,
+  "displayVersion": "1.1.1",
+  "build": "2026.09.28-10102",
   "date": "28 sep 2026",
-  "title": "Hotfix de estabilidad",
+  "title": "Reproductor nocturno y narrador configurable",
   "updateRequired": false,
   "changes": [
-    "Elimina el ciclo de MutationObserver que podía congelar DramaVoice al iniciar.",
-    "Mantiene la interfaz v1.1.0 y todas las mejoras consolidadas.",
-    "Corrige el texto base del encabezado para que no aparezca v47 ni Supertonic mientras carga.",
-    "Conserva Android TTS nativo y la firma definitiva del APK."
+    "Reduce brillos y resplandores fuertes del reproductor para uso nocturno.",
+    "Conserva el color distintivo de DramaVoice como marca de agua tenue en lugar de un bloque luminoso.",
+    "Suaviza el paso entre las imágenes de los personajes mediante transición gradual.",
+    "Muestra debajo del hablante qué cara o expresión está usando el personaje.",
+    "Añade una animación central tenue que cambia de comportamiento según voz, ambiente, efectos y cambios de lugar.",
+    "Permite asignar una cara al narrador desde Personajes, fuera del reproductor.",
+    "Permite cambiar y probar la voz del narrador desde Personajes; el reproductor utiliza la selección guardada.",
+    "Conserva Android TTS nativo, escenas, sonidos, personajes y datos locales."
   ]
 }

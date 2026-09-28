@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>DramaVoice 6 v1.1.0</title>
-<meta name="dv6-version" content="10101">
+<title>DramaVoice 6 v1.1.1</title>
+<meta name="dv6-version" content="10102">
 
 <meta name="theme-color" content="#07090d">
 <meta name="application-name" content="DramaVoice 6">
@@ -3983,7 +3983,7 @@ if(dv6InstallBtn)dv6InstallBtn.addEventListener('click',async()=>{
 dv6RefreshInstallUi();
 
 // v44 — actualizaciones inteligentes de la PWA
-const DV6_APP_VERSION=10101;
+const DV6_APP_VERSION=10102;
 const DV6_VERSION_URL='./version.json';
 let dv6UpdateInfo=null;
 let dv6UpdateRegistration=null;
@@ -5226,9 +5226,9 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
   if(window.__DV6_V105)return;
   window.__DV6_V105=true;
 
-  const DV105_VERSION=10101;
+  const DV105_VERSION=10102;
   const DV105_DISPLAY='1.1.0';
-  const DV105_BUILD='2026.09.28-10101';
+  const DV105_BUILD='2026.09.28-10102';
   const DV105_RETURN_KEY='dv6-v105-return-after-update';
   let dv105Checking=false;
   let dv105Recorder=null;
@@ -5631,9 +5631,9 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
   if(window.__DV6_V110)return;
   window.__DV6_V110=true;
 
-  const DV110_VERSION=10100;
-  const DV110_DISPLAY='1.1.0';
-  const DV110_BUILD='2026.09.28-10100';
+  const DV110_VERSION=10102;
+  const DV110_DISPLAY='1.1.1';
+  const DV110_BUILD='2026.09.28-10102';
   let dv110SceneRendering=false;
   let dv110ScenePending=false;
   let dv110MixAudios=[];
@@ -6167,6 +6167,630 @@ function scheduleRefreshUi(){
 observer=new MutationObserver(scheduleRefreshUi);
 if(document.body)observer.observe(document.body,{childList:true,subtree:true});
   setTimeout(refreshUi,300);setTimeout(refreshUi,1000);setTimeout(refreshUi,2200);
+})();
+
+</script>
+<script id="dv6-v111-player-night-patch">
+
+(()=>{
+  if(window.__DV6_V111_PLAYER_NIGHT)return;
+  window.__DV6_V111_PLAYER_NIGHT=true;
+
+  const DV111_VERSION=10102;
+  const DV111_DISPLAY='1.1.1';
+  const DV111_BUILD='2026.09.28-10102';
+
+  let dv111CurrentVisualKey='';
+  let dv111NativeAwareInstalled=false;
+  let dv111VoiceOptionsBase=null;
+  let dv111LoadVoicesBase=null;
+  let dv111UpdatePlayerBase=null;
+  let dv111RenderLibraryBase=null;
+  let dv111RenderCastBase=null;
+  let dv111SoundFieldTimer=null;
+
+  function narratorKey(){
+    try{return norm('NARRADOR')}catch(e){return 'narrador'}
+  }
+  function narratorRecord(){
+    const key=narratorKey();
+    if(!charLib[key]){
+      charLib[key]={
+        name:'NARRADOR',
+        voiceURI:'',
+        rate:.96,
+        pitch:.96,
+        profile:'Narrador',
+        age:'',
+        nationality:'',
+        accent:'',
+        voiceStyle:'Natural',
+        voiceTraits:'',
+        testPhrase:'Esta es una prueba de narración en DramaVoice 6.'
+      };
+      try{saveLib()}catch(e){}
+    }
+    return charLib[key];
+  }
+  function actualNarratorVoice(){
+    const ch=narratorRecord();
+    if(!ch.voiceURI)return null;
+    const list=Array.isArray(voices)?voices:[];
+    return list.find(v=>!v?false:!v._dv111NarratorAlias && (String(v.voiceURI||v.name)===String(ch.voiceURI)))||null;
+  }
+  function restoreNarratorVoiceMetadata(){
+    if(!Array.isArray(voices))return;
+    for(const v of voices){
+      if(v&&v._dv111OriginalLang){
+        v.lang=v._dv111OriginalLang;
+        delete v._dv111OriginalLang;
+      }
+    }
+  }
+  function prioritizeNarratorVoice(){
+    try{
+      restoreNarratorVoiceMetadata();
+      const selected=actualNarratorVoice();
+      if(!selected)return;
+      selected._dv111OriginalLang=selected.lang||'und';
+      selected.lang='es-PA';
+      const i=voices.indexOf(selected);
+      if(i>0){voices.splice(i,1);voices.unshift(selected)}
+    }catch(e){}
+  }
+  function narratorVoiceDisplay(){
+    const v=actualNarratorVoice();
+    if(!v)return 'Automática · Android TTS';
+    const lang=v._dv111OriginalLang||v.lang||'sin idioma';
+    return `${v.name} · ${lang}${v.localService?' · local':''}`;
+  }
+
+  function installVoiceOptionsWrapper(){
+    if(dv111VoiceOptionsBase||typeof voiceOptions!=='function')return;
+    dv111VoiceOptionsBase=voiceOptions;
+    const wrapped=function(selected=''){
+      const changed=[];
+      try{
+        if(Array.isArray(voices)){
+          for(const v of voices){
+            if(v?._dv111OriginalLang){
+              changed.push([v,v.lang]);
+              v.lang=v._dv111OriginalLang;
+            }
+          }
+        }
+        return dv111VoiceOptionsBase(selected);
+      }finally{
+        for(const [v,lang] of changed)v.lang=lang;
+      }
+    };
+    try{voiceOptions=wrapped}catch(e){}
+    try{window.voiceOptions=wrapped}catch(e){}
+  }
+
+  function ensureStyles(){
+    if(document.getElementById('dv111-night-styles'))return;
+    const style=document.createElement('style');
+    style.id='dv111-night-styles';
+    style.textContent=`
+      /* v1.1.1 · Reproductor nocturno */
+      #reproductor .player{
+        background:#04070b!important;
+      }
+      #reproductor .player::before{
+        opacity:.28!important;
+        filter:saturate(.72) brightness(.58)!important;
+      }
+      #playerPortrait{
+        background:#070b11!important;
+        border-color:#ffffff1c!important;
+        box-shadow:0 16px 42px #000b!important;
+      }
+      #playerPortrait::before{
+        opacity:.14!important;
+        filter:none!important;
+      }
+      #playerPortrait::after{
+        opacity:.07!important;
+        filter:none!important;
+      }
+      #reproductor .player.dv110-playing #playerPortrait::after{
+        animation-duration:3.4s!important;
+      }
+      #playerPortraitFallback{
+        color:#58e9dd24!important;
+        text-shadow:none!important;
+        background:
+          radial-gradient(circle at 35% 35%,#37e2d91c,transparent 42%),
+          linear-gradient(145deg,#081017,#0a0d18)!important;
+      }
+      #playerPortraitImg{
+        transition:opacity .48s ease,filter .48s ease!important;
+        will-change:opacity,filter;
+      }
+      #dv111VisualOverlay{
+        position:absolute;
+        inset:0;
+        z-index:4;
+        border-radius:inherit;
+        pointer-events:none;
+        background-position:center;
+        background-size:cover;
+        background-repeat:no-repeat;
+        opacity:0;
+        transition:opacity .62s ease;
+      }
+      #dv111VisualOverlay.show{opacity:1}
+      #reproductor .controls #playBtn{
+        box-shadow:0 0 18px #6c5cff24,0 10px 34px #0009!important;
+        filter:saturate(.72) brightness(.82)!important;
+      }
+      #reproductor .controls .btn{
+        box-shadow:0 10px 24px #0008!important;
+      }
+
+      /* visualizador central suave */
+      .dv111-sound-field{
+        width:min(76vw,360px);
+        height:54px;
+        margin:10px auto 2px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:6px;
+        opacity:.46;
+        overflow:hidden;
+        pointer-events:none;
+      }
+      .dv111-sound-field span{
+        width:3px;
+        height:9px;
+        border-radius:999px;
+        background:linear-gradient(180deg,#69e8de88,#7158c788);
+        transform-origin:center;
+        animation-play-state:paused!important;
+      }
+      .dv111-sound-field.active span{animation-play-state:running!important}
+      .dv111-sound-field.voice span{animation:dv111Voice 2.8s ease-in-out infinite}
+      .dv111-sound-field.ambient span{animation:dv111Ambient 3.8s ease-in-out infinite}
+      .dv111-sound-field.sfx span{animation:dv111Sfx .78s ease-out infinite}
+      .dv111-sound-field.location span{animation:dv111Location 2.2s ease-in-out infinite}
+      .dv111-sound-field span:nth-child(2n){animation-delay:-.55s}
+      .dv111-sound-field span:nth-child(3n){animation-delay:-1.1s}
+      .dv111-sound-field span:nth-child(5n){animation-delay:-1.7s}
+      @keyframes dv111Voice{0%,100%{transform:scaleY(.45);opacity:.35}50%{transform:scaleY(1.45);opacity:.72}}
+      @keyframes dv111Ambient{0%,100%{transform:scaleY(.55);opacity:.32}35%{transform:scaleY(1.85);opacity:.58}70%{transform:scaleY(.9);opacity:.44}}
+      @keyframes dv111Sfx{0%{transform:scaleY(.5);opacity:.28}35%{transform:scaleY(2.5);opacity:.78}100%{transform:scaleY(.6);opacity:.32}}
+      @keyframes dv111Location{0%,100%{transform:scaleY(.45);opacity:.28}50%{transform:scaleY(1.25);opacity:.48}}
+      #reproductor .player.dv110-paused .dv111-sound-field span,
+      #reproductor .player:not(.dv110-playing) .dv111-sound-field span{
+        animation-play-state:paused!important;
+      }
+
+      /* narrador configurable fuera del reproductor */
+      .dv111-narrator-card{
+        border:1px solid #42dfd82c!important;
+        background:linear-gradient(180deg,#0a1017,#070b10)!important;
+      }
+      .dv111-narrator-grid{
+        display:grid;
+        grid-template-columns:112px 1fr;
+        gap:14px;
+        align-items:start;
+      }
+      .dv111-narrator-photo{
+        width:112px;
+        aspect-ratio:1;
+        border-radius:18px;
+        overflow:hidden;
+        border:1px solid #4ce6dc33;
+        background:#080c12;
+        display:grid;
+        place-items:center;
+      }
+      .dv111-narrator-photo img{width:100%;height:100%;object-fit:cover;display:none}
+      .dv111-narrator-photo .avatarFallback{font-size:34px;color:#65e9df55}
+      .dv111-narrator-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+      .dv111-narrator-actions input{display:none}
+      .dv111-narrator-voice{display:grid;gap:8px}
+      .dv111-narrator-voice select{width:100%}
+      .dv111-narrator-note{font-size:10px;color:var(--muted);line-height:1.4}
+      @media(max-width:560px){
+        .dv111-narrator-grid{grid-template-columns:92px 1fr}
+        .dv111-narrator-photo{width:92px}
+      }
+
+      #playerSpeakerMeta{
+        min-height:16px!important;
+        color:#aab5c5!important;
+        letter-spacing:.08em!important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function ensureOverlay(){
+    const wrap=document.getElementById('playerPortrait');
+    if(!wrap)return null;
+    let overlay=document.getElementById('dv111VisualOverlay');
+    if(!overlay){
+      overlay=document.createElement('div');
+      overlay.id='dv111VisualOverlay';
+      wrap.appendChild(overlay);
+    }
+    return overlay;
+  }
+
+  async function transitionImage(url,visualKey,img,fb,token){
+    if(token!==dv37VisualToken)return;
+    const overlay=ensureOverlay();
+    if(!url){
+      dv111CurrentVisualKey=visualKey;
+      if(overlay){overlay.classList.remove('show');overlay.style.backgroundImage=''}
+      img.style.opacity='0';
+      setTimeout(()=>{
+        if(token!==dv37VisualToken)return;
+        img.style.display='none';
+        img.removeAttribute('src');
+        fb.style.display='grid';
+        img.style.opacity='1';
+      },220);
+      return;
+    }
+    if(dv111CurrentVisualKey===visualKey && img.src){
+      img.style.display='block';img.style.opacity='1';fb.style.display='none';
+      return;
+    }
+    dv111CurrentVisualKey=visualKey;
+    if(!overlay){
+      img.src=url;img.style.display='block';img.style.opacity='1';fb.style.display='none';return;
+    }
+    overlay.style.backgroundImage=`url("${String(url).replace(/"/g,'\\"')}")`;
+    overlay.classList.remove('show');
+    void overlay.offsetWidth;
+    overlay.classList.add('show');
+    setTimeout(()=>{
+      if(token!==dv37VisualToken)return;
+      img.src=url;
+      img.style.display='block';
+      img.style.opacity='1';
+      fb.style.display='none';
+      overlay.classList.remove('show');
+      setTimeout(()=>{if(!overlay.classList.contains('show'))overlay.style.backgroundImage=''},650);
+    },520);
+  }
+
+  async function showNarratorVisual(wrap,img,fb,note,token){
+    const key=narratorKey();
+    const url=await loadCharacterPhoto(key,'neutral')||await loadCharacterPhoto(key,'face');
+    if(token!==dv37VisualToken)return;
+    dv37SetModes(wrap,'face');
+    if(url){
+      await transitionImage(url,`narrator|${url}`,img,fb,token);
+      if(note)note.textContent='VISUAL: NARRADOR';
+    }else{
+      fb.textContent='DV6';
+      await transitionImage('',`narrator|fallback`,img,fb,token);
+      if(note)note.textContent='VISUAL: NARRADOR · SIN FOTO';
+    }
+  }
+
+  async function showCharacterVisualV111(key,name,slot,wrap,img,fb,note,token){
+    slot=normalizePhotoSlot(slot);
+    let url=await loadCharacterPhoto(key,slot);
+    if(token!==dv37VisualToken)return;
+    let usedSlot=slot;
+    if(!url&&slot!=='neutral'){
+      url=await loadCharacterPhoto(key,'neutral')||await loadCharacterPhoto(key,'face');
+      usedSlot='neutral';
+      if(token!==dv37VisualToken)return;
+    }
+    dv37SetModes(wrap,'face');
+    if(url){
+      await transitionImage(url,`${key}|${usedSlot}|${url}`,img,fb,token);
+      if(note)note.textContent=`VISUAL: ${name} · ${reactionLabel(usedSlot)}`;
+    }else{
+      fb.textContent=initials(name);
+      await transitionImage('',`${key}|fallback`,img,fb,token);
+      if(note)note.textContent=`VISUAL: ${name} · SIN FOTO`;
+    }
+  }
+
+  async function updatePlayerPortraitV111(){
+    const token=++dv37VisualToken;
+    const e=queue[queueIndex],wrap=document.getElementById('playerPortrait'),img=document.getElementById('playerPortraitImg'),fb=document.getElementById('playerPortraitFallback'),note=document.getElementById('playerVisualNote');
+    if(!wrap||!img||!fb)return;
+    wrap.classList.toggle('speaking',playing&&!paused);
+    if(note)note.textContent='';
+    if(!e){
+      dv37SetModes(wrap,'face');
+      fb.textContent='DV6';
+      await transitionImage('',`idle|dv6`,img,fb,token);
+      return;
+    }
+    if(e.type==='speech'&&isNarratorName(e.speaker)){
+      await showNarratorVisual(wrap,img,fb,note,token);
+      return;
+    }
+    if((e.type==='speech'||e.type==='vocalizacion')&&!isNarratorName(e.speaker)){
+      const slot=pickReactionSlot(e,queueIndex);
+      await showCharacterVisualV111(characterKeyForName(e.speaker),displayName(e.speaker),slot,wrap,img,fb,note,token);
+      return;
+    }
+    dv37SetModes(wrap,'face');
+    fb.textContent='DV6';
+    await transitionImage('',`sound|${e.type||'event'}`,img,fb,token);
+  }
+
+  function ensureSoundField(){
+    const location=document.getElementById('playerLocation');
+    if(!location)return null;
+    let field=document.getElementById('dv111SoundField');
+    if(!field){
+      field=document.createElement('div');
+      field.id='dv111SoundField';
+      field.className='dv111-sound-field';
+      field.setAttribute('aria-hidden','true');
+      field.innerHTML='<span></span>'.repeat(18);
+      const note=document.getElementById('playerPlacePhotoNote');
+      (note||location).insertAdjacentElement('afterend',field);
+    }
+    return field;
+  }
+
+  function syncSoundField(){
+    const field=ensureSoundField();if(!field)return;
+    const e=queue?.[queueIndex]||null;
+    let kind='voice';
+    try{
+      if(Array.isArray(currentFx)&&currentFx.length)kind='sfx';
+      else if(Array.isArray(ambientAudios)&&ambientAudios.length)kind='ambient';
+      else if(e?.type==='ambiente')kind='ambient';
+      else if(e?.type==='sfx'||e?.type==='vocalizacion')kind='sfx';
+      else if(e?.type==='location')kind='location';
+      else kind='voice';
+    }catch(err){}
+    field.className=`dv111-sound-field ${kind}${playing&&!paused?' active':''}`;
+  }
+
+  function syncFaceMeta(){
+    const meta=document.getElementById('playerSpeakerMeta');if(!meta)return;
+    const e=queue?.[queueIndex];
+    if(!e){meta.textContent='';return}
+    if(e.type==='speech'&&isNarratorName(e.speaker)){
+      meta.textContent='CARA: NEUTRAL';
+      return;
+    }
+    if((e.type==='speech'||e.type==='vocalizacion')&&!isNarratorName(e.speaker)){
+      const slot=pickReactionSlot(e,queueIndex);
+      meta.textContent=`CARA: ${reactionLabel(slot)}`;
+      return;
+    }
+    meta.textContent='';
+  }
+
+  async function loadNarratorPhotoInto(container){
+    if(!container)return;
+    const img=container.querySelector('img');
+    const fb=container.querySelector('.avatarFallback');
+    const url=await loadCharacterPhoto(narratorKey(),'neutral')||await loadCharacterPhoto(narratorKey(),'face');
+    if(url&&img){img.src=url;img.style.display='block';if(fb)fb.style.display='none'}
+    else{if(img){img.style.display='none';img.removeAttribute('src')}if(fb){fb.style.display='grid';fb.textContent='N'}}
+  }
+
+  function narratorCardMarkup(){
+    const ch=narratorRecord();
+    return `
+      <div class="dv111-narrator-grid">
+        <div>
+          <div class="dv111-narrator-photo"><img alt="Cara del narrador"><div class="avatarFallback">N</div></div>
+          <div class="dv111-narrator-actions">
+            <label class="btn small aqua" for="dv111NarratorPhoto">Elegir cara</label>
+            <input id="dv111NarratorPhoto" type="file" accept="image/png,image/jpeg,image/webp">
+            <button class="btn small" id="dv111NarratorPhotoRemove">Quitar</button>
+          </div>
+        </div>
+        <div class="dv111-narrator-voice">
+          <div class="label">Voz del narrador</div>
+          <select id="dv111NarratorVoice">${voiceOptions(ch.voiceURI||'')}</select>
+          <input id="dv111NarratorPhrase" value="${esc(ch.testPhrase||'Esta es una prueba de narración en DramaVoice 6.')}" placeholder="Frase de prueba">
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small aqua" id="dv111NarratorTest">Probar narrador</button></div>
+          <div class="voice-test-status" id="dv111NarratorStatus"></div>
+          <div class="dv111-narrator-note">Esta cara y esta voz se cambian aquí, fuera del reproductor. El reproductor solo las utiliza.</div>
+        </div>
+      </div>`;
+  }
+
+  async function injectNarratorLibraryCard(){
+    const root=document.getElementById('libraryList');if(!root)return;
+    let card=root.querySelector('.dv111-narrator-card');
+    if(!card){
+      card=document.createElement('div');
+      card.className='card dv111-narrator-card';
+      card.innerHTML=`<details class="char-collapse" data-key="${esc(narratorKey())}" open>
+        <summary class="char-summary">
+          <div class="char-summary-photo dv111-narrator-summary-photo"><img style="display:none" alt="Narrador"><div class="avatarFallback">N</div></div>
+          <div><div class="char-summary-name name-upper">NARRADOR</div><div class="char-summary-meta" id="dv111NarratorSummaryVoice">${esc(narratorVoiceDisplay())}</div></div>
+          <div class="char-summary-pill">EDITAR</div>
+        </summary>
+        <div class="char-detail">${narratorCardMarkup()}</div>
+      </details>`;
+      root.prepend(card);
+    }
+    const ch=narratorRecord();
+    const select=card.querySelector('#dv111NarratorVoice');
+    if(select)select.value=ch.voiceURI||'';
+    const phrase=card.querySelector('#dv111NarratorPhrase');
+    if(phrase)phrase.value=ch.testPhrase||'Esta es una prueba de narración en DramaVoice 6.';
+    const summary=card.querySelector('#dv111NarratorSummaryVoice');if(summary)summary.textContent=narratorVoiceDisplay();
+
+    await loadNarratorPhotoInto(card.querySelector('.dv111-narrator-photo'));
+    await loadNarratorPhotoInto(card.querySelector('.dv111-narrator-summary-photo'));
+
+    const file=card.querySelector('#dv111NarratorPhoto');
+    if(file)file.onchange=async e=>{
+      const f=e.target.files?.[0];if(!f)return;
+      await saveCharacterPhoto(narratorKey(),f,'neutral');
+      await injectNarratorLibraryCard();
+      try{renderCast()}catch(err){}
+      try{updatePlayerPortrait()}catch(err){}
+    };
+    const remove=card.querySelector('#dv111NarratorPhotoRemove');
+    if(remove)remove.onclick=async()=>{
+      await deleteCharacterPhoto(narratorKey(),'neutral');
+      await injectNarratorLibraryCard();
+      try{renderCast()}catch(err){}
+      try{updatePlayerPortrait()}catch(err){}
+    };
+    if(select)select.onchange=()=>{
+      ch.voiceURI=select.value;
+      try{saveLib()}catch(e){}
+      prioritizeNarratorVoice();
+      const s=card.querySelector('#dv111NarratorSummaryVoice');if(s)s.textContent=narratorVoiceDisplay();
+      const nvi=document.getElementById('narratorVoiceInfo');if(nvi)nvi.textContent=narratorVoiceDisplay();
+      try{renderCast()}catch(e){}
+    };
+    if(phrase)phrase.oninput=()=>{ch.testPhrase=phrase.value;try{saveLib()}catch(e){}};
+    const test=card.querySelector('#dv111NarratorTest');
+    if(test)test.onclick=()=>{
+      ch.voiceURI=select?.value||ch.voiceURI||'';
+      ch.testPhrase=phrase?.value||ch.testPhrase||'Esta es una prueba de narración en DramaVoice 6.';
+      try{saveLib()}catch(e){}
+      prioritizeNarratorVoice();
+      const st=card.querySelector('#dv111NarratorStatus');
+      if(typeof previewVoice==='function')previewVoice('NARRADOR',ch.testPhrase,st);
+    };
+  }
+
+  async function decorateNarratorCast(){
+    const root=document.getElementById('castList');if(!root)return;
+    const det=root.querySelector(`details.char-collapse[data-key="${CSS.escape(narratorKey())}"]`);
+    if(!det)return;
+    const summaryPhoto=det.querySelector('.char-summary-photo');
+    if(summaryPhoto){
+      if(!summaryPhoto.querySelector('img')){
+        summaryPhoto.innerHTML='<img style="display:none" alt="Narrador"><div class="avatarFallback">N</div>';
+      }
+      await loadNarratorPhotoInto(summaryPhoto);
+    }
+    const meta=det.querySelector('.char-summary-meta');if(meta)meta.textContent=narratorVoiceDisplay();
+    const title=det.querySelector('.locked-title');if(title)title.textContent='NARRADOR · configurable en Personajes';
+    const voice=det.querySelector('.locked-voice');if(voice)voice.textContent=narratorVoiceDisplay();
+  }
+
+  function installNativeAwareNarrator(){
+    if(dv111NativeAwareInstalled)return;
+    if(!window.DramaVoiceNativeTTS || typeof loadVoices!=='function')return;
+    dv111NativeAwareInstalled=true;
+
+    installVoiceOptionsWrapper();
+
+    dv111LoadVoicesBase=loadVoices;
+    const wrappedLoad=function(...args){
+      const r=dv111LoadVoicesBase.apply(this,args);
+      setTimeout(()=>{
+        prioritizeNarratorVoice();
+        const nvi=document.getElementById('narratorVoiceInfo');if(nvi)nvi.textContent=narratorVoiceDisplay();
+        try{renderCast()}catch(e){}
+        try{injectNarratorLibraryCard()}catch(e){}
+      },0);
+      return r;
+    };
+    try{loadVoices=wrappedLoad}catch(e){}
+    try{window.loadVoices=wrappedLoad}catch(e){}
+
+    try{
+      const previousLabel=narratorVoiceLabel;
+      const customLabel=()=>narratorVoiceDisplay()||(typeof previousLabel==='function'?previousLabel():'Narrador');
+      narratorVoiceLabel=customLabel;
+      window.narratorVoiceLabel=customLabel;
+    }catch(e){}
+
+    prioritizeNarratorVoice();
+    try{renderCast()}catch(e){}
+    try{injectNarratorLibraryCard()}catch(e){}
+  }
+
+  function wrapRenderers(){
+    if(typeof renderLibrary==='function'&&!renderLibrary.__dv111Wrapped){
+      dv111RenderLibraryBase=renderLibrary;
+      const wrapped=async function(...args){
+        const r=await dv111RenderLibraryBase.apply(this,args);
+        await injectNarratorLibraryCard();
+        return r;
+      };
+      wrapped.__dv111Wrapped=true;
+      try{renderLibrary=wrapped}catch(e){}
+      try{window.renderLibrary=wrapped}catch(e){}
+    }
+
+    if(typeof renderCast==='function'&&!renderCast.__dv111Wrapped){
+      dv111RenderCastBase=renderCast;
+      const wrapped=function(...args){
+        const r=dv111RenderCastBase.apply(this,args);
+        setTimeout(decorateNarratorCast,0);
+        return r;
+      };
+      wrapped.__dv111Wrapped=true;
+      try{renderCast=wrapped}catch(e){}
+      try{window.renderCast=wrapped}catch(e){}
+    }
+
+    if(typeof updatePlayer==='function'&&!updatePlayer.__dv111Wrapped){
+      dv111UpdatePlayerBase=updatePlayer;
+      const wrapped=function(...args){
+        const r=dv111UpdatePlayerBase.apply(this,args);
+        syncFaceMeta();
+        syncSoundField();
+        return r;
+      };
+      wrapped.__dv111Wrapped=true;
+      try{updatePlayer=wrapped}catch(e){}
+      try{window.updatePlayer=wrapped}catch(e){}
+    }
+
+    try{
+      updatePlayerPortrait=updatePlayerPortraitV111;
+      window.updatePlayerPortrait=updatePlayerPortraitV111;
+    }catch(e){}
+  }
+
+  function setVersionUi(){
+    const sub=document.querySelector('.brand .sub');
+    if(sub)sub.textContent=`v${DV111_DISPLAY} · Android TTS nativo`;
+    const v=document.getElementById('dv105InstalledVersion');if(v)v.textContent='v'+DV111_DISPLAY;
+    const b=document.getElementById('dv105Build');if(b)b.textContent=DV111_BUILD;
+  }
+
+  ensureStyles();
+  wrapRenderers();
+  installVoiceOptionsWrapper();
+  ensureSoundField();
+  setVersionUi();
+  prioritizeNarratorVoice();
+  injectNarratorLibraryCard().catch(()=>{});
+  decorateNarratorCast().catch(()=>{});
+  try{updatePlayerPortrait()}catch(e){}
+  syncFaceMeta();
+  syncSoundField();
+
+  [250,700,1400,2600,5000].forEach(ms=>setTimeout(()=>{
+    installNativeAwareNarrator();
+    installVoiceOptionsWrapper();
+    prioritizeNarratorVoice();
+    setVersionUi();
+    injectNarratorLibraryCard().catch(()=>{});
+    decorateNarratorCast().catch(()=>{});
+    syncFaceMeta();
+    syncSoundField();
+  },ms));
+
+  if(!dv111SoundFieldTimer)dv111SoundFieldTimer=setInterval(syncSoundField,450);
+  window.addEventListener('focus',()=>setTimeout(()=>{
+    installNativeAwareNarrator();
+    prioritizeNarratorVoice();
+    setVersionUi();
+  },120));
 })();
 
 </script>
