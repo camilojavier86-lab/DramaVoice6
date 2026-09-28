@@ -1,0 +1,111 @@
+name: DramaVoice 6 v1.0.3 - Recuperar voz Android
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/DV6_v1.0.3_FIX.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Aplicar recuperación de voz Android
+        shell: bash
+        run: |
+          set -e
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64, json, re
+
+          index=Path("index.html")
+          if not index.exists():
+              raise RuntimeError("No existe index.html.")
+
+          text=index.read_text(encoding="utf-8")
+          fallback=base64.b64decode("PHNjcmlwdCBpZD0iZHYxMDMtc3lzdGVtLXR0cy1mYWxsYmFjayI+CihmdW5jdGlvbigpewogICd1c2Ugc3RyaWN0JzsKICBpZih3aW5kb3cuX19EVjZfU1lTVEVNX1RUU19GQUxMQkFDS19CT09UU1RSQVApIHJldHVybjsKICB3aW5kb3cuX19EVjZfU1lTVEVNX1RUU19GQUxMQkFDS19CT09UU1RSQVA9dHJ1ZTsKCiAgY29uc3QgU1lTX1VSST0nZHY2LXN5c3RlbS1kZWZhdWx0JzsKICBjb25zdCBTWVNfVk9JQ0U9ewogICAgbmFtZTonQW5kcm9pZCBwcmVkZXRlcm1pbmFkYScsCiAgICB2b2ljZVVSSTpTWVNfVVJJLAogICAgbGFuZzonZXMtUEEnLAogICAgbG9jYWxTZXJ2aWNlOnRydWUsCiAgICBkZWZhdWx0OnRydWUsCiAgICBkdjZTeXN0ZW1EZWZhdWx0OnRydWUKICB9OwoKICBsZXQgdHJpZXM9MDsKICBjb25zdCB0aW1lcj1zZXRJbnRlcnZhbChmdW5jdGlvbigpewogICAgdHJpZXMrKzsKCiAgICBjb25zdCB3YWl0aW5nRm9yQnJpZGdlID0KICAgICAgKHR5cGVvZiBEcmFtYVZvaWNlTmF0aXZlVFRTIT09J3VuZGVmaW5lZCcpICYmCiAgICAgICF3aW5kb3cuX19EVjZfTkFUSVZFX0JSSURHRV9WNDhfUEFUQ0hFRCAmJgogICAgICB0cmllczwxMjsKCiAgICBpZih3YWl0aW5nRm9yQnJpZGdlKSByZXR1cm47CgogICAgaWYodHlwZW9mIGxvYWRWb2ljZXMhPT0nZnVuY3Rpb24nIHx8IHR5cGVvZiBjb25maWd1cmVVdHRlcmFuY2UhPT0nZnVuY3Rpb24nKXsKICAgICAgaWYodHJpZXM+NDApIGNsZWFySW50ZXJ2YWwodGltZXIpOwogICAgICByZXR1cm47CiAgICB9CgogICAgY2xlYXJJbnRlcnZhbCh0aW1lcik7CgogICAgaWYod2luZG93Ll9fRFY2X1NZU1RFTV9UVFNfRkFMTEJBQ0tfSU5TVEFMTEVEKSByZXR1cm47CiAgICB3aW5kb3cuX19EVjZfU1lTVEVNX1RUU19GQUxMQkFDS19JTlNUQUxMRUQ9dHJ1ZTsKCiAgICBjb25zdCBwcmV2aW91c0xvYWRWb2ljZXM9bG9hZFZvaWNlczsKICAgIGNvbnN0IHByZXZpb3VzQ29uZmlndXJlVXR0ZXJhbmNlPWNvbmZpZ3VyZVV0dGVyYW5jZTsKCiAgICBmdW5jdGlvbiBmYWxsYmFja0lzQWN0aXZlKCl7CiAgICAgIHJldHVybiBBcnJheS5pc0FycmF5KHZvaWNlcykgJiYKICAgICAgICAgICAgIHZvaWNlcy5sZW5ndGg9PT0xICYmCiAgICAgICAgICAgICBTdHJpbmcodm9pY2VzWzBdICYmIHZvaWNlc1swXS52b2ljZVVSSSB8fCAnJyk9PT1TWVNfVVJJOwogICAgfQoKICAgIGNvbmZpZ3VyZVV0dGVyYW5jZT1mdW5jdGlvbih1LHNwZWFrZXIpewogICAgICBpZihmYWxsYmFja0lzQWN0aXZlKCkpewogICAgICAgIHRyeXsKICAgICAgICAgIGNvbnN0IGNoPSh0eXBlb2YgY2hhcmFjdGVyUmVjb3JkRm9yTmFtZT09PSdmdW5jdGlvbicpCiAgICAgICAgICAgID8gKGNoYXJhY3RlclJlY29yZEZvck5hbWUoc3BlYWtlcil8fHt9KQogICAgICAgICAgICA6IHt9OwogICAgICAgICAgY29uc3QgbmFycmF0b3I9KHR5cGVvZiBpc05hcnJhdG9yTmFtZT09PSdmdW5jdGlvbicpICYmIGlzTmFycmF0b3JOYW1lKHNwZWFrZXIpOwoKICAgICAgICAgIC8vIE5vIGZpamFtb3MgdW5hIHZveiBjb25jcmV0YS4gRWwgc2lzdGVtYSBlc2NvZ2UgbGEgdm96IFRUUyBwcmVkZXRlcm1pbmFkYS4KICAgICAgICAgIHRyeXt1LnZvaWNlPW51bGx9Y2F0Y2goZSl7fQogICAgICAgICAgdS5sYW5nPSdlcy1QQSc7CiAgICAgICAgICB1LnJhdGU9bmFycmF0b3IgPyAuOTYgOiBOdW1iZXIoY2gucmF0ZXx8MSk7CiAgICAgICAgICB1LnBpdGNoPW5hcnJhdG9yID8gLjk2IDogTnVtYmVyKGNoLnBpdGNofHwxKTsKICAgICAgICAgIHUudm9sdW1lPSh0eXBlb2YgZWZmZWN0aXZlVm9pY2VWb2x1bWU9PT0nZnVuY3Rpb24nKQogICAgICAgICAgICA/IGVmZmVjdGl2ZVZvaWNlVm9sdW1lKCkKICAgICAgICAgICAgOiAxOwogICAgICAgICAgcmV0dXJuOwogICAgICAgIH1jYXRjaChlKXt9CiAgICAgIH0KICAgICAgcmV0dXJuIHByZXZpb3VzQ29uZmlndXJlVXR0ZXJhbmNlKHUsc3BlYWtlcik7CiAgICB9OwoKICAgIGxvYWRWb2ljZXM9ZnVuY3Rpb24oKXsKICAgICAgbGV0IHJlc3VsdDsKICAgICAgdHJ5ewogICAgICAgIHJlc3VsdD1wcmV2aW91c0xvYWRWb2ljZXMuYXBwbHkodGhpcyxhcmd1bWVudHMpOwogICAgICB9Y2F0Y2goZXJyKXsKICAgICAgICBjb25zb2xlLndhcm4oJ0RWNiBwcmV2aW91cyBsb2FkVm9pY2VzJyxlcnIpOwogICAgICB9CgogICAgICB0cnl7CiAgICAgICAgaWYodHlwZW9mIHNwZWVjaFN5bnRoZXNpcz09PSd1bmRlZmluZWQnKSByZXR1cm4gcmVzdWx0OwoKICAgICAgICBjb25zdCByZWFsVm9pY2VzPUFycmF5LmlzQXJyYXkodm9pY2VzKQogICAgICAgICAgPyB2b2ljZXMuZmlsdGVyKHY9PlN0cmluZyh2ICYmIHYudm9pY2VVUkkgfHwgJycpIT09U1lTX1VSSSkKICAgICAgICAgIDogW107CgogICAgICAgIGlmKHJlYWxWb2ljZXMubGVuZ3RoPT09MCl7CiAgICAgICAgICB2b2ljZXM9W1NZU19WT0lDRV07CgogICAgICAgICAgaWYodHlwZW9mICQ9PT0nZnVuY3Rpb24nKXsKICAgICAgICAgICAgY29uc3QgY291bnQ9JCgnI3ZvaWNlQ291bnQnKTsKICAgICAgICAgICAgaWYoY291bnQpIGNvdW50LnRleHRDb250ZW50PScxIHZveic7CgogICAgICAgICAgICBjb25zdCBzdXBwb3J0PSQoJyN0dHNTdXBwb3J0Jyk7CiAgICAgICAgICAgIGlmKHN1cHBvcnQpewogICAgICAgICAgICAgIHN1cHBvcnQudGV4dENvbnRlbnQ9J0FuZHJvaWQgVFRTIGxpc3RvIMK3IHVzYW5kbyBsYSB2b3ogcHJlZGV0ZXJtaW5hZGEgZGVsIHRlbMOpZm9uby4nOwogICAgICAgICAgICAgIHN1cHBvcnQuY2xhc3NOYW1lPSdzdGF0dXMgZ29vZCc7CiAgICAgICAgICAgIH0KCiAgICAgICAgICAgIGNvbnN0IHN1bW1hcnk9JCgnI3NldHRpbmdzVm9pY2VTdW1tYXJ5Jyk7CiAgICAgICAgICAgIGlmKHN1bW1hcnkpIHN1bW1hcnkudGV4dENvbnRlbnQ9J0FuZHJvaWQgVFRTIMK3IHZveiBwcmVkZXRlcm1pbmFkYSc7CgogICAgICAgICAgICBjb25zdCBkaWFnPSQoJyN2b2ljZURpYWdub3N0aWNzJyk7CiAgICAgICAgICAgIGlmKGRpYWcpIGRpYWcudGV4dENvbnRlbnQ9J1RvdGFsOiAxIMK3IEFuZHJvaWQgcHJlZGV0ZXJtaW5hZGEgwrcgZmFsbGJhY2sgZGVsIHNpc3RlbWEnOwogICAgICAgICAgfQoKICAgICAgICAgIHRyeXsKICAgICAgICAgICAgaWYodHlwZW9mIHJlbmRlckNhc3Q9PT0nZnVuY3Rpb24nKSByZW5kZXJDYXN0KCk7CiAgICAgICAgICAgIGlmKHR5cGVvZiByZW5kZXJQcm9uUnVsZXM9PT0nZnVuY3Rpb24nKSByZW5kZXJQcm9uUnVsZXMoKTsKICAgICAgICAgIH1jYXRjaChlKXt9CiAgICAgICAgfWVsc2V7CiAgICAgICAgICB2b2ljZXM9cmVhbFZvaWNlczsKICAgICAgICB9CiAgICAgIH1jYXRjaChlcnIpewogICAgICAgIGNvbnNvbGUud2FybignRFY2IEFuZHJvaWQgZGVmYXVsdCBmYWxsYmFjaycsZXJyKTsKICAgICAgfQoKICAgICAgcmV0dXJuIHJlc3VsdDsKICAgIH07CgogICAgdHJ5ewogICAgICBpZih0eXBlb2Ygc3BlZWNoU3ludGhlc2lzIT09J3VuZGVmaW5lZCcpewogICAgICAgIGNvbnN0IG9sZFZvaWNlc0NoYW5nZWQ9c3BlZWNoU3ludGhlc2lzLm9udm9pY2VzY2hhbmdlZDsKICAgICAgICBzcGVlY2hTeW50aGVzaXMub252b2ljZXNjaGFuZ2VkPWZ1bmN0aW9uKCl7CiAgICAgICAgICB0cnl7CiAgICAgICAgICAgIGlmKHR5cGVvZiBvbGRWb2ljZXNDaGFuZ2VkPT09J2Z1bmN0aW9uJykgb2xkVm9pY2VzQ2hhbmdlZC5hcHBseSh0aGlzLGFyZ3VtZW50cyk7CiAgICAgICAgICB9Y2F0Y2goZSl7fQogICAgICAgICAgdHJ5e2xvYWRWb2ljZXMoKX1jYXRjaChlKXt9CiAgICAgICAgfTsKICAgICAgfQogICAgfWNhdGNoKGUpe30KCiAgICB0cnl7bG9hZFZvaWNlcygpfWNhdGNoKGUpe30KICAgIHNldFRpbWVvdXQoKCk9Pnt0cnl7bG9hZFZvaWNlcygpfWNhdGNoKGUpe319LDM1MCk7CiAgICBzZXRUaW1lb3V0KCgpPT57dHJ5e2xvYWRWb2ljZXMoKX1jYXRjaChlKXt9fSwxMTAwKTsKICAgIHNldFRpbWVvdXQoKCk9Pnt0cnl7bG9hZFZvaWNlcygpfWNhdGNoKGUpe319LDIyMDApOwogIH0sMjUwKTsKfSkoKTsKPC9zY3JpcHQ+").decode("utf-8")
+
+          if 'id="dv103-system-tts-fallback"' not in text:
+              if "</body>" not in text:
+                  raise RuntimeError("No se encontró </body> en index.html.")
+              text=text.replace("</body>", fallback+"\\n</body>", 1)
+
+          # Actualizar identificadores cuando existan, pero no fallar por diferencias
+          # entre versiones anteriores del HTML.
+          text,n=re.subn(r"const DV6_APP_VERSION=\d+;", "const DV6_APP_VERSION=10003;", text, count=1)
+          if n==0:
+              print("Aviso: DV6_APP_VERSION no estaba presente; se continúa.")
+
+          text,n=re.subn(r'<meta name="dv6-version" content="\d+">', '<meta name="dv6-version" content="10003">', text, count=1)
+          if n==0:
+              print("Aviso: meta dv6-version no estaba presente; se continúa.")
+
+          text=re.sub(r'Versión instalada: v[^<\\n]+', 'Versión instalada: v1.0.3', text, count=1)
+
+          index.write_text(text, encoding="utf-8")
+
+          version={
+            "version":10003,
+            "displayVersion":"1.0.3",
+            "build":"2026.09.27.10003",
+            "date":"27 sep 2026",
+            "title":"Recuperar voz Android predeterminada",
+            "updateRequired":False,
+            "changes":[
+              "Añade un fallback de voz Android predeterminada cuando no existe catálogo de voces.",
+              "No modifica el APK, Supertonic, sonidos, fotos, escenas ni datos locales.",
+              "Esta versión se limita exclusivamente a recuperar reproducción de voz."
+            ]
+          }
+          Path("version.json").write_text(json.dumps(version,ensure_ascii=False,indent=2)+"\\n",encoding="utf-8")
+
+          sw=Path("service-worker.js")
+          if sw.exists():
+              swt=sw.read_text(encoding="utf-8")
+              swt,n=re.subn(r"const DV6_SW_VERSION='[^']+';", "const DV6_SW_VERSION='1.0.3';", swt, count=1)
+              if n==0:
+                  print("Aviso: DV6_SW_VERSION no estaba presente; se conserva service-worker.")
+              else:
+                  sw.write_text(swt,encoding="utf-8")
+
+          final=index.read_text(encoding="utf-8")
+          for token in ['id="dv103-system-tts-fallback"','Android predeterminada','dv6-system-default']:
+              if token not in final:
+                  raise RuntimeError("Validación falló: "+token)
+
+          if "dv110-script" in final:
+              raise RuntimeError("Se detectó el parche v1.1.0 defectuoso; se aborta.")
+
+          print("DramaVoice 6 v1.0.3 VOZ validada.")
+
+          PY
+
+      - name: Validar
+        shell: bash
+        run: |
+          set -e
+          grep -q 'dv103-system-tts-fallback' index.html
+          grep -q 'Android predeterminada' index.html
+          grep -q '"displayVersion": "1.0.3"' version.json
+
+      - name: Guardar actualización
+        shell: bash
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html version.json service-worker.js
+          if git diff --cached --quiet; then
+            echo "No hay cambios nuevos."
+            exit 0
+          fi
+          git commit -m "DramaVoice 6 v1.0.3: recuperar voz Android"
+          git push
