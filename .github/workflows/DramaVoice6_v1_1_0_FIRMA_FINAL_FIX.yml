@@ -1,0 +1,219 @@
+name: Build DramaVoice 6 v1.1.0 - Firma final FIX
+'on':
+  workflow_dispatch: null
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Set up Java 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '17'
+    - name: Restore persistent DramaVoice signing key
+      uses: actions/cache@v4
+      with:
+        path: ~/.android/debug.keystore
+        key: dramavoice6-signing-v54-v1
+    - name: Verify persistent key
+      shell: bash
+      run: |
+        set -e
+        KEYSTORE="$HOME/.android/debug.keystore"
+        EXPECTED="D1:19:8A:C5:72:A1:CB:97:EB:69:00:A8:1D:0E:01:CE:B8:96:E9:CF:AE:5D:42:25:01:49:9B:12:80:5D:71:2C"
+
+        if [ ! -f "$KEYSTORE" ]; then
+          echo "ERROR: la clave persistente DramaVoice no fue restaurada."
+          exit 1
+        fi
+
+        ACTUAL="$(keytool -list -v \
+          -keystore "$KEYSTORE" \
+          -storepass android \
+          -alias androiddebugkey \
+          | sed -n 's/.*SHA256: //p' | head -1)"
+
+        echo "Firma persistente esperada: $EXPECTED"
+        echo "Firma persistente encontrada: $ACTUAL"
+
+        if [ "$ACTUAL" != "$EXPECTED" ]; then
+          echo "ERROR: la clave restaurada no es la clave persistente aprobada."
+          exit 1
+        fi
+
+        printf 'SHA256: %s\n' "$ACTUAL" > DV6_SIGNING_FINGERPRINT.txt
+    - name: Recreate Android v1.1.0 from tested workflows
+      shell: bash
+      run: |
+        set -e
+
+        python3 - <<'PY'
+        from pathlib import Path
+        import textwrap
+
+        wf=Path(".github/workflows/DramaVoice6_v1_1_0_CONSOLIDADA_FIX.yml")
+        if not wf.exists():
+            raise SystemExit("ERROR: falta DramaVoice6_v1_1_0_CONSOLIDADA_FIX.yml")
+
+        src=wf.read_text(encoding="utf-8")
+
+        def extract_run(step_name,next_step_name):
+            marker=f"      - name: {step_name}\n"
+            next_marker=f"\n      - name: {next_step_name}"
+            if marker not in src:
+                raise SystemExit(f"ERROR: no encontré el paso {step_name}")
+            start=src.index(marker)
+            run_marker="        run: |\n"
+            run_pos=src.index(run_marker,start)+len(run_marker)
+            end=src.index(next_marker,run_pos)
+            return textwrap.dedent(src[run_pos:end])
+
+        create=extract_run(
+            "Crear proyecto Android desde la base estable",
+            "Aplicar contenedor Android v1.1.0"
+        )
+        apply=extract_run(
+            "Aplicar contenedor Android v1.1.0",
+            "Validar Android v1.1.0"
+        )
+
+        Path("create_android_v110_final.sh").write_text(create,encoding="utf-8")
+        Path("apply_android_v110_final.sh").write_text(apply,encoding="utf-8")
+        PY
+
+        bash create_android_v110_final.sh
+        bash apply_android_v110_final.sh
+    - name: Force explicit persistent signing
+      shell: bash
+      run: |
+        set -e
+
+        python3 - <<'PY'
+        from pathlib import Path
+
+        p=Path("app/build.gradle.kts")
+        s=p.read_text(encoding="utf-8")
+
+        if 'versionCode = 56' not in s or 'versionName = "1.1.0"' not in s:
+            raise SystemExit("ERROR: la base Android no quedó en v1.1.0.")
+
+        old = """    buildTypes {
+                release {
+                    isMinifyEnabled = false
+                }
+            }
+        """
+
+        new = """    signingConfigs {
+                create("dvPersistent") {
+                    storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
+                    storePassword = "android"
+                    keyAlias = "androiddebugkey"
+                    keyPassword = "android"
+                }
+            }
+
+            buildTypes {
+                getByName("debug") {
+                    signingConfig = signingConfigs.getByName("dvPersistent")
+                }
+                release {
+                    isMinifyEnabled = false
+                    signingConfig = signingConfigs.getByName("dvPersistent")
+                }
+            }
+        """
+
+        if old not in s:
+            raise SystemExit("ERROR: no encontré el bloque buildTypes esperado.")
+
+        s=s.replace(old,new,1)
+        p.write_text(s,encoding="utf-8")
+        PY
+
+        grep -q 'create("dvPersistent")' app/build.gradle.kts
+        grep -q 'signingConfig = signingConfigs.getByName("dvPersistent")' app/build.gradle.kts
+        grep -q 'versionCode = 56' app/build.gradle.kts
+        grep -q 'versionName = "1.1.0"' app/build.gradle.kts
+    - name: Install Gradle 8.9
+      shell: bash
+      run: |
+        set -e
+        curl -L --fail --retry 4 \
+          "https://services.gradle.org/distributions/gradle-8.9-bin.zip" \
+          -o gradle.zip
+        unzip -q gradle.zip
+    - name: Verify Gradle signing configuration
+      shell: bash
+      run: |
+        set -e
+        EXPECTED_NORMALIZED="D1198AC572A1CB97EB6900A81D0E01CEB896E9CFAE5D422501499B12805D712C"
+
+        ./gradle-8.9/bin/gradle --no-daemon :app:signingReport | tee signing-report.txt
+
+        REPORT_NORMALIZED="$(
+          grep -A12 -i 'Variant: debug' signing-report.txt \
+          | sed -n 's/.*SHA-256: //p' \
+          | head -1 \
+          | tr -d ':[:space:]' \
+          | tr '[:lower:]' '[:upper:]'
+        )"
+
+        echo "Firma que Gradle usará: $REPORT_NORMALIZED"
+
+        if [ "$REPORT_NORMALIZED" != "$EXPECTED_NORMALIZED" ]; then
+          echo "ERROR: Gradle no está usando la clave persistente."
+          exit 1
+        fi
+    - name: Build signed DramaVoice 6 v1.1.0 APK
+      shell: bash
+      run: |
+        set -e
+        ./gradle-8.9/bin/gradle --no-daemon :app:assembleDebug
+        cp app/build/outputs/apk/debug/app-debug.apk DramaVoice6-v1.1.0-build10100-FIRMA-FINAL.apk
+        ls -lh DramaVoice6-v1.1.0-build10100-FIRMA-FINAL.apk
+    - name: Verify signature inside final APK
+      shell: bash
+      run: |
+        set -e
+        EXPECTED_NORMALIZED="D1198AC572A1CB97EB6900A81D0E01CEB896E9CFAE5D422501499B12805D712C"
+
+        APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
+        if [ -z "$APKSIGNER" ]; then
+          echo "ERROR: apksigner no está disponible."
+          exit 1
+        fi
+
+        "$APKSIGNER" verify --verbose --print-certs \
+          DramaVoice6-v1.1.0-build10100-FIRMA-FINAL.apk | tee apk-signature.txt
+
+        APK_NORMALIZED="$(
+          sed -n 's/.*certificate SHA-256 digest: //p' apk-signature.txt \
+          | head -1 \
+          | tr -d ':[:space:]' \
+          | tr '[:lower:]' '[:upper:]'
+        )"
+
+        echo "Firma real dentro del APK: $APK_NORMALIZED"
+
+        if [ "$APK_NORMALIZED" != "$EXPECTED_NORMALIZED" ]; then
+          echo "ERROR: el APK terminado NO tiene la firma persistente."
+          exit 1
+        fi
+
+        echo "OK: firma del APK final verificada."
+    - name: Upload final signed APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: DramaVoice6-v1.1.0-build10100-FIRMA-FINAL
+        path: |
+          DramaVoice6-v1.1.0-build10100-FIRMA-FINAL.apk
+          DV6_SIGNING_FINGERPRINT.txt
+          apk-signature.txt
+        if-no-files-found: error
+        retention-days: 30
