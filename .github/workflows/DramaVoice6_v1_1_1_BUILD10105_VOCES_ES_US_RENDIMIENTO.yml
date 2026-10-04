@@ -1,0 +1,124 @@
+name: DramaVoice 6 v1.1.1 - Voces ES/US y rendimiento build10105
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Verificar base exacta 10104
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object index.html)" = "cc88f4281afa20a9cc001dc95e39964fd2ab99cd"
+          test "$(git hash-object version.json)" = "4a5e1d82546d088b6ba4783714f24a600c5af2e8"
+          test "$(git hash-object service-worker.js)" = "4cc2d88ffd6ff84fceca4544e2273120b12edf76"
+          echo "OK: base 10104 exacta."
+
+      - name: Aplicar build10105
+        shell: bash
+        env:
+          DV6_OPS_B64: "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"
+        run: |
+          set -euo pipefail
+          python - <<'PY_PATCH'
+          from pathlib import Path
+          import os,base64,gzip,json
+
+          path=Path('index.html')
+          text=path.read_text(encoding='utf-8')
+          lines=text.splitlines(keepends=True)
+          ops=json.loads(gzip.decompress(base64.b64decode(os.environ['DV6_OPS_B64'])).decode('utf-8'))
+          for i1,i2,new_text in reversed(ops):
+              lines[i1:i2]=new_text.splitlines(keepends=True)
+          path.write_text(''.join(lines),encoding='utf-8')
+          PY_PATCH
+
+          cat > version.json <<'EOF_VERSION'
+          {
+            "version": 10105,
+            "displayVersion": "1.1.1",
+            "build": "2026.10.04-10105",
+            "date": "4 oct 2026",
+            "title": "Voces Android España + EE. UU. y rendimiento",
+            "updateRequired": false,
+            "changes": [
+              "DramaVoice separa las voces Android TTS de Español (España) y Español (Estados Unidos) y permite asignarlas individualmente a cada personaje.",
+              "Conserva la voz nativa elegida por el usuario y evita que la autoasignación la sustituya al recargar el catálogo.",
+              "Muestra cuántas voces es-ES y es-US entrega realmente Android dentro de la app.",
+              "Evita que parches antiguos de Supertonic o fallbacks web se monten encima del puente Android TTS v54.",
+              "Reduce observadores globales, renders repetidos y consultas duplicadas a la biblioteca de sonidos para mejorar la fluidez del reproductor.",
+              "Mantiene intactas las protecciones de importación y almacenamiento de build 10104.",
+              "Actualización exclusivamente web: no cambia el APK, la firma ni los datos locales."
+            ]
+          }
+          EOF_VERSION
+
+          sed -i "s/1\.1\.1-10104/1.1.1-10105/" service-worker.js
+
+      - name: Validar HTML, voces y protecciones
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object index.html)" = "367a3fb9fe935e6e885dbb34841b1158468e3364"
+          test "$(git hash-object version.json)" = "69f09aa3db9fcdcd7b1547fdb65eccc0b888b84f"
+          test "$(git hash-object service-worker.js)" = "9c9f03a3259ef2f0685084bb0323c3eb695c32b7"
+
+          grep -q '<meta name="dv6-version" content="10105">' index.html
+          grep -q 'const DV6_APP_VERSION=10105;' index.html
+          grep -q 'Español (España)' index.html
+          grep -q 'Español (Estados Unidos)' index.html
+          grep -q '__DV6_ANDROID_TTS_V54_PATCHED' index.html
+          grep -q 'dv6SoundStorageFailureUntil' index.html
+          grep -q 'dv6PhotoStorageFailureUntil' index.html
+          grep -q 'dv6PlacePhotoStorageFailureUntil' index.html
+          grep -q 'showImportProgress=async(label,current,total)' index.html
+          ! grep -q 'name="dv6-lab"' index.html
+          ! grep -q 'observer.observe(document.body,{childList:true,subtree:true,characterData:true})' index.html
+
+          python - <<'PY_JS'
+          from pathlib import Path
+          import re,subprocess,tempfile
+          html=Path('index.html').read_text(encoding='utf-8')
+          blocks=[]
+          for m in re.finditer(r'<script(?:\s[^>]*)?>(.*?)</script>',html,re.S|re.I):
+              if 'src=' in m.group(0).split('>')[0].lower():
+                  continue
+              body=m.group(1)
+              if body.strip(): blocks.append(body)
+          assert len(blocks)>=10, f'Esperaba al menos 10 scripts; encontré {len(blocks)}'
+          with tempfile.TemporaryDirectory() as d:
+              for i,body in enumerate(blocks,1):
+                  p=Path(d)/f'{i:02d}.js'; p.write_text(body,encoding='utf-8')
+                  subprocess.run(['node','--check',str(p)],check=True)
+          print(f'OK: {len(blocks)} bloques JavaScript válidos.')
+          PY_JS
+
+          python -m json.tool version.json >/dev/null
+          node --check service-worker.js
+          git diff --check
+          echo "OK: build10105 validado."
+
+      - name: Publicar build10105
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No hay cambios para publicar."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html version.json service-worker.js
+          git commit -m "DramaVoice 6 v1.1.1 build10105: voces ES-US y rendimiento"
+          git push
