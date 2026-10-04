@@ -1,0 +1,235 @@
+name: DramaVoice 6 v1.1.1 - Fix REAL Historia a Escenas build10103
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reparar Historia a Escenas sobre base real 10102
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json, re
+
+          INDEX=Path('index.html')
+          VERSION=Path('version.json')
+          SW=Path('service-worker.js')
+          EXPECTED_INDEX_SHA='e162a539280e868866aec5523467d2117998cf07'
+          TARGET=10103
+          TARGET_BUILD='2026.09.28-10103'
+
+          for p in (INDEX,VERSION,SW):
+              if not p.exists():
+                  raise SystemExit(f'ERROR: falta {p}')
+
+          def git_blob_sha(data: bytes) -> str:
+              return hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
+
+          raw=INDEX.read_bytes()
+          html=raw.decode('utf-8')
+          version=json.loads(VERSION.read_text(encoding='utf-8'))
+          sw=SW.read_text(encoding='utf-8')
+
+          already=(
+              int(version.get('version',0))==TARGET
+              and "const importedStory=typeof data.story==='string'?data.story:'';" in html
+              and 'let dv6SceneRenderGeneration=0;' in html
+              and 'const DV6_APP_VERSION=10103;' in html
+              and "const DV6_SW_VERSION='1.1.1-10103';" in sw
+          )
+          if already:
+              print('build10103 ya estaba aplicada; no se requieren cambios.')
+              raise SystemExit(0)
+
+          actual_sha=git_blob_sha(raw)
+          if actual_sha!=EXPECTED_INDEX_SHA:
+              raise SystemExit(
+                  'ERROR DE SEGURIDAD: index.html ya no coincide con la base 10102 revisada. '
+                  f'Esperado {EXPECTED_INDEX_SHA}, actual {actual_sha}. No se modificó nada.'
+              )
+          if int(version.get('version',0))!=10102:
+              raise SystemExit(f"ERROR: version.json no está en 10102 (actual: {version.get('version')}).")
+          if "const DV6_SW_VERSION='1.1.1-10102';" not in sw:
+              raise SystemExit('ERROR: service-worker.js no está en la base 1.1.1-10102 esperada.')
+
+          # 1) IMPORTACIÓN: si el respaldo trae Historia, esa Historia es la fuente de verdad.
+          old_import=""" chapterTitle=data.chapterTitle||chapterTitle||'CAPÍTULO PEGADO';
+           scenes=Array.isArray(data.scenes)&&data.scenes.length?data.scenes:parseStory($('#story').value);syncPlacesFromScenes();"""
+          new_import=""" const importedStory=typeof data.story==='string'?data.story:'';
+           if(importedStory.trim()){
+             scenes=parseStory(importedStory);
+           }else{
+             chapterTitle=data.chapterTitle||chapterTitle||'CAPÍTULO PEGADO';
+             scenes=Array.isArray(data.scenes)?data.scenes:[];
+           }
+           syncPlacesFromScenes();"""
+          if html.count(old_import)!=1:
+              raise SystemExit(f'ERROR: bloque real de importación no aparece exactamente una vez (encontrado {html.count(old_import)}).')
+          html=html.replace(old_import,new_import,1)
+
+          # 2) ANALIZAR: quitar render duplicado. goTab('escenas') ya llama renderScenes().
+          old_analyze="saveLib();syncPlacesFromScenes();activeScene=0;queueIndex=0;buildQueue();updateHistoryCaptureUI(rawStory,true);renderScenes();renderCast();renderLibrary();renderPlaces();updatePlayer();renderPronRules();"
+          new_analyze="saveLib();syncPlacesFromScenes();activeScene=0;queueIndex=0;buildQueue();updateHistoryCaptureUI(rawStory,true);renderCast();renderLibrary();renderPlaces();updatePlayer();renderPronRules();"
+          if html.count(old_analyze)!=1:
+              raise SystemExit(f'ERROR: secuencia real de Analizar no aparece exactamente una vez (encontrado {html.count(old_analyze)}).')
+          html=html.replace(old_analyze,new_analyze,1)
+
+          # 3) ESCENAS: esperar biblioteca antes de vaciar UI y descartar render de otra Historia.
+          old_render="""async function renderScenes(){
+           const root=$('#sceneList');root.innerHTML='';
+           const sceneHeading=$('#sceneChapterHeading');if(sceneHeading)sceneHeading.textContent='📖 '+(chapterTitle||'CAPÍTULO');
+           if(!scenes.length){root.innerHTML='<div class=\"card help\">Todavía no hay un capítulo analizado.</div>';return}
+
+           buildQueue();
+           const lib=await soundLibraryIndex();"""
+          new_render="""let dv6SceneRenderGeneration=0;
+          async function renderScenes(){
+           const generation=++dv6SceneRenderGeneration;
+           const sceneSnapshot=scenes;
+           const titleSnapshot=chapterTitle;
+           const lib=await soundLibraryIndex();
+
+           if(generation!==dv6SceneRenderGeneration||sceneSnapshot!==scenes||titleSnapshot!==chapterTitle)return;
+
+           const root=$('#sceneList');root.innerHTML='';
+           const sceneHeading=$('#sceneChapterHeading');if(sceneHeading)sceneHeading.textContent='📖 '+(chapterTitle||'CAPÍTULO');
+           if(!scenes.length){root.innerHTML='<div class=\"card help\">Todavía no hay un capítulo analizado.</div>';return}
+
+           buildQueue();"""
+          if html.count(old_render)!=1:
+              raise SystemExit(f'ERROR: cabecera real de renderScenes no aparece exactamente una vez (encontrado {html.count(old_render)}).')
+          html=html.replace(old_render,new_render,1)
+
+          # 4) VERSIONADO: todos los marcadores activos de esta base pasan de 10102 a 10103.
+          html,n=re.subn(r'<meta name="dv6-version" content="10102">','<meta name="dv6-version" content="10103">',html,count=1)
+          if n!=1:
+              raise SystemExit('ERROR: no pude actualizar meta dv6-version.')
+
+          html,n=re.subn(r'const\s+DV6_APP_VERSION\s*=\s*10102\s*;','const DV6_APP_VERSION=10103;',html,count=1)
+          if n!=1:
+              raise SystemExit('ERROR: no pude actualizar DV6_APP_VERSION.')
+
+          for prefix in ('DV105','DV110','DV111'):
+              html,n=re.subn(rf'const\s+{prefix}_VERSION\s*=\s*10102\s*;',f'const {prefix}_VERSION=10103;',html,count=1)
+              if n!=1:
+                  raise SystemExit(f'ERROR: no pude actualizar {prefix}_VERSION.')
+              html,n=re.subn(rf"const\s+{prefix}_BUILD\s*=\s*'2026\.09\.28-10102'\s*;",f"const {prefix}_BUILD='{TARGET_BUILD}';",html,count=1)
+              if n!=1:
+                  raise SystemExit(f'ERROR: no pude actualizar {prefix}_BUILD.')
+
+          # Verificar el resultado completo ANTES de escribir archivos.
+          required=[
+              "const importedStory=typeof data.story==='string'?data.story:'';",
+              'scenes=parseStory(importedStory);',
+              'scenes=Array.isArray(data.scenes)?data.scenes:[];',
+              'let dv6SceneRenderGeneration=0;',
+              'sceneSnapshot!==scenes',
+              'titleSnapshot!==chapterTitle',
+              'const DV6_APP_VERSION=10103;',
+              'const DV105_VERSION=10103;',
+              'const DV110_VERSION=10103;',
+              'const DV111_VERSION=10103;',
+              "const DV111_BUILD='2026.09.28-10103';",
+          ]
+          missing=[x for x in required if x not in html]
+          if missing:
+              raise SystemExit('ERROR: validación interna del parche incompleta: '+repr(missing))
+          if 'updateHistoryCaptureUI(rawStory,true);renderScenes();renderCast();' in html:
+              raise SystemExit('ERROR: Analizar todavía conserva el render duplicado.')
+
+          new_version={
+              'version':10103,
+              'displayVersion':'1.1.1',
+              'build':TARGET_BUILD,
+              'date':'28 sep 2026',
+              'title':'Sincronización Historia → Escenas',
+              'updateRequired':False,
+              'changes':[
+                  'Al importar un proyecto que contiene Historia, esa Historia vuelve a analizarse y pasa a ser la fuente de verdad para Escenas.',
+                  'Las escenas antiguas guardadas en el mismo respaldo ya no pueden sustituir una Historia más nueva.',
+                  'Los proyectos antiguos sin campo Historia conservan compatibilidad usando data.scenes.',
+                  'Evita el render duplicado de Escenas al pulsar Analizar historia.',
+                  'Un render perteneciente a una Historia anterior ya no puede vaciar o sobrescribir la pantalla después de analizar otra Historia.',
+                  'Conserva el reproductor nocturno, narrador configurable, Android TTS nativo y todos los datos locales.',
+                  'Actualización web: no modifica ni reemplaza el APK.'
+              ]
+          }
+
+          new_sw,n=re.subn(
+              r"const\s+DV6_SW_VERSION\s*=\s*'1\.1\.1-10102'\s*;",
+              "const DV6_SW_VERSION='1.1.1-10103';",
+              sw,count=1
+          )
+          if n!=1:
+              raise SystemExit('ERROR: no pude actualizar DV6_SW_VERSION.')
+
+          # Escritura solo después de que TODAS las comprobaciones pasaron.
+          INDEX.write_text(html,encoding='utf-8')
+          VERSION.write_text(json.dumps(new_version,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          SW.write_text(new_sw,encoding='utf-8')
+          print('OK: hotfix build10103 aplicado sobre la base real 10102.')
+          PY
+
+      - name: Validar build10103
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          html=Path('index.html').read_text(encoding='utf-8')
+          version=json.loads(Path('version.json').read_text(encoding='utf-8'))
+          sw=Path('service-worker.js').read_text(encoding='utf-8')
+
+          checks={
+              'Historia importada se vuelve a parsear': "const importedStory=typeof data.story==='string'?data.story:'';" in html and 'scenes=parseStory(importedStory);' in html,
+              'Compatibilidad con respaldo sin story': 'scenes=Array.isArray(data.scenes)?data.scenes:[];' in html,
+              'Render con protección de generación': 'let dv6SceneRenderGeneration=0;' in html and 'sceneSnapshot!==scenes' in html and 'titleSnapshot!==chapterTitle' in html,
+              'Sin render duplicado al analizar': 'updateHistoryCaptureUI(rawStory,true);renderScenes();renderCast();' not in html,
+              'Meta build 10103': '<meta name="dv6-version" content="10103">' in html,
+              'App version 10103': 'const DV6_APP_VERSION=10103;' in html,
+              'Módulos internos 10103': all(x in html for x in ('const DV105_VERSION=10103;','const DV110_VERSION=10103;','const DV111_VERSION=10103;')),
+              'version.json 10103': version.get('version')==10103 and version.get('displayVersion')=='1.1.1' and version.get('build')=='2026.09.28-10103',
+              'service worker 10103': "const DV6_SW_VERSION='1.1.1-10103';" in sw,
+          }
+
+          failed=[name for name,ok in checks.items() if not ok]
+          for name,ok in checks.items():
+              print(('OK  ' if ok else 'FAIL')+name)
+          if failed:
+              raise SystemExit('ERROR: validación build10103 falló: '+', '.join(failed))
+          PY
+
+          git diff --check
+          echo "OK: build10103 validada. Solo web; no APK."
+
+      - name: Publicar build10103
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add index.html version.json service-worker.js
+
+          if git diff --cached --quiet; then
+            echo "build10103 ya estaba aplicada; no hay cambios que publicar."
+            exit 0
+          fi
+
+          git commit -m "DramaVoice 6 v1.1.1 build10103: reparar Historia y Escenas"
+          git push
