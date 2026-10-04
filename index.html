@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>DramaVoice 6 v1.1.1</title>
-<meta name="dv6-version" content="10103">
+<meta name="dv6-version" content="10104">
 
 <meta name="theme-color" content="#07090d">
 <meta name="application-name" content="DramaVoice 6">
@@ -1090,6 +1090,21 @@ const portableCharacterPhotos=new Map();
 const portablePlacePhotos=new Map();
 const portableSounds=new Map();
 const portableStorageKinds=new Set();
+const DV6_STORAGE_TIMEOUT_MS=8000;
+let dv6SoundStorageFailureUntil=0;
+let dv6PhotoStorageFailureUntil=0;
+let dv6PlacePhotoStorageFailureUntil=0;
+function dv6WithTimeout(promise,ms=DV6_STORAGE_TIMEOUT_MS,label='Operación'){
+ return new Promise((resolve,reject)=>{
+   let settled=false;
+   const timer=setTimeout(()=>{if(settled)return;settled=true;reject(new Error(`${label} excedió el tiempo de espera`))},Math.max(1000,Number(ms)||DV6_STORAGE_TIMEOUT_MS));
+   Promise.resolve(promise).then(
+     value=>{if(settled)return;settled=true;clearTimeout(timer);resolve(value)},
+     err=>{if(settled)return;settled=true;clearTimeout(timer);reject(err)}
+   );
+ });
+}
+function dv6YieldUi(){return new Promise(resolve=>requestAnimationFrame(()=>setTimeout(resolve,0)))}
 function markPortableStorage(kind){portableStorageKinds.add(kind)}
 function portableStorageMessage(){
  const labels={characters:'fotos de personajes',places:'fotos de lugares',sounds:'sonidos'};
@@ -1109,17 +1124,17 @@ function reactionSlotSuffix(slot){
 function openPhotoDb(){
  if(photoDbPromise)return photoDbPromise;
  if(!('indexedDB' in window))return Promise.reject(new Error('IndexedDB no disponible'));
- photoDbPromise=new Promise((resolve,reject)=>{
+ photoDbPromise=dv6WithTimeout(new Promise((resolve,reject)=>{
    let req;
-   try{req=indexedDB.open(PHOTO_DB,1)}catch(err){photoDbPromise=null;reject(err);return}
+   try{req=indexedDB.open(PHOTO_DB,1)}catch(err){reject(err);return}
    req.onupgradeneeded=()=>{
      const db=req.result;
      if(!db.objectStoreNames.contains(PHOTO_STORE))db.createObjectStore(PHOTO_STORE);
    };
    req.onsuccess=()=>resolve(req.result);
-   req.onerror=()=>{const err=req.error||new Error('No se pudo abrir IndexedDB');photoDbPromise=null;reject(err)};
-   req.onblocked=()=>{photoDbPromise=null;reject(new Error('IndexedDB bloqueado'))};
- });
+   req.onerror=()=>reject(req.error||new Error('No se pudo abrir IndexedDB'));
+   req.onblocked=()=>reject(new Error('IndexedDB bloqueado'));
+ }),5000,'Abrir fotos de personajes').catch(err=>{photoDbPromise=null;throw err});
  return photoDbPromise;
 }
 function characterPhotoDbKey(key,slot='neutral'){
@@ -1132,16 +1147,19 @@ function revokePhotoUrl(key){
 async function saveCharacterPhoto(key,file,slot='neutral'){
  const storageKey=characterPhotoDbKey(key,slot);
  try{
+   if(Date.now()<dv6PhotoStorageFailureUntil)throw new Error('Almacenamiento de fotos temporalmente no disponible');
    const db=await openPhotoDb();
-   await new Promise((resolve,reject)=>{
+   await dv6WithTimeout(new Promise((resolve,reject)=>{
      const tx=db.transaction(PHOTO_STORE,'readwrite');
      tx.objectStore(PHOTO_STORE).put(file,storageKey);
      tx.oncomplete=()=>resolve();
      tx.onerror=()=>reject(tx.error);
      tx.onabort=()=>reject(tx.error||new Error('IndexedDB abortado'));
-   });
+   }),8000,'Guardar foto de personaje');
+   dv6PhotoStorageFailureUntil=0;
    portableCharacterPhotos.delete(storageKey);
  }catch{
+   dv6PhotoStorageFailureUntil=Date.now()+15000;
    portableCharacterPhotos.set(storageKey,file);
    markPortableStorage('characters');
  }
@@ -1212,23 +1230,26 @@ const placePhotoUrls=new Map();
 function openPlacePhotoDb(){
  if(placePhotoDbPromise)return placePhotoDbPromise;
  if(!('indexedDB' in window))return Promise.reject(new Error('IndexedDB no disponible'));
- placePhotoDbPromise=new Promise((resolve,reject)=>{
+ placePhotoDbPromise=dv6WithTimeout(new Promise((resolve,reject)=>{
    let req;
-   try{req=indexedDB.open(PLACE_PHOTO_DB,1)}catch(err){placePhotoDbPromise=null;reject(err);return}
+   try{req=indexedDB.open(PLACE_PHOTO_DB,1)}catch(err){reject(err);return}
    req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(PLACE_PHOTO_STORE))req.result.createObjectStore(PLACE_PHOTO_STORE)};
    req.onsuccess=()=>resolve(req.result);
-   req.onerror=()=>{const err=req.error||new Error('No se pudo abrir IndexedDB');placePhotoDbPromise=null;reject(err)};
-   req.onblocked=()=>{placePhotoDbPromise=null;reject(new Error('IndexedDB bloqueado'))};
- });
+   req.onerror=()=>reject(req.error||new Error('No se pudo abrir IndexedDB'));
+   req.onblocked=()=>reject(new Error('IndexedDB bloqueado'));
+ }),5000,'Abrir fotos de lugares').catch(err=>{placePhotoDbPromise=null;throw err});
  return placePhotoDbPromise;
 }
 function revokePlacePhotoUrl(key){const u=placePhotoUrls.get(key);if(u){try{URL.revokeObjectURL(u)}catch{}placePhotoUrls.delete(key)}}
 async function savePlacePhoto(key,file){
  try{
+   if(Date.now()<dv6PlacePhotoStorageFailureUntil)throw new Error('Almacenamiento de lugares temporalmente no disponible');
    const db=await openPlacePhotoDb();
-   await new Promise((res,rej)=>{const tx=db.transaction(PLACE_PHOTO_STORE,'readwrite');tx.objectStore(PLACE_PHOTO_STORE).put(file,key);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);tx.onabort=()=>rej(tx.error||new Error('IndexedDB abortado'))});
+   await dv6WithTimeout(new Promise((res,rej)=>{const tx=db.transaction(PLACE_PHOTO_STORE,'readwrite');tx.objectStore(PLACE_PHOTO_STORE).put(file,key);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);tx.onabort=()=>rej(tx.error||new Error('IndexedDB abortado'))}),8000,'Guardar foto de lugar');
+   dv6PlacePhotoStorageFailureUntil=0;
    portablePlacePhotos.delete(String(key));
  }catch{
+   dv6PlacePhotoStorageFailureUntil=Date.now()+15000;
    portablePlacePhotos.set(String(key),file);
    markPortableStorage('places');
  }
@@ -2273,13 +2294,16 @@ function normalizeSoundRecord(rec,key){
 }
 async function soundLibraryIndex(){
  const keys=await dbKeys(),items=[];
- for(const k of keys){
-   const raw=await dbGet(k);if(!raw)continue;
+ const rows=await Promise.all(keys.map(async k=>[k,await dbGet(k)]));
+ const migrations=[];
+ for(const [k,raw] of rows){
+   if(!raw)continue;
    const rec=normalizeSoundRecord(raw,k);
    ensureCategory(rec.type,rec.family,rec.category);
-   if(!(raw instanceof Blob)&&(raw.type!==rec.type||raw.family!==rec.family||raw.category!==rec.category||raw.group!==rec.family))await dbPut(k,{...rec,blob:soundRecordToBlob(raw)});
+   if(!(raw instanceof Blob)&&(raw.type!==rec.type||raw.family!==rec.family||raw.category!==rec.category||raw.group!==rec.family))migrations.push(dbPut(k,{...rec,blob:soundRecordToBlob(raw)}));
    items.push({key:k,label:rec.label,originalName:rec.originalName||'',type:rec.type,family:rec.family,group:rec.family,category:rec.category,duration:rec.duration});
  }
+ if(migrations.length)Promise.allSettled(migrations);
  return items;
 }
 
@@ -2289,7 +2313,7 @@ async function renderScenes(){
  const generation=++dv6SceneRenderGeneration;
  const sceneSnapshot=scenes;
  const titleSnapshot=chapterTitle;
- const lib=await soundLibraryIndex();
+ const lib=await dv6WithTimeout(soundLibraryIndex(),8000,'Cargar biblioteca de sonidos para Escenas').catch(()=>[]);
 
  if(generation!==dv6SceneRenderGeneration||sceneSnapshot!==scenes||titleSnapshot!==chapterTitle)return;
 
@@ -3414,30 +3438,33 @@ $('#nextBtn').onclick=async()=>{const wasPlaying=playing;stopSpeechOnly();stopOn
 const DB='dramavoice6-sounds-v2', STORE='sounds';
 let pendingSoundFiles=[];
 function dbOpen(){
- return new Promise((res,rej)=>{
+ if(Date.now()<dv6SoundStorageFailureUntil)return Promise.reject(new Error('Biblioteca de sonidos temporalmente no disponible'));
+ return dv6WithTimeout(new Promise((res,rej)=>{
    if(!('indexedDB' in window)){rej(new Error('IndexedDB no disponible'));return}
    let r;try{r=indexedDB.open(DB,1)}catch(err){rej(err);return}
    r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(STORE))r.result.createObjectStore(STORE)};
    r.onsuccess=()=>res(r.result);
    r.onerror=()=>rej(r.error||new Error('No se pudo abrir IndexedDB'));
    r.onblocked=()=>rej(new Error('IndexedDB bloqueado'));
- })
+ }),5000,'Abrir biblioteca de sonidos').catch(err=>{dv6SoundStorageFailureUntil=Date.now()+15000;throw err})
 }
 async function dbPut(k,v){
  try{
    const db=await dbOpen();
-   await new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(v,k);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);tx.onabort=()=>rej(tx.error||new Error('IndexedDB abortado'))});
+   await dv6WithTimeout(new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(v,k);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);tx.onabort=()=>rej(tx.error||new Error('IndexedDB abortado'))}),8000,'Guardar sonido');
+   dv6SoundStorageFailureUntil=0;
    portableSounds.delete(String(k));
    return true;
  }catch{
+   dv6SoundStorageFailureUntil=Date.now()+15000;
    portableSounds.set(String(k),v);
    markPortableStorage('sounds');
    return false;
  }
 }
-async function dbGet(k){if(portableSounds.has(String(k)))return portableSounds.get(String(k));try{const db=await dbOpen();return await new Promise((res,rej)=>{const r=db.transaction(STORE).objectStore(STORE).get(k);r.onsuccess=()=>res(r.result||null);r.onerror=()=>rej(r.error)})}catch{return null}}
+async function dbGet(k){if(portableSounds.has(String(k)))return portableSounds.get(String(k));try{const db=await dbOpen();const value=await dv6WithTimeout(new Promise((res,rej)=>{const r=db.transaction(STORE).objectStore(STORE).get(k);r.onsuccess=()=>res(r.result||null);r.onerror=()=>rej(r.error)}),5000,'Leer sonido');dv6SoundStorageFailureUntil=0;return value}catch{dv6SoundStorageFailureUntil=Date.now()+15000;return null}}
 async function dbDelete(k){portableSounds.delete(String(k));try{const db=await dbOpen();await new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).delete(k);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error)})}catch{}}
-async function dbKeys(){const set=new Set(portableSounds.keys());try{const db=await dbOpen();const keys=await new Promise((res,rej)=>{const r=db.transaction(STORE).objectStore(STORE).getAllKeys();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error)});keys.forEach(k=>set.add(String(k)))}catch{}return [...set]}
+async function dbKeys(){const set=new Set(portableSounds.keys());try{const db=await dbOpen();const keys=await dv6WithTimeout(new Promise((res,rej)=>{const r=db.transaction(STORE).objectStore(STORE).getAllKeys();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error)}),5000,'Listar sonidos');dv6SoundStorageFailureUntil=0;keys.forEach(k=>set.add(String(k)))}catch{dv6SoundStorageFailureUntil=Date.now()+15000}return [...set]}
 async function dbClear(){portableSounds.clear();try{const db=await dbOpen();await new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).clear();tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error)})}catch{}}
 function soundRecordToBlob(record){if(!record)return null;if(record instanceof Blob)return record;if(record.blob instanceof Blob)return record.blob;return null}
 function soundRecordOriginal(record,key){return record&&!(record instanceof Blob)&&record.originalName?record.originalName:key}
@@ -3549,14 +3576,15 @@ async function deleteOneSound(key,label){if(!confirm(`¿Eliminar el sonido “${
 async function renderSounds(){
  const root=$('#soundList');if(!root)return;root.innerHTML='<div class="card help">Cargando biblioteca...</div>';
  const keys=await dbKeys(),q=norm($('#soundSearch')?.value||''),records=[];
- for(const k of keys){
-   const raw=await dbGet(k);if(!raw)continue;const rec=normalizeSoundRecord(raw,k),blob=soundRecordToBlob(raw);
+ const rawRows=await Promise.all(keys.map(async k=>[k,await dbGet(k)]));
+ for(const [k,raw] of rawRows){
+   if(!raw)continue;const rec=normalizeSoundRecord(raw,k),blob=soundRecordToBlob(raw),original=soundRecordOriginal(raw,k);
    if(!rec.duration&&blob){rec.duration=await audioDuration(blob)}
    ensureCategory(rec.type,rec.family,rec.category);
-   if(!(raw instanceof Blob))await dbPut(k,{...rec,blob});
+   if(!(raw instanceof Blob))void dbPut(k,{...rec,blob});
    if(soundTypeFilter!=='TODOS'&&rec.type!==soundTypeFilter)continue;
    if(q&&!norm(`${rec.label} ${rec.type} ${rec.family} ${rec.category}`).includes(q))continue;
-   records.push({key:k,rec,blob});
+   records.push({key:k,rec,blob,original});
  }
  root.innerHTML='';
  const types=['AMBIENTE','EFECTO','VOCALIZACIÓN'];
@@ -3572,7 +3600,7 @@ async function renderSounds(){
      for(const category of cats){
        const block=document.createElement('div');block.className='category-block';block.innerHTML=`<div class="category-title">${esc(category)}</div>`;
        for(const item of famRecords.filter(x=>x.rec.category===category)){
-         shown++;const {key,rec}=item,original=soundRecordOriginal(await dbGet(key),key);
+         shown++;const {key,rec,original}=item;
          const row=document.createElement('div');row.className='sound-mini';
          row.innerHTML=`<div><div class="sound-mini-name">${esc(rec.label)}</div><div class="sound-mini-meta">${esc(original)} · ${fmtDuration(rec.duration)}</div></div>
            <div class="sound-actions-inline"><button class="btn small aqua playSound">▶</button><button class="btn small editSoundBtn">Editar</button><button class="btn small danger deleteSoundBtn">Eliminar</button></div>
@@ -3830,15 +3858,31 @@ async function importProject(file){
    localStorage.setItem(STORY_KEY,data.story);
  }
 
- let soundCount=0,photoCount=0,placePhotoCount=0,mediaErrors=0;
- for(const item of data.sounds||[]){
-   try{if(!item?.data||!item?.key)continue;const blob=dataURLToBlob(item.data);await dbPut(item.key,{...(item.meta||{}),blob});soundCount++;}catch{mediaErrors++}
+ const importSounds=Array.isArray(data.sounds)?data.sounds:[];
+ const importPhotos=Array.isArray(data.photos)?data.photos:[];
+ const importPlacePhotos=Array.isArray(data.placePhotos)?data.placePhotos:[];
+ const totalMedia=importSounds.length+importPhotos.length+importPlacePhotos.length;
+ let processedMedia=0,soundCount=0,photoCount=0,placePhotoCount=0,mediaErrors=0;
+ const showImportProgress=async(label,current,total)=>{
+   const overall=Math.min(processedMedia+1,totalMedia||1);
+   $('#projectStatus').textContent=`Importando respaldo… ${overall}/${totalMedia||0} · ${label} ${current}/${total}`;
+   $('#projectStatus').className='status warn';
+   await dv6YieldUi();
+ };
+ for(let i=0;i<importSounds.length;i++){
+   const item=importSounds[i];await showImportProgress('Sonidos',i+1,importSounds.length);
+   try{if(!item?.data||!item?.key){mediaErrors++}else{const blob=dataURLToBlob(item.data);await dbPut(item.key,{...(item.meta||{}),blob});soundCount++;}}catch{mediaErrors++}
+   processedMedia++;
  }
- for(const p of data.photos||[]){
-   try{if(!p?.data||p?.key==null)continue;const parsed=parseImportedPhotoSlot(p.key);await saveCharacterPhoto(parsed.key,dataURLToBlob(p.data),parsed.slot);photoCount++;}catch{mediaErrors++}
+ for(let i=0;i<importPhotos.length;i++){
+   const p=importPhotos[i];await showImportProgress('Fotos',i+1,importPhotos.length);
+   try{if(!p?.data||p?.key==null){mediaErrors++}else{const parsed=parseImportedPhotoSlot(p.key);await saveCharacterPhoto(parsed.key,dataURLToBlob(p.data),parsed.slot);photoCount++;}}catch{mediaErrors++}
+   processedMedia++;
  }
- for(const p of data.placePhotos||[]){
-   try{if(!p?.data||p?.key==null)continue;await savePlacePhoto(String(p.key),dataURLToBlob(p.data));placePhotoCount++;}catch{mediaErrors++}
+ for(let i=0;i<importPlacePhotos.length;i++){
+   const p=importPlacePhotos[i];await showImportProgress('Lugares',i+1,importPlacePhotos.length);
+   try{if(!p?.data||p?.key==null){mediaErrors++}else{await savePlacePhoto(String(p.key),dataURLToBlob(p.data));placePhotoCount++;}}catch{mediaErrors++}
+   processedMedia++;
  }
 
  const importedStory=typeof data.story==='string'?data.story:'';
@@ -3851,13 +3895,20 @@ async function importProject(file){
  syncPlacesFromScenes();
  activeScene=0;queueIndex=0;actualEventDurations.clear();resetTimelineClock();buildQueue();
  $('#masterVolume').value=settings.masterVolume??1;$('#voiceVolume').value=settings.voiceVolume??1;$('#ambientVolume').value=settings.ambientVolume??.28;$('#sfxVolume').value=settings.sfxVolume??.72;$('#duckingLevel').value=settings.duckingLevel??.45;$('#ambientFadeMs').value=settings.ambientFadeMs??750;$('#langFilter').value=settings.lang||'';updateVolumeLabels();updateActiveMixVolumes();
- updateHistoryCaptureUI($('#story').value,scenes.length>0);await renderLibrary();renderCast();await renderPlaces();await renderSounds();renderScenes();renderPronRules();updatePlayer();
+ updateHistoryCaptureUI($('#story').value,scenes.length>0);renderCast();renderPronRules();updatePlayer();
 
  const fallback=portableStorageMessage();
  let msg=`Proyecto importado: ${Object.keys(data.charLib||{}).filter(k=>k!=='narrador').length} personaje(s) · ${photoCount} foto(s) · ${placePhotoCount} foto(s) de lugar · ${soundCount} sonido(s).`;
  if(fallback)msg+=` Android no permitió guardar permanentemente ${fallback}; quedan utilizables en esta sesión y puedes volver a EXPORTAR el proyecto.`;
- if(mediaErrors)msg+=` ${mediaErrors} elemento(s) multimedia no pudieron decodificarse.`;
+ if(mediaErrors)msg+=` ${mediaErrors} elemento(s) multimedia no pudieron recuperarse.`;
  $('#projectStatus').textContent=msg;$('#projectStatus').className='status '+(mediaErrors?'warn':'good');
+
+ setTimeout(async()=>{
+   try{await dv6WithTimeout(renderLibrary(),15000,'Actualizar personajes')}catch{}
+   try{await dv6WithTimeout(renderPlaces(),15000,'Actualizar lugares')}catch{}
+   try{await dv6WithTimeout(renderSounds(),15000,'Actualizar sonidos')}catch{}
+   try{renderScenes()}catch{}
+ },0);
 }
 
 async function resetCharactersAndLegacyPlaces(){
@@ -3873,7 +3924,22 @@ async function resetCharactersAndLegacyPlaces(){
 }
 $('#resetCharactersPlacesBtn').onclick=resetCharactersAndLegacyPlaces;
 
-$('#exportProjectBtn').onclick=exportProject;$('#importProjectFile').onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{await importProject(f)}catch(err){$('#projectStatus').textContent='No pude importar el proyecto: '+err.message;$('#projectStatus').className='status bad'}finally{e.target.value=''}};
+let dv6ProjectImportRunning=false;
+$('#exportProjectBtn').onclick=exportProject;
+$('#importProjectFile').onchange=async e=>{
+ const f=e.target.files?.[0];if(!f)return;
+ if(dv6ProjectImportRunning){e.target.value='';return}
+ dv6ProjectImportRunning=true;
+ const importLabel=document.querySelector('label[for="importProjectFile"]');
+ if(importLabel){importLabel.style.pointerEvents='none';importLabel.style.opacity='.55'}
+ try{await importProject(f)}
+ catch(err){$('#projectStatus').textContent='No pude importar el proyecto: '+err.message;$('#projectStatus').className='status bad'}
+ finally{
+   dv6ProjectImportRunning=false;
+   if(importLabel){importLabel.style.pointerEvents='';importLabel.style.opacity=''}
+   e.target.value='';
+ }
+};
 
 
 
@@ -3996,7 +4062,7 @@ if(dv6InstallBtn)dv6InstallBtn.addEventListener('click',async()=>{
 dv6RefreshInstallUi();
 
 // v44 — actualizaciones inteligentes de la PWA
-const DV6_APP_VERSION=10103;
+const DV6_APP_VERSION=10104;
 const DV6_VERSION_URL='./version.json';
 let dv6UpdateInfo=null;
 let dv6UpdateRegistration=null;
@@ -5239,9 +5305,9 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
   if(window.__DV6_V105)return;
   window.__DV6_V105=true;
 
-  const DV105_VERSION=10103;
+  const DV105_VERSION=10104;
   const DV105_DISPLAY='1.1.0';
-  const DV105_BUILD='2026.09.28-10103';
+  const DV105_BUILD='2026.10.04-10104';
   const DV105_RETURN_KEY='dv6-v105-return-after-update';
   let dv105Checking=false;
   let dv105Recorder=null;
@@ -5644,9 +5710,9 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
   if(window.__DV6_V110)return;
   window.__DV6_V110=true;
 
-  const DV110_VERSION=10103;
+  const DV110_VERSION=10104;
   const DV110_DISPLAY='1.1.1';
-  const DV110_BUILD='2026.09.28-10103';
+  const DV110_BUILD='2026.10.04-10104';
   let dv110SceneRendering=false;
   let dv110ScenePending=false;
   let dv110MixAudios=[];
@@ -6189,9 +6255,9 @@ if(document.body)observer.observe(document.body,{childList:true,subtree:true});
   if(window.__DV6_V111_PLAYER_NIGHT)return;
   window.__DV6_V111_PLAYER_NIGHT=true;
 
-  const DV111_VERSION=10103;
+  const DV111_VERSION=10104;
   const DV111_DISPLAY='1.1.1';
-  const DV111_BUILD='2026.09.28-10103';
+  const DV111_BUILD='2026.10.04-10104';
 
   let dv111CurrentVisualKey='';
   let dv111NativeAwareInstalled=false;

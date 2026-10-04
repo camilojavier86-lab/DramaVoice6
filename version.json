@@ -1,17 +1,18 @@
 {
-  "version": 10103,
+  "version": 10104,
   "displayVersion": "1.1.1",
-  "build": "2026.09.28-10103",
-  "date": "28 sep 2026",
-  "title": "Sincronización Historia → Escenas",
+  "build": "2026.10.04-10104",
+  "date": "4 oct 2026",
+  "title": "Importación resiliente y biblioteca de sonidos",
   "updateRequired": false,
   "changes": [
-    "Al importar un proyecto que contiene Historia, esa Historia vuelve a analizarse y pasa a ser la fuente de verdad para Escenas.",
-    "Las escenas antiguas guardadas en el mismo respaldo ya no pueden sustituir una Historia más nueva.",
-    "Los proyectos antiguos sin campo Historia conservan compatibilidad usando data.scenes.",
-    "Evita el render duplicado de Escenas al pulsar Analizar historia.",
-    "Un render perteneciente a una Historia anterior ya no puede vaciar o sobrescribir la pantalla después de analizar otra Historia.",
-    "Conserva el reproductor nocturno, narrador configurable, Android TTS nativo y todos los datos locales.",
-    "Actualización web: no modifica ni reemplaza el APK."
+    "Evita que IndexedDB deje congelada indefinidamente la importación de respaldos.",
+    "Muestra progreso real por sonidos, fotos y lugares durante la recuperación.",
+    "Si Android bloquea temporalmente el almacenamiento, continúa con respaldo portátil en la sesión en vez de detener todo el proceso.",
+    "Impide iniciar dos importaciones al mismo tiempo.",
+    "Acelera la lectura de la biblioteca de sonidos y evita lecturas duplicadas.",
+    "Escenas deja de quedar bloqueada esperando la biblioteca de sonidos y puede mostrarse aunque esa lectura falle.",
+    "La importación confirma primero lo recuperado y actualiza las pantallas pesadas después.",
+    "Conserva build Android, Android TTS nativo y los datos locales; actualización exclusivamente web."
   ]
 }
