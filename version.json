@@ -1,18 +1,17 @@
 {
-  "version": 10102,
+  "version": 10103,
   "displayVersion": "1.1.1",
-  "build": "2026.09.28-10102",
+  "build": "2026.09.28-10103",
   "date": "28 sep 2026",
-  "title": "Reproductor nocturno y narrador configurable",
+  "title": "Sincronización Historia → Escenas",
   "updateRequired": false,
   "changes": [
-    "Reduce brillos y resplandores fuertes del reproductor para uso nocturno.",
-    "Conserva el color distintivo de DramaVoice como marca de agua tenue en lugar de un bloque luminoso.",
-    "Suaviza el paso entre las imágenes de los personajes mediante transición gradual.",
-    "Muestra debajo del hablante qué cara o expresión está usando el personaje.",
-    "Añade una animación central tenue que cambia de comportamiento según voz, ambiente, efectos y cambios de lugar.",
-    "Permite asignar una cara al narrador desde Personajes, fuera del reproductor.",
-    "Permite cambiar y probar la voz del narrador desde Personajes; el reproductor utiliza la selección guardada.",
-    "Conserva Android TTS nativo, escenas, sonidos, personajes y datos locales."
+    "Al importar un proyecto que contiene Historia, esa Historia vuelve a analizarse y pasa a ser la fuente de verdad para Escenas.",
+    "Las escenas antiguas guardadas en el mismo respaldo ya no pueden sustituir una Historia más nueva.",
+    "Los proyectos antiguos sin campo Historia conservan compatibilidad usando data.scenes.",
+    "Evita el render duplicado de Escenas al pulsar Analizar historia.",
+    "Un render perteneciente a una Historia anterior ya no puede vaciar o sobrescribir la pantalla después de analizar otra Historia.",
+    "Conserva el reproductor nocturno, narrador configurable, Android TTS nativo y todos los datos locales.",
+    "Actualización web: no modifica ni reemplaza el APK."
   ]
 }

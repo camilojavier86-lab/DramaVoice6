@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>DramaVoice 6 v1.1.1</title>
-<meta name="dv6-version" content="10102">
+<meta name="dv6-version" content="10103">
 
 <meta name="theme-color" content="#07090d">
 <meta name="application-name" content="DramaVoice 6">
@@ -2237,7 +2237,7 @@ function analyze(){
  scenes.forEach(s=>s.events.forEach(e=>{if((e.type==='speech'||e.type==='vocalizacion')&&e.speaker)names.add(e.speaker)}));
  const created=[]; let enrichedCount=0; let autoCount=0;
  names.forEach(n=>{const res=upsertCharacterFromStory(n,rawStory);const k=norm(n);if(res.created&&!isNarratorName(n))created.push(charLib[k]);if(res.enriched)enrichedCount++;if(charLib[k]?.autoDetected)autoCount++;});
- saveLib();syncPlacesFromScenes();activeScene=0;queueIndex=0;buildQueue();updateHistoryCaptureUI(rawStory,true);renderScenes();renderCast();renderLibrary();renderPlaces();updatePlayer();renderPronRules();
+ saveLib();syncPlacesFromScenes();activeScene=0;queueIndex=0;buildQueue();updateHistoryCaptureUI(rawStory,true);renderCast();renderLibrary();renderPlaces();updatePlayer();renderPronRules();
  const autoCreated=created.filter(x=>x.autoDetected).length;
  const locationCount=scenes.reduce((n,s)=>n+s.events.filter(e=>e.type==='location').length,0);
  let msg=scenes.length?`✓ ${chapterTitle} · ${scenes.length} escena(s) · ${locationCount} lugar(es)`:'No encontré escenas o intervenciones.';
@@ -2284,13 +2284,20 @@ async function soundLibraryIndex(){
 }
 
 
+let dv6SceneRenderGeneration=0;
 async function renderScenes(){
+ const generation=++dv6SceneRenderGeneration;
+ const sceneSnapshot=scenes;
+ const titleSnapshot=chapterTitle;
+ const lib=await soundLibraryIndex();
+
+ if(generation!==dv6SceneRenderGeneration||sceneSnapshot!==scenes||titleSnapshot!==chapterTitle)return;
+
  const root=$('#sceneList');root.innerHTML='';
  const sceneHeading=$('#sceneChapterHeading');if(sceneHeading)sceneHeading.textContent='📖 '+(chapterTitle||'CAPÍTULO');
  if(!scenes.length){root.innerHTML='<div class="card help">Todavía no hay un capítulo analizado.</div>';return}
 
  buildQueue();
- const lib=await soundLibraryIndex();
  const chapterResume=chapterResumePosition();
  const chapterCard=document.createElement('div');
  chapterCard.className='chapter-card';
@@ -3834,8 +3841,14 @@ async function importProject(file){
    try{if(!p?.data||p?.key==null)continue;await savePlacePhoto(String(p.key),dataURLToBlob(p.data));placePhotoCount++;}catch{mediaErrors++}
  }
 
- chapterTitle=data.chapterTitle||chapterTitle||'CAPÍTULO PEGADO';
- scenes=Array.isArray(data.scenes)&&data.scenes.length?data.scenes:parseStory($('#story').value);syncPlacesFromScenes();
+ const importedStory=typeof data.story==='string'?data.story:'';
+ if(importedStory.trim()){
+   scenes=parseStory(importedStory);
+ }else{
+   chapterTitle=data.chapterTitle||chapterTitle||'CAPÍTULO PEGADO';
+   scenes=Array.isArray(data.scenes)?data.scenes:[];
+ }
+ syncPlacesFromScenes();
  activeScene=0;queueIndex=0;actualEventDurations.clear();resetTimelineClock();buildQueue();
  $('#masterVolume').value=settings.masterVolume??1;$('#voiceVolume').value=settings.voiceVolume??1;$('#ambientVolume').value=settings.ambientVolume??.28;$('#sfxVolume').value=settings.sfxVolume??.72;$('#duckingLevel').value=settings.duckingLevel??.45;$('#ambientFadeMs').value=settings.ambientFadeMs??750;$('#langFilter').value=settings.lang||'';updateVolumeLabels();updateActiveMixVolumes();
  updateHistoryCaptureUI($('#story').value,scenes.length>0);await renderLibrary();renderCast();await renderPlaces();await renderSounds();renderScenes();renderPronRules();updatePlayer();
@@ -3983,7 +3996,7 @@ if(dv6InstallBtn)dv6InstallBtn.addEventListener('click',async()=>{
 dv6RefreshInstallUi();
 
 // v44 — actualizaciones inteligentes de la PWA
-const DV6_APP_VERSION=10102;
+const DV6_APP_VERSION=10103;
 const DV6_VERSION_URL='./version.json';
 let dv6UpdateInfo=null;
 let dv6UpdateRegistration=null;
@@ -5226,9 +5239,9 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
   if(window.__DV6_V105)return;
   window.__DV6_V105=true;
 
-  const DV105_VERSION=10102;
+  const DV105_VERSION=10103;
   const DV105_DISPLAY='1.1.0';
-  const DV105_BUILD='2026.09.28-10102';
+  const DV105_BUILD='2026.09.28-10103';
   const DV105_RETURN_KEY='dv6-v105-return-after-update';
   let dv105Checking=false;
   let dv105Recorder=null;
@@ -5631,9 +5644,9 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
   if(window.__DV6_V110)return;
   window.__DV6_V110=true;
 
-  const DV110_VERSION=10102;
+  const DV110_VERSION=10103;
   const DV110_DISPLAY='1.1.1';
-  const DV110_BUILD='2026.09.28-10102';
+  const DV110_BUILD='2026.09.28-10103';
   let dv110SceneRendering=false;
   let dv110ScenePending=false;
   let dv110MixAudios=[];
@@ -6176,9 +6189,9 @@ if(document.body)observer.observe(document.body,{childList:true,subtree:true});
   if(window.__DV6_V111_PLAYER_NIGHT)return;
   window.__DV6_V111_PLAYER_NIGHT=true;
 
-  const DV111_VERSION=10102;
+  const DV111_VERSION=10103;
   const DV111_DISPLAY='1.1.1';
-  const DV111_BUILD='2026.09.28-10102';
+  const DV111_BUILD='2026.09.28-10103';
 
   let dv111CurrentVisualKey='';
   let dv111NativeAwareInstalled=false;
