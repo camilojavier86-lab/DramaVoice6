@@ -1,0 +1,567 @@
+name: DramaVoice 6 v1.1.1 - Reparar importacion y sonidos build10104
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reparar importacion, IndexedDB y carga de sonidos
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json, re
+
+          INDEX=Path('index.html')
+          VERSION=Path('version.json')
+          SW=Path('service-worker.js')
+          EXPECTED_INDEX_SHA='0f8049b34bdca47ab754e382ad4e0e8b59ad9bd4'
+          TARGET=10104
+          TARGET_BUILD='2026.10.04-10104'
+
+          for p in (INDEX,VERSION,SW):
+              if not p.exists():
+                  raise SystemExit(f'ERROR: falta {p}')
+
+          def git_blob_sha(data: bytes) -> str:
+              return hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
+
+          def replace_once(text, old, new, label):
+              count=text.count(old)
+              if count!=1:
+                  raise SystemExit(f'ERROR: {label}: esperaba 1 coincidencia y encontré {count}.')
+              return text.replace(old,new,1)
+
+          raw=INDEX.read_bytes()
+          html=raw.decode('utf-8')
+          version=json.loads(VERSION.read_text(encoding='utf-8'))
+          sw=SW.read_text(encoding='utf-8')
+
+          already=(
+              int(version.get('version',0))==TARGET
+              and 'const DV6_STORAGE_TIMEOUT_MS=8000;' in html
+              and 'Importando respaldo…' in html
+              and 'let dv6ProjectImportRunning=false;' in html
+              and "const DV6_APP_VERSION=10104;" in html
+              and "const DV6_SW_VERSION='1.1.1-10104';" in sw
+          )
+          if already:
+              print('build10104 ya estaba aplicada; no se requieren cambios.')
+              raise SystemExit(0)
+
+          actual_sha=git_blob_sha(raw)
+          if actual_sha!=EXPECTED_INDEX_SHA:
+              raise SystemExit(
+                  'ERROR DE SEGURIDAD: index.html ya no coincide con build10103 revisada. '
+                  f'Esperado {EXPECTED_INDEX_SHA}, actual {actual_sha}. No se modificó nada.'
+              )
+          if int(version.get('version',0))!=10103:
+              raise SystemExit(f"ERROR: version.json no está en 10103 (actual: {version.get('version')}).")
+          if "const DV6_SW_VERSION='1.1.1-10103';" not in sw:
+              raise SystemExit('ERROR: service-worker.js no está en 1.1.1-10103.')
+
+          # 1) Un timeout general evita promesas de almacenamiento eternas y deja respirar a la UI.
+          old="""const portableCharacterPhotos=new Map();
+          const portablePlacePhotos=new Map();
+          const portableSounds=new Map();
+          const portableStorageKinds=new Set();
+          function markPortableStorage(kind){portableStorageKinds.add(kind)}
+          """
+          new="""const portableCharacterPhotos=new Map();
+          const portablePlacePhotos=new Map();
+          const portableSounds=new Map();
+          const portableStorageKinds=new Set();
+          const DV6_STORAGE_TIMEOUT_MS=8000;
+          let dv6SoundStorageFailureUntil=0;
+          let dv6PhotoStorageFailureUntil=0;
+          let dv6PlacePhotoStorageFailureUntil=0;
+          function dv6WithTimeout(promise,ms=DV6_STORAGE_TIMEOUT_MS,label='Operación'){
+           return new Promise((resolve,reject)=>{
+             let settled=false;
+             const timer=setTimeout(()=>{if(settled)return;settled=true;reject(new Error(`${label} excedió el tiempo de espera`))},Math.max(1000,Number(ms)||DV6_STORAGE_TIMEOUT_MS));
+             Promise.resolve(promise).then(
+               value=>{if(settled)return;settled=true;clearTimeout(timer);resolve(value)},
+               err=>{if(settled)return;settled=true;clearTimeout(timer);reject(err)}
+             );
+           });
+          }
+          function dv6YieldUi(){return new Promise(resolve=>requestAnimationFrame(()=>setTimeout(resolve,0)))}
+          function markPortableStorage(kind){portableStorageKinds.add(kind)}
+          """
+          html=replace_once(html,old,new,'helper de timeout')
+
+          # 2) Fotos de personajes: apertura/transacción acotadas + fail-fast temporal.
+          old=""" photoDbPromise=new Promise((resolve,reject)=>{
+             let req;
+             try{req=indexedDB.open(PHOTO_DB,1)}catch(err){photoDbPromise=null;reject(err);return}
+             req.onupgradeneeded=()=>{
+               const db=req.result;
+               if(!db.objectStoreNames.contains(PHOTO_STORE))db.createObjectStore(PHOTO_STORE);
+             };
+             req.onsuccess=()=>resolve(req.result);
+             req.onerror=()=>{const err=req.error||new Error('No se pudo abrir IndexedDB');photoDbPromise=null;reject(err)};
+             req.onblocked=()=>{photoDbPromise=null;reject(new Error('IndexedDB bloqueado'))};
+           });
+           return photoDbPromise;
+          """
+          new=""" photoDbPromise=dv6WithTimeout(new Promise((resolve,reject)=>{
+             let req;
+             try{req=indexedDB.open(PHOTO_DB,1)}catch(err){reject(err);return}
+             req.onupgradeneeded=()=>{
+               const db=req.result;
+               if(!db.objectStoreNames.contains(PHOTO_STORE))db.createObjectStore(PHOTO_STORE);
+             };
+             req.onsuccess=()=>resolve(req.result);
+             req.onerror=()=>reject(req.error||new Error('No se pudo abrir IndexedDB'));
+             req.onblocked=()=>reject(new Error('IndexedDB bloqueado'));
+           }),5000,'Abrir fotos de personajes').catch(err=>{photoDbPromise=null;throw err});
+           return photoDbPromise;
+          """
+          html=replace_once(html,old,new,'openPhotoDb')
+
+          old=""" try{
+             const db=await openPhotoDb();
+             await new Promise((resolve,reject)=>{
+               const tx=db.transaction(PHOTO_STORE,'readwrite');
+               tx.objectStore(PHOTO_STORE).put(file,storageKey);
+               tx.oncomplete=()=>resolve();
+               tx.onerror=()=>reject(tx.error);
+               tx.onabort=()=>reject(tx.error||new Error('IndexedDB abortado'));
+             });
+             portableCharacterPhotos.delete(storageKey);
+           }catch{
+             portableCharacterPhotos.set(storageKey,file);
+             markPortableStorage('characters');
+           }
+          """
+          new=""" try{
+             if(Date.now()<dv6PhotoStorageFailureUntil)throw new Error('Almacenamiento de fotos temporalmente no disponible');
+             const db=await openPhotoDb();
+             await dv6WithTimeout(new Promise((resolve,reject)=>{
+               const tx=db.transaction(PHOTO_STORE,'readwrite');
+               tx.objectStore(PHOTO_STORE).put(file,storageKey);
+               tx.oncomplete=()=>resolve();
+               tx.onerror=()=>reject(tx.error);
+               tx.onabort=()=>reject(tx.error||new Error('IndexedDB abortado'));
+             }),8000,'Guardar foto de personaje');
+             dv6PhotoStorageFailureUntil=0;
+             portableCharacterPhotos.delete(storageKey);
+           }catch{
+             dv6PhotoStorageFailureUntil=Date.now()+15000;
+             portableCharacterPhotos.set(storageKey,file);
+             markPortableStorage('characters');
+           }
+          """
+          html=replace_once(html,old,new,'saveCharacterPhoto')
+
+          # 3) Fotos de lugares con la misma protección.
+          old=""" placePhotoDbPromise=new Promise((resolve,reject)=>{
+             let req;
+             try{req=indexedDB.open(PLACE_PHOTO_DB,1)}catch(err){placePhotoDbPromise=null;reject(err);return}
+             req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(PLACE_PHOTO_STORE))req.result.createObjectStore(PLACE_PHOTO_STORE)};
+             req.onsuccess=()=>resolve(req.result);
+             req.onerror=()=>{const err=req.error||new Error('No se pudo abrir IndexedDB');placePhotoDbPromise=null;reject(err)};
+             req.onblocked=()=>{placePhotoDbPromise=null;reject(new Error('IndexedDB bloqueado'))};
+           });
+           return placePhotoDbPromise;
+          """
+          new=""" placePhotoDbPromise=dv6WithTimeout(new Promise((resolve,reject)=>{
+             let req;
+             try{req=indexedDB.open(PLACE_PHOTO_DB,1)}catch(err){reject(err);return}
+             req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(PLACE_PHOTO_STORE))req.result.createObjectStore(PLACE_PHOTO_STORE)};
+             req.onsuccess=()=>resolve(req.result);
+             req.onerror=()=>reject(req.error||new Error('No se pudo abrir IndexedDB'));
+             req.onblocked=()=>reject(new Error('IndexedDB bloqueado'));
+           }),5000,'Abrir fotos de lugares').catch(err=>{placePhotoDbPromise=null;throw err});
+           return placePhotoDbPromise;
+          """
+          html=replace_once(html,old,new,'openPlacePhotoDb')
+
+          old=""" try{
+             const db=await openPlacePhotoDb();
+             await new Promise((res,rej)=>{const tx=db.transaction(PLACE_PHOTO_STORE,'readwrite');tx.objectStore(PLACE_PHOTO_STORE).put(file,key);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);tx.onabort=()=>rej(tx.error||new Error('IndexedDB abortado'))});
+             portablePlacePhotos.delete(String(key));
+           }catch{
+             portablePlacePhotos.set(String(key),file);
+             markPortableStorage('places');
+           }
+          """
+          new=""" try{
+             if(Date.now()<dv6PlacePhotoStorageFailureUntil)throw new Error('Almacenamiento de lugares temporalmente no disponible');
+             const db=await openPlacePhotoDb();
+             await dv6WithTimeout(new Promise((res,rej)=>{const tx=db.transaction(PLACE_PHOTO_STORE,'readwrite');tx.objectStore(PLACE_PHOTO_STORE).put(file,key);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);tx.onabort=()=>rej(tx.error||new Error('IndexedDB abortado'))}),8000,'Guardar foto de lugar');
+             dv6PlacePhotoStorageFailureUntil=0;
+             portablePlacePhotos.delete(String(key));
+           }catch{
+             dv6PlacePhotoStorageFailureUntil=Date.now()+15000;
+             portablePlacePhotos.set(String(key),file);
+             markPortableStorage('places');
+           }
+          """
+          html=replace_once(html,old,new,'savePlacePhoto')
+
+          # 4) Sonidos: nunca quedar esperando IndexedDB y fallar rápido durante un bloqueo.
+          old="""function dbOpen(){
+           return new Promise((res,rej)=>{
+             if(!('indexedDB' in window)){rej(new Error('IndexedDB no disponible'));return}
+             let r;try{r=indexedDB.open(DB,1)}catch(err){rej(err);return}
+             r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(STORE))r.result.createObjectStore(STORE)};
+             r.onsuccess=()=>res(r.result);
+             r.onerror=()=>rej(r.error||new Error('No se pudo abrir IndexedDB'));
+             r.onblocked=()=>rej(new Error('IndexedDB bloqueado'));
+           })
+          }
+          """
+          new="""function dbOpen(){
+           if(Date.now()<dv6SoundStorageFailureUntil)return Promise.reject(new Error('Biblioteca de sonidos temporalmente no disponible'));
+           return dv6WithTimeout(new Promise((res,rej)=>{
+             if(!('indexedDB' in window)){rej(new Error('IndexedDB no disponible'));return}
+             let r;try{r=indexedDB.open(DB,1)}catch(err){rej(err);return}
+             r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(STORE))r.result.createObjectStore(STORE)};
+             r.onsuccess=()=>res(r.result);
+             r.onerror=()=>rej(r.error||new Error('No se pudo abrir IndexedDB'));
+             r.onblocked=()=>rej(new Error('IndexedDB bloqueado'));
+           }),5000,'Abrir biblioteca de sonidos').catch(err=>{dv6SoundStorageFailureUntil=Date.now()+15000;throw err})
+          }
+          """
+          html=replace_once(html,old,new,'dbOpen sonidos')
+
+          old="""async function dbPut(k,v){
+           try{
+             const db=await dbOpen();
+             await new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(v,k);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);tx.onabort=()=>rej(tx.error||new Error('IndexedDB abortado'))});
+             portableSounds.delete(String(k));
+             return true;
+           }catch{
+             portableSounds.set(String(k),v);
+             markPortableStorage('sounds');
+             return false;
+           }
+          }
+          async function dbGet(k){if(portableSounds.has(String(k)))return portableSounds.get(String(k));try{const db=await dbOpen();return await new Promise((res,rej)=>{const r=db.transaction(STORE).objectStore(STORE).get(k);r.onsuccess=()=>res(r.result||null);r.onerror=()=>rej(r.error)})}catch{return null}}
+          """
+          new="""async function dbPut(k,v){
+           try{
+             const db=await dbOpen();
+             await dv6WithTimeout(new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(v,k);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);tx.onabort=()=>rej(tx.error||new Error('IndexedDB abortado'))}),8000,'Guardar sonido');
+             dv6SoundStorageFailureUntil=0;
+             portableSounds.delete(String(k));
+             return true;
+           }catch{
+             dv6SoundStorageFailureUntil=Date.now()+15000;
+             portableSounds.set(String(k),v);
+             markPortableStorage('sounds');
+             return false;
+           }
+          }
+          async function dbGet(k){if(portableSounds.has(String(k)))return portableSounds.get(String(k));try{const db=await dbOpen();const value=await dv6WithTimeout(new Promise((res,rej)=>{const r=db.transaction(STORE).objectStore(STORE).get(k);r.onsuccess=()=>res(r.result||null);r.onerror=()=>rej(r.error)}),5000,'Leer sonido');dv6SoundStorageFailureUntil=0;return value}catch{dv6SoundStorageFailureUntil=Date.now()+15000;return null}}
+          """
+          html=replace_once(html,old,new,'dbPut/dbGet sonidos')
+
+          old="""async function dbKeys(){const set=new Set(portableSounds.keys());try{const db=await dbOpen();const keys=await new Promise((res,rej)=>{const r=db.transaction(STORE).objectStore(STORE).getAllKeys();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error)});keys.forEach(k=>set.add(String(k)))}catch{}return [...set]}
+          """
+          new="""async function dbKeys(){const set=new Set(portableSounds.keys());try{const db=await dbOpen();const keys=await dv6WithTimeout(new Promise((res,rej)=>{const r=db.transaction(STORE).objectStore(STORE).getAllKeys();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error)}),5000,'Listar sonidos');dv6SoundStorageFailureUntil=0;keys.forEach(k=>set.add(String(k)))}catch{dv6SoundStorageFailureUntil=Date.now()+15000}return [...set]}
+          """
+          html=replace_once(html,old,new,'dbKeys sonidos')
+
+          # 5) Índice de sonidos en paralelo; las migraciones de metadatos ya no bloquean Escenas.
+          old="""async function soundLibraryIndex(){
+           const keys=await dbKeys(),items=[];
+           for(const k of keys){
+             const raw=await dbGet(k);if(!raw)continue;
+             const rec=normalizeSoundRecord(raw,k);
+             ensureCategory(rec.type,rec.family,rec.category);
+             if(!(raw instanceof Blob)&&(raw.type!==rec.type||raw.family!==rec.family||raw.category!==rec.category||raw.group!==rec.family))await dbPut(k,{...rec,blob:soundRecordToBlob(raw)});
+             items.push({key:k,label:rec.label,originalName:rec.originalName||'',type:rec.type,family:rec.family,group:rec.family,category:rec.category,duration:rec.duration});
+           }
+           return items;
+          }
+          """
+          new="""async function soundLibraryIndex(){
+           const keys=await dbKeys(),items=[];
+           const rows=await Promise.all(keys.map(async k=>[k,await dbGet(k)]));
+           const migrations=[];
+           for(const [k,raw] of rows){
+             if(!raw)continue;
+             const rec=normalizeSoundRecord(raw,k);
+             ensureCategory(rec.type,rec.family,rec.category);
+             if(!(raw instanceof Blob)&&(raw.type!==rec.type||raw.family!==rec.family||raw.category!==rec.category||raw.group!==rec.family))migrations.push(dbPut(k,{...rec,blob:soundRecordToBlob(raw)}));
+             items.push({key:k,label:rec.label,originalName:rec.originalName||'',type:rec.type,family:rec.family,group:rec.family,category:rec.category,duration:rec.duration});
+           }
+           if(migrations.length)Promise.allSettled(migrations);
+           return items;
+          }
+          """
+          html=replace_once(html,old,new,'soundLibraryIndex')
+
+          # Escenas nunca espera indefinidamente a la biblioteca.
+          old=""" const lib=await soundLibraryIndex();
+
+           if(generation!==dv6SceneRenderGeneration||sceneSnapshot!==scenes||titleSnapshot!==chapterTitle)return;
+          """
+          new=""" const lib=await dv6WithTimeout(soundLibraryIndex(),8000,'Cargar biblioteca de sonidos para Escenas').catch(()=>[]);
+
+           if(generation!==dv6SceneRenderGeneration||sceneSnapshot!==scenes||titleSnapshot!==chapterTitle)return;
+          """
+          html=replace_once(html,old,new,'timeout renderScenes')
+
+          # Sonidos: lectura inicial en paralelo y sin una segunda lectura por tarjeta.
+          old=""" const keys=await dbKeys(),q=norm($('#soundSearch')?.value||''),records=[];
+           for(const k of keys){
+             const raw=await dbGet(k);if(!raw)continue;const rec=normalizeSoundRecord(raw,k),blob=soundRecordToBlob(raw);
+             if(!rec.duration&&blob){rec.duration=await audioDuration(blob)}
+             ensureCategory(rec.type,rec.family,rec.category);
+             if(!(raw instanceof Blob))await dbPut(k,{...rec,blob});
+             if(soundTypeFilter!=='TODOS'&&rec.type!==soundTypeFilter)continue;
+             if(q&&!norm(`${rec.label} ${rec.type} ${rec.family} ${rec.category}`).includes(q))continue;
+             records.push({key:k,rec,blob});
+           }
+          """
+          new=""" const keys=await dbKeys(),q=norm($('#soundSearch')?.value||''),records=[];
+           const rawRows=await Promise.all(keys.map(async k=>[k,await dbGet(k)]));
+           for(const [k,raw] of rawRows){
+             if(!raw)continue;const rec=normalizeSoundRecord(raw,k),blob=soundRecordToBlob(raw),original=soundRecordOriginal(raw,k);
+             if(!rec.duration&&blob){rec.duration=await audioDuration(blob)}
+             ensureCategory(rec.type,rec.family,rec.category);
+             if(!(raw instanceof Blob))void dbPut(k,{...rec,blob});
+             if(soundTypeFilter!=='TODOS'&&rec.type!==soundTypeFilter)continue;
+             if(q&&!norm(`${rec.label} ${rec.type} ${rec.family} ${rec.category}`).includes(q))continue;
+             records.push({key:k,rec,blob,original});
+           }
+          """
+          html=replace_once(html,old,new,'renderSounds lectura')
+
+          old="""         shown++;const {key,rec}=item,original=soundRecordOriginal(await dbGet(key),key);
+          """
+          new="""         shown++;const {key,rec,original}=item;
+          """
+          html=replace_once(html,old,new,'renderSounds segunda lectura')
+
+          # 6) Importación con progreso real, pausas de UI y continuidad por elemento.
+          old=""" let soundCount=0,photoCount=0,placePhotoCount=0,mediaErrors=0;
+           for(const item of data.sounds||[]){
+             try{if(!item?.data||!item?.key)continue;const blob=dataURLToBlob(item.data);await dbPut(item.key,{...(item.meta||{}),blob});soundCount++;}catch{mediaErrors++}
+           }
+           for(const p of data.photos||[]){
+             try{if(!p?.data||p?.key==null)continue;const parsed=parseImportedPhotoSlot(p.key);await saveCharacterPhoto(parsed.key,dataURLToBlob(p.data),parsed.slot);photoCount++;}catch{mediaErrors++}
+           }
+           for(const p of data.placePhotos||[]){
+             try{if(!p?.data||p?.key==null)continue;await savePlacePhoto(String(p.key),dataURLToBlob(p.data));placePhotoCount++;}catch{mediaErrors++}
+           }
+          """
+          new=""" const importSounds=Array.isArray(data.sounds)?data.sounds:[];
+           const importPhotos=Array.isArray(data.photos)?data.photos:[];
+           const importPlacePhotos=Array.isArray(data.placePhotos)?data.placePhotos:[];
+           const totalMedia=importSounds.length+importPhotos.length+importPlacePhotos.length;
+           let processedMedia=0,soundCount=0,photoCount=0,placePhotoCount=0,mediaErrors=0;
+           const showImportProgress=async(label,current,total)=>{
+             const overall=Math.min(processedMedia+1,totalMedia||1);
+             $('#projectStatus').textContent=`Importando respaldo… ${overall}/${totalMedia||0} · ${label} ${current}/${total}`;
+             $('#projectStatus').className='status warn';
+             await dv6YieldUi();
+           };
+           for(let i=0;i<importSounds.length;i++){
+             const item=importSounds[i];await showImportProgress('Sonidos',i+1,importSounds.length);
+             try{if(!item?.data||!item?.key){mediaErrors++}else{const blob=dataURLToBlob(item.data);await dbPut(item.key,{...(item.meta||{}),blob});soundCount++;}}catch{mediaErrors++}
+             processedMedia++;
+           }
+           for(let i=0;i<importPhotos.length;i++){
+             const p=importPhotos[i];await showImportProgress('Fotos',i+1,importPhotos.length);
+             try{if(!p?.data||p?.key==null){mediaErrors++}else{const parsed=parseImportedPhotoSlot(p.key);await saveCharacterPhoto(parsed.key,dataURLToBlob(p.data),parsed.slot);photoCount++;}}catch{mediaErrors++}
+             processedMedia++;
+           }
+           for(let i=0;i<importPlacePhotos.length;i++){
+             const p=importPlacePhotos[i];await showImportProgress('Lugares',i+1,importPlacePhotos.length);
+             try{if(!p?.data||p?.key==null){mediaErrors++}else{await savePlacePhoto(String(p.key),dataURLToBlob(p.data));placePhotoCount++;}}catch{mediaErrors++}
+             processedMedia++;
+           }
+          """
+          html=replace_once(html,old,new,'progreso de importación')
+
+          # La importación termina primero; refrescar pantallas pesadas después, con límite.
+          old=""" updateHistoryCaptureUI($('#story').value,scenes.length>0);await renderLibrary();renderCast();await renderPlaces();await renderSounds();renderScenes();renderPronRules();updatePlayer();
+
+           const fallback=portableStorageMessage();
+           let msg=`Proyecto importado: ${Object.keys(data.charLib||{}).filter(k=>k!=='narrador').length} personaje(s) · ${photoCount} foto(s) · ${placePhotoCount} foto(s) de lugar · ${soundCount} sonido(s).`;
+           if(fallback)msg+=` Android no permitió guardar permanentemente ${fallback}; quedan utilizables en esta sesión y puedes volver a EXPORTAR el proyecto.`;
+           if(mediaErrors)msg+=` ${mediaErrors} elemento(s) multimedia no pudieron decodificarse.`;
+           $('#projectStatus').textContent=msg;$('#projectStatus').className='status '+(mediaErrors?'warn':'good');
+          }
+          """
+          new=""" updateHistoryCaptureUI($('#story').value,scenes.length>0);renderCast();renderPronRules();updatePlayer();
+
+           const fallback=portableStorageMessage();
+           let msg=`Proyecto importado: ${Object.keys(data.charLib||{}).filter(k=>k!=='narrador').length} personaje(s) · ${photoCount} foto(s) · ${placePhotoCount} foto(s) de lugar · ${soundCount} sonido(s).`;
+           if(fallback)msg+=` Android no permitió guardar permanentemente ${fallback}; quedan utilizables en esta sesión y puedes volver a EXPORTAR el proyecto.`;
+           if(mediaErrors)msg+=` ${mediaErrors} elemento(s) multimedia no pudieron recuperarse.`;
+           $('#projectStatus').textContent=msg;$('#projectStatus').className='status '+(mediaErrors?'warn':'good');
+
+           setTimeout(async()=>{
+             try{await dv6WithTimeout(renderLibrary(),15000,'Actualizar personajes')}catch{}
+             try{await dv6WithTimeout(renderPlaces(),15000,'Actualizar lugares')}catch{}
+             try{await dv6WithTimeout(renderSounds(),15000,'Actualizar sonidos')}catch{}
+             try{renderScenes()}catch{}
+           },0);
+          }
+          """
+          html=replace_once(html,old,new,'final de importación')
+
+          # 7) Bloquear doble importación accidental.
+          old="""$('#exportProjectBtn').onclick=exportProject;$('#importProjectFile').onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{await importProject(f)}catch(err){$('#projectStatus').textContent='No pude importar el proyecto: '+err.message;$('#projectStatus').className='status bad'}finally{e.target.value=''}};
+          """
+          new="""let dv6ProjectImportRunning=false;
+          $('#exportProjectBtn').onclick=exportProject;
+          $('#importProjectFile').onchange=async e=>{
+           const f=e.target.files?.[0];if(!f)return;
+           if(dv6ProjectImportRunning){e.target.value='';return}
+           dv6ProjectImportRunning=true;
+           const importLabel=document.querySelector('label[for="importProjectFile"]');
+           if(importLabel){importLabel.style.pointerEvents='none';importLabel.style.opacity='.55'}
+           try{await importProject(f)}
+           catch(err){$('#projectStatus').textContent='No pude importar el proyecto: '+err.message;$('#projectStatus').className='status bad'}
+           finally{
+             dv6ProjectImportRunning=false;
+             if(importLabel){importLabel.style.pointerEvents='';importLabel.style.opacity=''}
+             e.target.value='';
+           }
+          };
+          """
+          html=replace_once(html,old,new,'bloqueo doble importación')
+
+          # 8) Versión web 10104.
+          for old,new,label in [
+              ('<meta name="dv6-version" content="10103">','<meta name="dv6-version" content="10104">','meta'),
+              ('const DV6_APP_VERSION=10103;','const DV6_APP_VERSION=10104;','DV6_APP_VERSION'),
+              ('const DV105_VERSION=10103;','const DV105_VERSION=10104;','DV105_VERSION'),
+              ("const DV105_BUILD='2026.09.28-10103';","const DV105_BUILD='2026.10.04-10104';",'DV105_BUILD'),
+              ('const DV110_VERSION=10103;','const DV110_VERSION=10104;','DV110_VERSION'),
+              ("const DV110_BUILD='2026.09.28-10103';","const DV110_BUILD='2026.10.04-10104';",'DV110_BUILD'),
+              ('const DV111_VERSION=10103;','const DV111_VERSION=10104;','DV111_VERSION'),
+              ("const DV111_BUILD='2026.09.28-10103';","const DV111_BUILD='2026.10.04-10104';",'DV111_BUILD'),
+          ]:
+              html=replace_once(html,old,new,label)
+
+          required=[
+              'const DV6_STORAGE_TIMEOUT_MS=8000;',
+              'dv6SoundStorageFailureUntil=Date.now()+15000',
+              "const lib=await dv6WithTimeout(soundLibraryIndex(),8000,'Cargar biblioteca de sonidos para Escenas').catch(()=>[]);",
+              'const rows=await Promise.all(keys.map(async k=>[k,await dbGet(k)]));',
+              'const rawRows=await Promise.all(keys.map(async k=>[k,await dbGet(k)]));',
+              'Importando respaldo…',
+              'let dv6ProjectImportRunning=false;',
+              'const DV6_APP_VERSION=10104;',
+              "const DV111_BUILD='2026.10.04-10104';",
+          ]
+          missing=[x for x in required if x not in html]
+          if missing:
+              raise SystemExit('ERROR: validación interna incompleta: '+repr(missing))
+
+          new_version={
+              'version':10104,
+              'displayVersion':'1.1.1',
+              'build':TARGET_BUILD,
+              'date':'4 oct 2026',
+              'title':'Importación resiliente y biblioteca de sonidos',
+              'updateRequired':False,
+              'changes':[
+                  'Evita que IndexedDB deje congelada indefinidamente la importación de respaldos.',
+                  'Muestra progreso real por sonidos, fotos y lugares durante la recuperación.',
+                  'Si Android bloquea temporalmente el almacenamiento, continúa con respaldo portátil en la sesión en vez de detener todo el proceso.',
+                  'Impide iniciar dos importaciones al mismo tiempo.',
+                  'Acelera la lectura de la biblioteca de sonidos y evita lecturas duplicadas.',
+                  'Escenas deja de quedar bloqueada esperando la biblioteca de sonidos y puede mostrarse aunque esa lectura falle.',
+                  'La importación confirma primero lo recuperado y actualiza las pantallas pesadas después.',
+                  'Conserva build Android, Android TTS nativo y los datos locales; actualización exclusivamente web.'
+              ]
+          }
+
+          new_sw,n=re.subn(
+              r"const\s+DV6_SW_VERSION\s*=\s*'1\.1\.1-10103'\s*;",
+              "const DV6_SW_VERSION='1.1.1-10104';",
+              sw,count=1
+          )
+          if n!=1:
+              raise SystemExit('ERROR: no pude actualizar DV6_SW_VERSION.')
+
+          INDEX.write_text(html,encoding='utf-8')
+          VERSION.write_text(json.dumps(new_version,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          SW.write_text(new_sw,encoding='utf-8')
+          print('OK: build10104 aplicada sobre build10103.')
+
+          PY
+
+      - name: Validar build10104
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, re, subprocess, tempfile
+
+          html=Path('index.html').read_text(encoding='utf-8')
+          version=json.loads(Path('version.json').read_text(encoding='utf-8'))
+          sw=Path('service-worker.js').read_text(encoding='utf-8')
+
+          checks={
+              'Timeout de almacenamiento': 'const DV6_STORAGE_TIMEOUT_MS=8000;' in html,
+              'Fail-fast de sonidos': 'dv6SoundStorageFailureUntil=Date.now()+15000' in html,
+              'Progreso de importación': 'Importando respaldo…' in html,
+              'Importación única': 'let dv6ProjectImportRunning=false;' in html,
+              'Lectura paralela del índice': 'const rows=await Promise.all(keys.map(async k=>[k,await dbGet(k)]));' in html,
+              'Lectura paralela en Sonidos': 'const rawRows=await Promise.all(keys.map(async k=>[k,await dbGet(k)]));' in html,
+              'Escenas con límite de espera': "dv6WithTimeout(soundLibraryIndex(),8000,'Cargar biblioteca de sonidos para Escenas')" in html,
+              'Meta 10104': '<meta name="dv6-version" content="10104">' in html,
+              'App 10104': 'const DV6_APP_VERSION=10104;' in html,
+              'Módulos 10104': all(x in html for x in ('const DV105_VERSION=10104;','const DV110_VERSION=10104;','const DV111_VERSION=10104;')),
+              'version.json 10104': version.get('version')==10104 and version.get('build')=='2026.10.04-10104',
+              'service worker 10104': "const DV6_SW_VERSION='1.1.1-10104';" in sw,
+          }
+          failed=[name for name,ok in checks.items() if not ok]
+          for name,ok in checks.items():
+              print(('OK  ' if ok else 'FAIL')+name)
+          if failed:
+              raise SystemExit('ERROR: validación build10104 falló: '+', '.join(failed))
+
+          scripts=re.findall(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>',html,re.I)
+          for i,code in enumerate(scripts):
+              with tempfile.NamedTemporaryFile('w',suffix='.js',encoding='utf-8',delete=False) as f:
+                  f.write(code)
+                  tmp=f.name
+              result=subprocess.run(['node','--check',tmp],capture_output=True,text=True)
+              Path(tmp).unlink(missing_ok=True)
+              if result.returncode:
+                  print(result.stderr)
+                  raise SystemExit(f'ERROR: JavaScript inválido en bloque {i}.')
+          print(f'OK: {len(scripts)} bloques JavaScript válidos.')
+
+          PY
+          git diff --check
+          echo "OK: build10104 validada. Solo web; no APK."
+
+      - name: Publicar build10104
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add index.html version.json service-worker.js
+
+          if git diff --cached --quiet; then
+            echo "build10104 ya estaba aplicada; no hay cambios que publicar."
+            exit 0
+          fi
+
+          git commit -m "DramaVoice 6 v1.1.1 build10104: reparar importacion y sonidos"
+          git push
