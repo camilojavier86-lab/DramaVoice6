@@ -1,0 +1,126 @@
+name: DramaVoice 6 v1.1.1 - Biblioteca escalable build10107
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Verificar base exacta 10106
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object index.html)" = "45472725803b6c7b5a1a622d3cb356c5d0ab213b"
+          test "$(git hash-object version.json)" = "0a7a7f0d15eb27d6d355c2dd34e5abee09995876"
+          test "$(git hash-object service-worker.js)" = "c5c74481ae52077cecb22a85ebb4a06fd6397cfe"
+          echo "OK: base 10106 exacta."
+
+      - name: Aplicar biblioteca escalable y capas inteligentes 10107
+        shell: bash
+        env:
+          DV6_OPS_B64: "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"
+        run: |
+          set -euo pipefail
+          python - <<'PY_PATCH'
+          from pathlib import Path
+          import os,base64,gzip,json
+          path=Path('index.html')
+          lines=path.read_text(encoding='utf-8').splitlines(keepends=True)
+          ops=json.loads(gzip.decompress(base64.b64decode(os.environ['DV6_OPS_B64'])).decode('utf-8'))
+          for i1,i2,new_text in reversed(ops):
+              lines[i1:i2]=new_text.splitlines(keepends=True)
+          path.write_text(''.join(lines),encoding='utf-8')
+          PY_PATCH
+
+          cat > version.json <<'EOF_VERSION'
+          {
+            "version": 10107,
+            "displayVersion": "1.1.1",
+            "build": "2026.10.05-10107",
+            "date": "5 oct 2026",
+            "title": "Biblioteca escalable y capas inteligentes",
+            "updateRequired": false,
+            "changes": [
+              "Descompone solicitudes de ambiente compuestas en capas independientes para buscar cada sonido por separado.",
+              "Usa la propia biblioteca para inferir si cada componente debe comportarse como Ambiente, SFX o Vocalización, permitiendo que el reconocimiento mejore a medida que crece la colección.",
+              "Amplía el reconocimiento de sonidos sin depender de una lista cerrada de acciones ni descartar coincidencias válidas por una familia demasiado estricta.",
+              "Conserva SFX normales cuando entra un diálogo y corta únicamente vocalizaciones que puedan invadir la voz.",
+              "Reutiliza efectos SFX ya detectados por el analizador dentro de la narración cuando corresponden a una acción que el narrador está contando.",
+              "Corrige el botón de prueba de sonido para que el estado de detener no vuelva a iniciar el audio.",
+              "Muestra en cada capa, con mayor tamaño, el sonido exacto que DramaVoice está buscando; si falta, lo indica explícitamente para poder agregarlo a la biblioteca.",
+              "Mantiene la caché de la biblioteca y la invalida únicamente al agregar, editar o eliminar sonidos para conservar rendimiento con colecciones grandes.",
+              "Actualización exclusivamente web: no modifica el APK, el puente Android, la firma ni los datos locales."
+            ]
+          }
+          EOF_VERSION
+
+          sed -i "s/1\.1\.1-10106/1.1.1-10107/" service-worker.js
+
+      - name: Validar build10107
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object index.html)" = "62372ed010742ecc177c1f49fe35f0346cd7d444"
+          test "$(git hash-object version.json)" = "85a2b8b5e463b7e4804e4023364acecd8974f097"
+          test "$(git hash-object service-worker.js)" = "0ecbd63d2c015e85d42039b63b9784a7317a3b90"
+
+          grep -q '<meta name="dv6-version" content="10107">' index.html
+          grep -q 'const DV6_APP_VERSION=10107;' index.html
+          grep -q 'findBestSoundMatchAnyType' index.html
+          grep -q 'SONIDO SOLICITADO' index.html
+          grep -q 'narratorLinkedSfxActions' index.html
+          grep -q "if(button?._dvPreviewAudio){stopPreviewButton(button);return}" index.html
+          grep -q "a._dvEventType=layerEv.type" index.html
+          grep -q 'dv6SoundLookupCache' index.html
+
+          ! grep -q '__DV6_ANDROID_TTS_V55_PATCHED' index.html
+          ! grep -q 'speakNarrator' index.html
+          ! grep -q 'synthesizeToFile' index.html
+          ! grep -q 'PresetReverb.PRESET_PLATE' index.html
+
+          python - <<'PY_JS'
+          from pathlib import Path
+          import re,subprocess,tempfile
+          html=Path('index.html').read_text(encoding='utf-8')
+          blocks=[]
+          for m in re.finditer(r'<script(?:\s[^>]*)?>(.*?)</script>',html,re.S|re.I):
+              if 'src=' in m.group(0).split('>')[0].lower():
+                  continue
+              if m.group(1).strip(): blocks.append(m.group(1))
+          assert len(blocks)==13, f'Esperaba 13 scripts; encontré {len(blocks)}'
+          with tempfile.TemporaryDirectory() as d:
+              for i,body in enumerate(blocks,1):
+                  p=Path(d)/f'{i:02d}.js'
+                  p.write_text(body,encoding='utf-8')
+                  subprocess.run(['node','--check',str(p)],check=True)
+          print('OK: 13 bloques JavaScript válidos.')
+          PY_JS
+
+          python -m json.tool version.json >/dev/null
+          node --check service-worker.js
+          git diff --check
+
+          BAD="$(git diff --name-only | grep -vE '^(index\.html|version\.json|service-worker\.js)$' || true)"
+          test -z "$BAD"
+          echo "OK: 10107 solo modifica la web."
+
+      - name: Publicar build10107
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html version.json service-worker.js
+          git diff --cached --quiet && exit 0
+          git commit -m "DramaVoice 6 build10107: biblioteca escalable y capas inteligentes"
+          git push
