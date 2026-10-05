@@ -1,17 +1,18 @@
 {
-  "version": 10105,
+  "version": 10106,
   "displayVersion": "1.1.1",
-  "build": "2026.10.04-10105",
-  "date": "4 oct 2026",
-  "title": "Voces Android España + EE. UU. y rendimiento",
+  "build": "2026.10.05-10106",
+  "date": "5 oct 2026",
+  "title": "Dirección automática de audio y efectos narrados",
   "updateRequired": false,
   "changes": [
-    "DramaVoice separa las voces Android TTS de Español (España) y Español (Estados Unidos) y permite asignarlas individualmente a cada personaje.",
-    "Conserva la voz nativa elegida por el usuario y evita que la autoasignación la sustituya al recargar el catálogo.",
-    "Muestra cuántas voces es-ES y es-US entrega realmente Android dentro de la app.",
-    "Evita que parches antiguos de Supertonic o fallbacks web se monten encima del puente Android TTS v54.",
-    "Reduce observadores globales, renders repetidos y consultas duplicadas a la biblioteca de sonidos para mejorar la fluidez del reproductor.",
-    "Mantiene intactas las protecciones de importación y almacenamiento de build 10104.",
-    "Actualización exclusivamente web: no cambia el APK, la firma ni los datos locales."
+    "Integra el buscador de sonidos aprobado en Escenas para localizar, filtrar, preescuchar y asignar sonidos sin recorrer listas largas.",
+    "Corrige el cierre de capas de sonido adicionales para que una capa eliminada no reaparezca automáticamente.",
+    "Añade pausas automáticas más naturales entre narrador y personajes, evitando un ritmo fijo o mecánico.",
+    "Evita que vocalizaciones y efectos puntuales se prolonguen encima del diálogo que sigue.",
+    "Permite que acciones descritas por el narrador disparen efectos compatibles durante la propia narración.",
+    "Suaviza los bucles ambientales con crossfade y desvanece el ambiente al terminar la reproducción.",
+    "Añade transiciones de audio más suaves entre lugares o ambientes.",
+    "Actualización exclusivamente web: no modifica el APK, el puente Android, la firma ni los datos locales."
   ]
 }
