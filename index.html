@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>DramaVoice 6 v1.1.1</title>
-<meta name="dv6-version" content="10106">
+<meta name="dv6-version" content="10107">
 
 <meta name="theme-color" content="#07090d">
 <meta name="application-name" content="DramaVoice 6">
@@ -1736,10 +1736,8 @@ function scoreSoundCandidate(request,item,eventType='',speaker=''){
    if(requestedAction&&cm.action&&requestedAction!==cm.action)return -10000;
    if(requestedGender&&cm.gender&&requestedGender!==cm.gender)return -10000;
  }
- if(requestedFamily&&cm.family&&requestedFamily!==cm.family){
-   const actionCompatible=requestedAction&&cm.action&&requestedAction===cm.action;
-   if(!actionCompatible)return -10000;
- }
+ const familyMismatch=!!(requestedFamily&&cm.family&&requestedFamily!==cm.family);
+ const actionCompatible=requestedAction&&cm.action&&requestedAction===cm.action;
  if(req===label||req===original)return 2000;
  const requestTokens=new Set(dvTokens(request));
  const labelTokens=new Set(dvTokens(item.label||''));
@@ -1754,6 +1752,7 @@ function scoreSoundCandidate(request,item,eventType='',speaker=''){
  if(label.includes(req)||req.includes(label))score+=480;
  if(original&&(original.includes(req)||req.includes(original)))score+=380;
  if(requestedFamily&&cm.family===requestedFamily)score+=420;
+ if(familyMismatch&&!actionCompatible)score-=115;
  if(family&&(family.includes(req)||req.includes(family)))score+=160;
  if(category&&(category.includes(req)||req.includes(category)))score+=110;
  if(requestedAction&&cm.action===requestedAction)score+=350;
@@ -1778,6 +1777,26 @@ function findBestSoundMatch(request,items,eventType='',speaker=''){
  }
  const threshold=expected==='VOCALIZACIÓN'?230:200;
  return best&&best.score>=threshold?best:null;
+}
+
+function soundRecordEventType(item){
+ const t=upperClosed(item?.type||'EFECTO');
+ if(t==='AMBIENTE')return 'ambiente';
+ if(t==='VOCALIZACIÓN'||t==='VOCALIZACION')return 'vocalizacion';
+ return 'sfx';
+}
+function findBestSoundMatchAnyType(request,items,preferredEventType='',speaker=''){
+ let best=null;
+ for(const item of items||[]){
+   const eventType=soundRecordEventType(item);
+   let score=scoreSoundCandidate(request,item,eventType,speaker);
+   if(score<=-10000)continue;
+   if(eventType===preferredEventType)score+=55;
+   if(!best||score>best.score||(score===best.score&&String(item.label).localeCompare(String(best.item.label))<0)){
+     best={item,score,eventType};
+   }
+ }
+ return best&&best.score>=175?best:null;
 }
 
 const DV_NATIONALITIES=[
@@ -2332,7 +2351,15 @@ async function renderScenes(){
    const locations=s.events.filter(e=>e.type==='location');
    const chars=[...new Set(s.events.filter(e=>e.type==='speech'||e.type==='vocalizacion').map(e=>displayName(e.speaker)).filter(Boolean))];
    const missing=[];
-   for(const e of soundEvents){if(!findBestSoundMatch(e.name,lib,e.type,e.speaker||'')&&!e.manualSoundKey&&!soundOverrides[soundOverrideSignature(e.name,e.type,e.speaker||'')])missing.push(e.name)}
+   for(const e of soundEvents){
+     ensureEventLayers(e);applyLibraryLayerHints(e,lib);
+     const cues=splitCompoundSoundCue(e.name);
+     for(const cue of cues){
+       const forced=(cue===primaryEventCue(e))?e.manualSoundKey:'';
+       if(forced)continue;
+       if(!findBestSoundMatchAnyType(cue,lib,e.type,e.speaker||''))missing.push(cue);
+     }
+   }
    const missingUnique=[...new Set(missing)];
    const c=document.createElement('div');c.className='scene-card '+(i===activeScene?'active':'');
    const flow=locations.length
@@ -2408,8 +2435,19 @@ function soundTypeVisual(type){
 function splitCompoundSoundCue(name){
  const raw=String(name||'').trim();
  if(!raw)return [];
- const parts=raw.split(/\s+(?:y|con)\s+|\s*\+\s*|\s*;\s*/i).map(x=>x.trim()).filter(x=>x.length>2);
- return parts.length>=2&&parts.length<=4?parts:[raw];
+ const nonAudio=/\b(?:olor|aroma|perfume|huele|oloroso|sabor|textura|color|iluminaci[oó]n|luz|temperatura|calor|fr[ií]o visual)\b/i;
+ const cleaned=raw.replace(/[•|]/g,',');
+ const parts=cleaned
+   .split(/\s*(?:,|;|\+|\/|\s+y\s+|\s+con\s+|\s+m[aá]s\s+)\s*/i)
+   .map(x=>x.replace(/^[\-–—]+|[\-–—]+$/g,'').trim())
+   .filter(x=>x.length>2&&!nonAudio.test(x));
+ const unique=[];
+ for(const p of parts){
+   const k=dv6LayerCueKey(p);
+   if(k&&!unique.some(x=>dv6LayerCueKey(x)===k))unique.push(p);
+   if(unique.length>=8)break;
+ }
+ return unique.length>=2?unique:[raw];
 }
 function dv6LayerCueKey(value){
  return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase();
@@ -2433,9 +2471,9 @@ function ensureEventLayers(ev){
      if(slot&&!slot.autoCue&&!slot.sourceCue&&!slot.soundKey){
        slot.autoCue=cue;slot.sourceCue=cue;
      }else if(!slot){
-       ev.layers[i-1]={soundKey:'',type:ev.type,volume:1,trimStart:0,trimEnd:0,delayMs:0,loopOverride:null,autoCue:cue,sourceCue:cue};
+       ev.layers[i-1]={soundKey:'',type:ev.type,volume:1,trimStart:0,trimEnd:0,delayMs:ev.type==='ambiente'?Math.min(1800,i*450):0,loopOverride:null,autoCue:cue,sourceCue:cue};
      }else{
-       ev.layers.push({soundKey:'',type:ev.type,volume:1,trimStart:0,trimEnd:0,delayMs:0,loopOverride:null,autoCue:cue,sourceCue:cue});
+       ev.layers.push({soundKey:'',type:ev.type,volume:1,trimStart:0,trimEnd:0,delayMs:ev.type==='ambiente'?Math.min(1800,i*450):0,loopOverride:null,autoCue:cue,sourceCue:cue});
      }
    }
  }else ev._primaryCue='';
@@ -2443,7 +2481,9 @@ function ensureEventLayers(ev){
 }
 function primaryEventCue(ev){return ev._primaryCue||ev.name}
 function layerSoundChoice(layer,lib,ev){
- const type=layer.type||ev.type;
+ let type=layer.type||ev.type;
+ const any=layer.autoCue?findBestSoundMatchAnyType(layer.autoCue,lib,type,ev.speaker||''):null;
+ if(any&&!layer.soundKey){type=any.eventType;layer.type=type}
  const compatible=lib.filter(x=>upperClosed(x.type||'EFECTO')===eventTypeToSoundType(type));
  const automatic=layer.autoCue?findBestSoundMatch(layer.autoCue,compatible,type,ev.speaker||''):null;
  let html=`<option value="">${automatic?`AUTO · ${esc(automatic.item.label)}`:'— SIN SONIDO —'}</option>`;
@@ -2453,6 +2493,24 @@ function layerSoundChoice(layer,lib,ev){
  return {html,automatic};
 }
 function layerResolvedKey(layer,choice){return layer.soundKey||(choice?.automatic?.item?.key||'')}
+function applyLibraryLayerHints(ev,lib){
+ const primaryCue=primaryEventCue(ev);
+ const primaryManual=(lib||[]).find(x=>String(x.key)===String(ev.manualSoundKey||''));
+ const primaryBest=primaryManual?{eventType:soundRecordEventType(primaryManual)}:findBestSoundMatchAnyType(primaryCue,lib,ev.type,ev.speaker||'');
+ ev._primaryType=primaryBest?.eventType||ev.type;
+ for(const layer of ev.layers||[]){
+   const cue=layer.sourceCue||layer.autoCue||'';
+   if(layer.soundKey){
+     const item=(lib||[]).find(x=>String(x.key)===String(layer.soundKey));
+     if(item)layer.type=soundRecordEventType(item);
+     continue;
+   }
+   if(!cue)continue;
+   const best=findBestSoundMatchAnyType(cue,lib,ev.type,ev.speaker||'');
+   if(best)layer.type=best.eventType;
+   else if(!layer.type)layer.type=ev.type;
+ }
+}
 async function uniqueSoundKey(label){
  const base=norm(label)||`sonido ${Date.now()}`;const keys=new Set((await dbKeys()).map(String));
  if(!keys.has(base))return base;
@@ -2521,7 +2579,8 @@ function stopPreviewButton(button){
  if(button?._dvPreviewAudio){try{button._dvPreviewAudio.pause()}catch{};button._dvPreviewCleanup?.()}
 }
 async function previewSoundLayer(key,button,opts={}){
- if(!key)return;stopPreviewButton(button);
+ if(!key)return;
+ if(button?._dvPreviewAudio){stopPreviewButton(button);return}
  const raw=await dbGet(key),blob=soundRecordToBlob(raw);if(!blob)return;
  const url=URL.createObjectURL(blob),a=new Audio(url),type=opts.type||'sfx';
  a.volume=type==='ambiente'?effectiveAmbientVolume(opts.volume??1):effectiveSfxVolume(opts.volume??1);
@@ -2539,10 +2598,10 @@ function renderSceneSoundEditor(root,scene,sceneIndex,lib){
  let ordinal=0;
  scene.events.forEach((ev,eventIndex)=>{
    if(!['ambiente','sfx','vocalizacion'].includes(ev.type))return;
-   ordinal++;ensureEventLayers(ev);
-   const primaryCue=primaryEventCue(ev),primaryForChoice={...ev,name:primaryCue};
+   ordinal++;ensureEventLayers(ev);applyLibraryLayerHints(ev,lib);
+   const primaryCue=primaryEventCue(ev),primaryType=ev._primaryType||ev.type,primaryForChoice={...ev,name:primaryCue,type:primaryType};
    const choice=soundChoiceOptions(primaryForChoice,lib);
-   const manualKey=ev.manualSoundKey||soundOverrides[soundOverrideSignature(primaryCue,ev.type,ev.speaker||'')]||'';
+   const manualKey=ev.manualSoundKey||soundOverrides[soundOverrideSignature(primaryCue,primaryType,ev.speaker||'')]||'';
    const manualItem=manualKey?lib.find(x=>String(x.key)===String(manualKey)):null;
    const selectedItem=manualItem||(choice.automatic?choice.automatic.item:null);
    const vis=soundTypeVisual(ev.type),editorKey=`${sceneIndex}:${eventIndex}`;
@@ -2564,6 +2623,8 @@ function renderSceneSoundEditor(root,scene,sceneIndex,lib){
       <div class="sound-layers-wrap">
         <div class="sound-layer-card primary-layer">
           <div class="sound-layer-head"><div class="sound-layer-title">CAPA 1 · PRINCIPAL</div></div>
+          <div class="dv6-layer-request-label">SONIDO SOLICITADO</div>
+          <div class="dv6-layer-request">${esc(primaryCue)}</div>
           <div class="label" style="margin-top:0">Sonido que realmente se reproducirá</div>
           <div class="sound-choice-line"><select class="manualSound">${choice.html}</select><button class="btn small aqua previewPrimary">▶</button></div>
           <div class="sound-trim-grid">
@@ -2580,7 +2641,7 @@ function renderSceneSoundEditor(root,scene,sceneIndex,lib){
             <input id="primaryFile-${sceneIndex}-${eventIndex}" class="sound-layer-file primaryFile" type="file" accept="audio/*">
             <button class="btn small primaryRecord">● Grabar</button>
           </div>
-          <div class="layer-status primaryStatus">${manualItem?'✓ Selección manual guardada.':choice.automatic?`AUTO: ${esc(choice.automatic.item.label)} · puntuación ${choice.automatic.score}`:'⚠ SIN COINCIDENCIA ADECUADA.'}</div>
+          <div class="layer-status primaryStatus">${manualItem?'✓ Selección manual guardada.':choice.automatic?`AUTO: ${esc(choice.automatic.item.label)} · puntuación ${choice.automatic.score}`:`⚠ NO ENCONTRADO · BUSCAR O CREAR: ${esc(primaryCue)}`}</div>
         </div>
         <div class="extraLayers"></div>
         <button class="btn small addLayer">+ Agregar capa</button>
@@ -2594,8 +2655,8 @@ function renderSceneSoundEditor(root,scene,sceneIndex,lib){
    const syncType=()=>{const t=typeSel.value;speakerInput.disabled=t!=='vocalizacion';if(t!=='ambiente'){loopSel.value='once';loopSel.disabled=true;ev.loopOverride=false}else loopSel.disabled=false};
    syncType();
    const refreshRow=()=>{refreshActiveQueue(sceneIndex);renderScenes()};
-   typeSel.onchange=e=>{ev.type=e.target.value;ev.manualSoundKey='';ev._primaryCue='';ev.layers.forEach(x=>{if(!x.soundKey)x.type=ev.type});if(ev.type!=='ambiente')ev.loopOverride=false;else ev.loopOverride=null;syncType();refreshRow()};
-   details.querySelector('.evName').onchange=e=>{ev.name=e.target.value.trim();ev.manualSoundKey='';ev.layers=[];ev.dismissedLayerCues=[];ensureEventLayers(ev);refreshRow()};
+   typeSel.onchange=e=>{ev.type=e.target.value;ev.manualSoundKey='';ev._primaryCue='';ev._primaryType='';ev.layers.forEach(x=>{if(!x.soundKey)x.type=ev.type});if(ev.type!=='ambiente')ev.loopOverride=false;else ev.loopOverride=null;syncType();refreshRow()};
+   details.querySelector('.evName').onchange=e=>{ev.name=e.target.value.trim();ev.manualSoundKey='';ev._primaryType='';ev.layers=[];ev.dismissedLayerCues=[];ensureEventLayers(ev);refreshRow()};
    speakerInput.onchange=e=>{ev.speaker=displayName(e.target.value);ev.manualSoundKey='';refreshRow()};
    loopSel.onchange=e=>{ev.loopOverride=e.target.value==='once'?false:null;refreshActiveQueue(sceneIndex)};
    details.querySelector('.evVolume').oninput=e=>{ev.volume=Number(e.target.value);refreshActiveQueue(sceneIndex)};
@@ -2604,15 +2665,18 @@ function renderSceneSoundEditor(root,scene,sceneIndex,lib){
    details.querySelector('.primaryDelay').oninput=e=>{ev.delayMs=Math.max(0,Number(e.target.value)||0);refreshActiveQueue(sceneIndex)};
 
    const manual=details.querySelector('.manualSound');
-   manual.onchange=e=>{ev.manualSoundKey=e.target.value||'';const sig=soundOverrideSignature(primaryCue,ev.type,ev.speaker||'');if(ev.manualSoundKey)soundOverrides[sig]=ev.manualSoundKey;else delete soundOverrides[sig];saveSoundOverrides();refreshActiveQueue(sceneIndex);renderScenes()};
-   details.querySelector('.previewPrimary').onclick=async e=>{let key=manual.value;if(!key&&choice.automatic)key=choice.automatic.item.key;if(key)await previewSoundLayer(key,e.currentTarget,{type:ev.type,volume:ev.volume,trimStart:ev.trimStart,trimEnd:ev.trimEnd})};
-   details.querySelector('.primaryFile').onchange=async e=>{const file=e.target.files?.[0];if(!file)return;const st=details.querySelector('.primaryStatus');st.textContent='Importando archivo…';const saved=await importSceneSoundFile(file,ev.type,primaryCue);if(saved){ev.manualSoundKey=saved.key;refreshActiveQueue(sceneIndex);await renderSounds();renderScenes()}};
-   details.querySelector('.primaryRecord').onclick=e=>toggleSceneRecording(e.currentTarget,ev.type,primaryCue,key=>{ev.manualSoundKey=key;refreshActiveQueue(sceneIndex);renderSounds();renderScenes()},details.querySelector('.primaryStatus'));
+   manual.onchange=e=>{ev.manualSoundKey=e.target.value||'';const sig=soundOverrideSignature(primaryCue,primaryType,ev.speaker||'');if(ev.manualSoundKey)soundOverrides[sig]=ev.manualSoundKey;else delete soundOverrides[sig];saveSoundOverrides();refreshActiveQueue(sceneIndex);renderScenes()};
+   details.querySelector('.previewPrimary').onclick=async e=>{let key=manual.value;if(!key&&choice.automatic)key=choice.automatic.item.key;if(key)await previewSoundLayer(key,e.currentTarget,{type:primaryType,volume:ev.volume,trimStart:ev.trimStart,trimEnd:ev.trimEnd})};
+   details.querySelector('.primaryFile').onchange=async e=>{const file=e.target.files?.[0];if(!file)return;const st=details.querySelector('.primaryStatus');st.textContent='Importando archivo…';const saved=await importSceneSoundFile(file,primaryType,primaryCue);if(saved){ev.manualSoundKey=saved.key;refreshActiveQueue(sceneIndex);await renderSounds();renderScenes()}};
+   details.querySelector('.primaryRecord').onclick=e=>toggleSceneRecording(e.currentTarget,primaryType,primaryCue,key=>{ev.manualSoundKey=key;refreshActiveQueue(sceneIndex);renderSounds();renderScenes()},details.querySelector('.primaryStatus'));
 
    const extraRoot=details.querySelector('.extraLayers');
    ev.layers.forEach((layer,li)=>{
      const lc=layerSoundChoice(layer,lib,ev),card=document.createElement('div');card.className='sound-layer-card';card.dataset.layerIndex=li;
-     card.innerHTML=`<div class="sound-layer-head"><div class="sound-layer-title">CAPA ${li+2}${layer.autoCue?` · ${esc(layer.autoCue)}`:''}</div><button class="btn small danger removeLayer">×</button></div>
+     const layerRequest=layer.sourceCue||layer.autoCue||`Capa ${li+2}`;
+     card.innerHTML=`<div class="sound-layer-head"><div class="sound-layer-title">CAPA ${li+2}</div><button class="btn small danger removeLayer">×</button></div>
+       <div class="dv6-layer-request-label">SONIDO SOLICITADO</div>
+       <div class="dv6-layer-request">${esc(layerRequest)}</div>
        <div class="sound-layer-grid">
          <span class="label">Tipo</span><select class="layerType"><option value="ambiente">Ambiente</option><option value="sfx">SFX</option><option value="vocalizacion">Vocalización</option></select>
          <span class="label">Sonido</span><div class="sound-choice-line"><select class="layerSound">${lc.html}</select><button class="btn small aqua layerPreview">▶</button></div>
@@ -2628,7 +2692,7 @@ function renderSceneSoundEditor(root,scene,sceneIndex,lib){
          <input id="layerFile-${sceneIndex}-${eventIndex}-${li}" class="sound-layer-file layerFile" type="file" accept="audio/*">
          <button class="btn small layerRecord">● Grabar</button>
        </div>
-       <div class="layer-status">${layer.soundKey?'✓ Capa manual.':lc.automatic?`AUTO: ${esc(lc.automatic.item.label)} · puntuación ${lc.automatic.score}`:'Sin sonido asignado.'}</div>`;
+       <div class="layer-status">${layer.soundKey?'✓ Capa manual.':lc.automatic?`AUTO: ${esc(lc.automatic.item.label)} · puntuación ${lc.automatic.score}`:`⚠ NO ENCONTRADO · BUSCAR O CREAR: ${esc(layerRequest)}`}</div>`;
      extraRoot.appendChild(card);
      const type=card.querySelector('.layerType');type.value=layer.type||ev.type;
      type.onchange=()=>{layer.type=type.value;layer.soundKey='';refreshActiveQueue(sceneIndex);renderScenes()};
@@ -3250,6 +3314,7 @@ async function playResolvedSoundLayer(layerEv,resolvedHint=null){
  const begin=()=>{
    const url=URL.createObjectURL(blob),a=new Audio(url);
    a._dvurl=url;a._dvkey=key;a._dvEventFactor=eventFactor;a._dvlocation=currentLocation||layerEv.location||'';
+   a._dvEventType=layerEv.type||'sfx';a._dvSpeaker=layerEv.speaker||'';
    a.volume=volume;let trimTimer=null,cleaned=false;
    const cleanup=()=>{if(cleaned)return;cleaned=true;if(trimTimer)clearInterval(trimTimer);try{URL.revokeObjectURL(url)}catch{}};
    a.onloadedmetadata=()=>{if(trimStart&&isFinite(a.duration)&&trimStart<a.duration){try{a.currentTime=trimStart}catch{}}};
@@ -3275,9 +3340,9 @@ async function playResolvedSoundLayer(layerEv,resolvedHint=null){
 
 async function playSoundEvent(ev,silentAdvance=false){
  ensureEventLayers(ev);
- const primaryCue=primaryEventCue(ev);
- const primary={...ev,name:primaryCue};
- const primaryResolved=await resolveSoundRecord(primaryCue,ev.type,ev.speaker||'',ev.manualSoundKey||'');
+ const primaryCue=primaryEventCue(ev),primaryType=ev._primaryType||ev.type;
+ const primary={...ev,name:primaryCue,type:primaryType};
+ const primaryResolved=await resolveSoundRecord(primaryCue,primaryType,ev.speaker||'',ev.manualSoundKey||'');
  let any=false;
  if(primaryResolved){
    any=await playResolvedSoundLayer(primary,primaryResolved);
@@ -4095,7 +4160,7 @@ if(dv6InstallBtn)dv6InstallBtn.addEventListener('click',async()=>{
 dv6RefreshInstallUi();
 
 // v44 — actualizaciones inteligentes de la PWA
-const DV6_APP_VERSION=10106;
+const DV6_APP_VERSION=10107;
 const DV6_VERSION_URL='./version.json';
 let dv6UpdateInfo=null;
 let dv6UpdateRegistration=null;
@@ -4282,6 +4347,34 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
   line-height:1.2;
   color:var(--event-color,#8ff8ee)!important;
   letter-spacing:.06em
+}
+.dv6-layer-request-label{
+  margin-top:9px;
+  font-size:9px;
+  font-weight:950;
+  letter-spacing:.09em;
+  color:var(--muted)
+}
+.dv6-layer-request{
+  margin:3px 0 11px;
+  font-size:18px;
+  line-height:1.22;
+  font-weight:950;
+  color:#f5f8ff;
+  overflow-wrap:anywhere
+}
+.sound-event-cue{
+  font-size:14px!important;
+  line-height:1.28!important;
+  white-space:normal!important;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden
+}
+.sound-event-grid .evName{
+  font-size:17px!important;
+  font-weight:800
 }
 
 .dv49-taxonomy-manage{
@@ -7490,15 +7583,18 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
     const prev=eventAt(queueIndex-1);
     const explicitOverlap=!!(prev?.overlapGroup&&ev?.overlapGroup&&prev.overlapGroup===ev.overlapGroup);
     if(explicitOverlap||ev?.mode==='overlap')return;
-    try{(scheduledSoundTimers||[]).forEach(t=>clearTimeout(t));scheduledSoundTimers=[]}catch(_){ }
+    // No borres efectos normales: solo una vocalización debe dejar espacio a la voz.
     try{
-      const old=[...(currentFx||[])];currentFx=[];
-      old.forEach(a=>{
-        try{
-          if(typeof fadeAudioTo==='function')fadeAudioTo(a,0,170,true);
-          else{a.volume=0;a.pause()}
-        }catch(_){ }
-      });
+      const keep=[];
+      for(const a of [...(currentFx||[])]){
+        if(a?._dvEventType==='vocalizacion'){
+          try{
+            if(typeof fadeAudioTo==='function')fadeAudioTo(a,0,150,true);
+            else{a.volume=0;a.pause()}
+          }catch(_){ }
+        }else keep.push(a);
+      }
+      currentFx=keep;
     }catch(_){ }
   }
 
@@ -7686,15 +7782,26 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
       old.forEach(a=>{try{if(typeof fadeAudioTo==='function')fadeAudioTo(a,0,ms,true);else{a.pause();a.currentTime=0}}catch(_){ }});
     }catch(_){ }
   }
+  function fadeVocalizationsNow(ms=120){
+    try{
+      const keep=[];
+      for(const a of [...(currentFx||[])]){
+        if(a?._dvEventType==='vocalizacion'){
+          try{if(typeof fadeAudioTo==='function')fadeAudioTo(a,0,ms,true);else{a.pause();a.currentTime=0}}catch(_){ }
+        }else keep.push(a);
+      }
+      currentFx=keep;
+    }catch(_){ }
+  }
   function cleanPreviousOneShotsForSpeech(ev){
     if(!ev||ev.type!=='speech'||ev.mode==='overlap')return;
     const prev=evAt(queueIndex-1);
     if(prev?.overlapGroup&&ev.overlapGroup&&prev.overlapGroup===ev.overlapGroup)return;
     clearP7CleanupTimers();
-    fadeOneShotsNow(115);
-    // Segunda barrida: captura audios que hayan arrancado tarde por resolución/carga.
+    fadeVocalizationsNow(115);
+    // Segunda barrida: captura vocalizaciones que hayan arrancado tarde sin borrar SFX válidos.
     for(const delay of [85,190]){
-      const t=setTimeout(()=>{if(playing&&curEv()===ev)fadeOneShotsNow(100)},delay);
+      const t=setTimeout(()=>{if(playing&&curEv()===ev)fadeVocalizationsNow(100)},delay);
       p7CleanupTimers.push(t);
     }
   }
@@ -7740,10 +7847,46 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
     }
     return null;
   }
+  function narratorLinkedSfxActions(ev,index){
+    if(!isNarr(ev))return [];
+    const text=String(ev.text||''),nt=nrm(text);
+    const speechTokens=new Set(nt.split(/\s+/).filter(x=>x.length>3));
+    const speechConcepts=typeof dvConceptSet==='function'?dvConceptSet(text):new Set();
+    const out=[];
+    for(let d=1;d<=5;d++){
+      const qi=index+d,e=evAt(qi);
+      if(!e)break;
+      if(Number.isInteger(e._sceneIndex)&&Number.isInteger(ev?._sceneIndex)&&e._sceneIndex!==ev._sceneIndex)break;
+      if(e.type==='speech')break;
+      if(e.type!=='sfx')continue;
+      let cue='';
+      try{cue=typeof primaryEventCue==='function'?primaryEventCue(e):String(e.name||'')}catch(_){cue=String(e.name||'')}
+      const toks=nrm(cue).split(/\s+/).filter(x=>x.length>3);
+      const concepts=typeof dvConceptSet==='function'?dvConceptSet(cue):new Set();
+      const tokenHits=toks.filter(t=>speechTokens.has(t)).length;
+      let conceptHits=0;for(const c0 of concepts)if(speechConcepts.has(c0))conceptHits++;
+      if(tokenHits<1&&conceptHits<1)continue;
+      let wordPos=0,found=false;
+      const wordsN=nt.split(/\s+/).filter(Boolean);
+      for(const token of toks){
+        const p=wordsN.findIndex(w=>w===token||w.includes(token)||token.includes(w));
+        if(p>=0){wordPos=p;found=true;break}
+      }
+      if(!found&&conceptHits){
+        for(let p=0;p<wordsN.length;p++){
+          const cs=typeof dvConceptSet==='function'?dvConceptSet(wordsN[p]):new Set();
+          if([...cs].some(c0=>concepts.has(c0))){wordPos=p;found=true;break}
+        }
+      }
+      out.push({index:0,len:1,wordRatio:(wordPos+.55)/Math.max(1,wordsN.length),cues:[cue],phrase:cue,linked:{index:qi,event:e,cue}});
+      if(out.length>=5)break;
+    }
+    return out;
+  }
   function narratedActions(ev,index){
     if(!isNarr(ev))return [];
     const text=String(ev.text||'');
-    const out=[];
+    const out=[...narratorLinkedSfxActions(ev,index)];
     for(const d of actionDefs){
       d.rx.lastIndex=0;
       let m;
@@ -7755,9 +7898,10 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
     out.sort((a,b)=>a.index-b.index);
     const ded=[];
     for(const x of out){
-      if(ded.some(y=>Math.abs(y.index-x.index)<8&&y.cues.some(z=>x.cues.includes(z))))continue;
-      x.linked=nearbyExplicitSfx(index,x.cues);
-      ded.push(x);if(ded.length>=4)break;
+      if(x.linked?.index>=0&&ded.some(y=>y.linked?.index===x.linked.index))continue;
+      if(!x.wordRatio&&ded.some(y=>Math.abs(y.index-x.index)<8&&y.cues.some(z=>x.cues.includes(z))))continue;
+      if(!x.linked)x.linked=nearbyExplicitSfx(index,x.cues);
+      ded.push(x);if(ded.length>=6)break;
     }
     return ded;
   }
@@ -7783,7 +7927,7 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
     try{
       const blob=soundRecordToBlob(best?.r?.rec);if(!blob)return;
       const url=URL.createObjectURL(blob),a=new Audio(url);
-      a._dvurl=url;a._dvP8NarratedAction=true;
+      a._dvurl=url;a._dvP8NarratedAction=true;a._dvEventType='sfx';
       const master=typeof effectiveMaster==='function'?effectiveMaster():1;
       const base=Number(settings?.sfxVolume??.72);
       const eventFactor=Number(best?.event?.volume??1);
@@ -7809,6 +7953,7 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
     }catch(_){ }
   }
   function narratedWordRatio(text,act){
+    if(Number.isFinite(Number(act?.wordRatio)))return c(Number(act.wordRatio),.04,.96);
     const whole=Math.max(1,wc(text));
     const before=text.slice(0,Math.min(text.length,Math.max(0,act.index+act.len*.55)));
     return c(wc(before)/whole,.04,.96);

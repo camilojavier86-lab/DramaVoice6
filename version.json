@@ -1,18 +1,19 @@
 {
-  "version": 10106,
+  "version": 10107,
   "displayVersion": "1.1.1",
-  "build": "2026.10.05-10106",
+  "build": "2026.10.05-10107",
   "date": "5 oct 2026",
-  "title": "Dirección automática de audio y efectos narrados",
+  "title": "Biblioteca escalable y capas inteligentes",
   "updateRequired": false,
   "changes": [
-    "Integra el buscador de sonidos aprobado en Escenas para localizar, filtrar, preescuchar y asignar sonidos sin recorrer listas largas.",
-    "Corrige el cierre de capas de sonido adicionales para que una capa eliminada no reaparezca automáticamente.",
-    "Añade pausas automáticas más naturales entre narrador y personajes, evitando un ritmo fijo o mecánico.",
-    "Evita que vocalizaciones y efectos puntuales se prolonguen encima del diálogo que sigue.",
-    "Permite que acciones descritas por el narrador disparen efectos compatibles durante la propia narración.",
-    "Suaviza los bucles ambientales con crossfade y desvanece el ambiente al terminar la reproducción.",
-    "Añade transiciones de audio más suaves entre lugares o ambientes.",
+    "Descompone solicitudes de ambiente compuestas en capas independientes para buscar cada sonido por separado.",
+    "Usa la propia biblioteca para inferir si cada componente debe comportarse como Ambiente, SFX o Vocalización, permitiendo que el reconocimiento mejore a medida que crece la colección.",
+    "Amplía el reconocimiento de sonidos sin depender de una lista cerrada de acciones ni descartar coincidencias válidas por una familia demasiado estricta.",
+    "Conserva SFX normales cuando entra un diálogo y corta únicamente vocalizaciones que puedan invadir la voz.",
+    "Reutiliza efectos SFX ya detectados por el analizador dentro de la narración cuando corresponden a una acción que el narrador está contando.",
+    "Corrige el botón de prueba de sonido para que el estado de detener no vuelva a iniciar el audio.",
+    "Muestra en cada capa, con mayor tamaño, el sonido exacto que DramaVoice está buscando; si falta, lo indica explícitamente para poder agregarlo a la biblioteca.",
+    "Mantiene la caché de la biblioteca y la invalida únicamente al agregar, editar o eliminar sonidos para conservar rendimiento con colecciones grandes.",
     "Actualización exclusivamente web: no modifica el APK, el puente Android, la firma ni los datos locales."
   ]
 }
