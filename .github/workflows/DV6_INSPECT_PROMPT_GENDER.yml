@@ -1,0 +1,42 @@
+name: DV6 inspeccion parser y voces 10110 (solo lectura)
+on:
+  push:
+    paths:
+      - '.github/workflows/DV6_INSPECT_PROMPT_GENDER.yml'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Revisar parser y filtro existente sin cambios
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path("index.html").read_text(encoding="utf-8")
+          lines=s.splitlines()
+          print("LINES",len(lines))
+          keys=["inferCharacterVoiceProfile","createCharacterRecord","mergeAutoDetectedCharacterFields","registerCharacter","visualPromptManual","registerVisual","buildAutoVisualPrompt","readCharacter","characterPrompt","charLib[k]","voiceOptions(","dv6VoiceGender10110","libProfile","libTraits","saveMeta=()=>","profileIsDefined","upsertCharacterFromStory","inferCharacterProfile","parseCharacter","prompt activo","PROFILE","profile:"]
+          allhits={}
+          for key in keys:
+            hits=[i for i,v in enumerate(lines) if key.lower() in v.lower() and len(v)<12000]
+            allhits[key]=hits
+            print("MATCH",key,len(hits),[(j+1) for j in hits[:35]])
+          chosen=set()
+          for key in ["inferCharacterVoiceProfile","createCharacterRecord","mergeAutoDetectedCharacterFields","registerVisual","visualPromptManual","registerCharacter","upsertCharacterFromStory","saveMeta=()=>","voiceOptions(","dv6VoiceGender10110"]:
+            for j in allhits[key][:8]:
+              for i in range(max(j-5,0),min(j+18,len(lines))):
+                if len(lines[i])<1200:chosen.add(i)
+          # print entire core parser area and input/form saving area
+          for a,b in [(1720,1900),(2700,2770),(2870,2970)]:
+            for i in range(a-1,min(b,len(lines))):
+              if len(lines[i])<2000:chosen.add(i)
+          print("### CODE EXCERPTS")
+          for i in sorted(chosen):
+            line=lines[i]
+            if len(line)>1000: line=line[:1000]+"[TRUNC]"
+            print(f"{i+1:05d} {line}")
+          PY
