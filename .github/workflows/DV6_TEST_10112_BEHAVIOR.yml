@@ -51,7 +51,7 @@ jobs:
               setTimeout:fn=>fn()
             };
             vm.createContext(context);
-            vm.runInContext(pronunciation+'\\n;globalThis.__p= {play:dv6PlayPron10112,stop:dv6StopPron10112};',context);
+            vm.runInContext(pronunciation+String.fromCharCode(10)+';globalThis.__p= {play:dv6PlayPron10112,stop:dv6StopPron10112};',context);
             const b=makeButton();
             context.__p.play(b,'Dráma bois');
             assert.strictEqual(b.textContent,'■');
