@@ -129,7 +129,7 @@ jobs:
                   });
                   setContentView(root);
                   root.requestApplyInsets();""",'Android window insets')
-          s=one(s,'@JavascriptInterface\n                  public void stop()',"""@JavascriptInterface
+          s=one(s,'@JavascriptInterface\n        public void stop()',"""@JavascriptInterface
                   public String getClipboardText() {
                       try {
                           ClipboardManager manager = (ClipboardManager)
