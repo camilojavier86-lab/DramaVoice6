@@ -1,1 +1,3 @@
 Ejecutar build 10112 solo web. Correcciones pendientes: Pronunciaciones generales Play/Stop, narrador compacto, salir reubicado, presets reales de mezcla, clipboard con fallback manual. No APK.
+
+Reintento: normalización de espacios para superar git diff --check.
