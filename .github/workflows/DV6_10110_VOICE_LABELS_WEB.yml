@@ -1,0 +1,176 @@
+name: DramaVoice6 10110 - Etiquetas de genero de voz WEB
+on:
+  push:
+    paths:
+      - '.github/dv6-10110-trigger.txt'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  voice_labels:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Etiquetar voces sin cambiar sus identificadores
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object index.html)" = "13f46ac59e6b0027b6bb614011577e4f7be0a9d5"
+          test "$(git hash-object version.json)" = "97715fb7f8fe5c992944b25fd1ff8d7c952c1ede"
+          test "$(git hash-object service-worker.js)" = "e64e64bc00fb19f5e5d1302b38ab593c08711dd9"
+          python - <<'PY'
+          from pathlib import Path
+          import json,re
+          path=Path('index.html')
+          html=path.read_text(encoding='utf-8')
+          def one(before,after,label):
+              global html
+              n=html.count(before)
+              if n!=1:raise SystemExit(f'{label}: esperada 1 coincidencia; recibidas {n}')
+              html=html.replace(before,after,1)
+          style="""
+          <style id="dv6-10110-voice-names">
+          .dv6-voice-gender-10110{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:10px 0 16px}
+          .dv6-voice-gender-10110 label{font-size:13px;font-weight:750;color:#a2e8e7}
+          .dv6-voice-gender-10110 select{flex:1;min-width:146px;padding:11px;border-radius:11px;border:1px solid #425164;background:#0d1725;color:#f5f8fc;font:inherit;font-size:14px}
+          .dv6-voice-gender-10110 small{width:100%;color:#afc0ce;font-size:12px;line-height:1.45}
+          </style>
+          """
+          one('</head>',style+'</head>','estilos')
+          helpers="""
+          // DV6 10110: las etiquetas son metadatos de presentación, no nombres Android.
+          const DV6_GENDER_KEY_10110='dramavoice6-voice-genders-v1';
+          let dv6VoiceGenders10110=(()=>{
+            try{
+              const data=JSON.parse(localStorage.getItem(DV6_GENDER_KEY_10110)||'{}');
+              return data && typeof data==='object' && !Array.isArray(data)?data:{};
+            }catch(e){return {}}
+          })();
+          function dv6VoiceId10110(v){return String(v?.voiceURI||v?.name||'')}
+          function dv6VoiceGender10110(v){
+            const id=dv6VoiceId10110(v);
+            const saved=dv6VoiceGenders10110[id];
+            if(saved==='Masculina'||saved==='Femenina')return saved;
+            if(/#female(?:_\\d+)?/i.test(id))return 'Femenina';
+            if(/#male(?:_\\d+)?/i.test(id))return 'Masculina';
+            return 'Sin clasificar';
+          }
+          function dv6VoiceFriendly10110(v){
+            const original=String(v.name||'Voz');
+            const shortName=original.replace(/\\s*[·|]\\s*[a-z]{2}[-_][a-z]{2}[-_].*$/i,'').trim()||original;
+            const country=String(v.lang||'').toLowerCase().startsWith('es-es')?'España':
+              String(v.lang||'').toLowerCase().startsWith('es-us')?'EE. UU.':
+              String(v.lang||'').toLowerCase().startsWith('es-')?'Español':String(v.lang||'');
+            const type=v.localService?'Local':'Red';
+            return [shortName,dv6VoiceGender10110(v),country,type].filter(Boolean).join(' · ');
+          }
+          const DV6_GENDER_FIELD_10110='<div class="dv6-voice-gender-10110">'+
+            '<label>Esta voz</label><select class="dv6Gender10110" aria-label="Clasificación de la voz">'+
+            '<option value="">Sin clasificar</option><option value="Masculina">Masculina</option>'+
+            '<option value="Femenina">Femenina</option></select>'+
+            '<small>Escucha con Probar y clasifica una sola vez. El nombre se actualizará en todos los personajes.</small></div>';
+          function dv6RefreshVoiceLabels10110(){
+            for(const select of document.querySelectorAll('select.voice,select.libVoice')){
+              for(const option of select.options){
+                const voice=voices.find(v=>dv6VoiceId10110(v)===option.value);
+                if(voice)option.textContent=dv6VoiceFriendly10110(voice);
+              }
+            }
+          }
+          function dv6BindGender10110(card,voiceSelector){
+            const voiceEl=card.querySelector(voiceSelector);
+            const genderEl=card.querySelector('.dv6Gender10110');
+            if(!voiceEl||!genderEl)return;
+            const sync=()=>{
+              const voice=voices.find(v=>dv6VoiceId10110(v)===voiceEl.value);
+              const key=voice?dv6VoiceId10110(voice):voiceEl.value;
+              const kind=voice?dv6VoiceGender10110(voice):dv6VoiceGenders10110[key]||'Sin clasificar';
+              genderEl.value=kind==='Masculina'||kind==='Femenina'?kind:'';
+              genderEl.disabled=!key;
+            };
+            voiceEl.addEventListener('change',sync);
+            genderEl.addEventListener('change',()=>{
+              const voice=voices.find(v=>dv6VoiceId10110(v)===voiceEl.value);
+              const key=voice?dv6VoiceId10110(voice):voiceEl.value;
+              if(!key)return;
+              if(genderEl.value==='Masculina'||genderEl.value==='Femenina'){
+                dv6VoiceGenders10110[key]=genderEl.value;
+              }else delete dv6VoiceGenders10110[key];
+              localStorage.setItem(DV6_GENDER_KEY_10110,JSON.stringify(dv6VoiceGenders10110));
+              dv6RefreshVoiceLabels10110();sync();
+            });
+            sync();
+          }
+          """
+          # Regex above is built without rewriting the underlying voiceURI.
+          helpers=helpers.replace('\\\\','\\')
+          one('function voiceOptions(',helpers+'\nfunction voiceOptions(','funciones')
+          original="__DOLLAR__{esc(v.name)} · __DOLLAR__{esc(v.lang)}__DOLLAR__{v.localService?' · local':''}".replace('__DOLLAR__{',chr(36)+'{')
+          updated="__DOLLAR__{esc(dv6VoiceFriendly10110(v))}".replace('__DOLLAR__{',chr(36)+'{')
+          one(original,updated,'solo nombre visible, no option value')
+          c1='<div class="cast-voice-row"><select class="voice">__DOLLAR__{voiceOptions(ch.voiceURI)}</select><button class="btn small aqua test">Probar</button></div>'.replace('__DOLLAR__{',chr(36)+'{')
+          one(c1,c1+'\n            '+(chr(36)+'{')+'isNarratorName(name)?"":DV6_GENDER_FIELD_10110}','selector reparto')
+          c2='<div class="voice-line"><select class="libVoice">__DOLLAR__{voiceOptions(ch.voiceURI)}</select><button class="btn small aqua libTest">Probar</button></div>'.replace('__DOLLAR__{',chr(36)+'{')
+          one(c2,c2+'\n              '+(chr(36)+'{')+'isNarratorName(ch.name)?"":DV6_GENDER_FIELD_10110}','selector biblioteca')
+          h1="c.querySelector('.test').onclick=()=>{saveVoice();previewVoice(name,c.querySelector('.testPhrase').value,c.querySelector('.voice-test-status'))};"
+          one(h1,h1+"\n      if(!isNarratorName(name))dv6BindGender10110(c,'.voice');",'vincular reparto')
+          h2="c.querySelector('.libTest').onclick=()=>{saveMeta();previewVoice(ch.name,c.querySelector('.libTestPhrase').value,c.querySelector('.voice-test-status'))};"
+          one(h2,h2+"\n    if(!isNarratorName(ch.name))dv6BindGender10110(c,'.libVoice');",'vincular biblioteca')
+          one('<meta name="dv6-version" content="10109">','<meta name="dv6-version" content="10110">','meta')
+          one('const DV6_APP_VERSION=10109;','const DV6_APP_VERSION=10110;','version JS')
+          path.write_text(html,encoding='utf-8')
+          v=Path('version.json');data=json.loads(v.read_text(encoding='utf-8'))
+          if data.get('version')!=10109:raise SystemExit('La web no está en base10109')
+          data.update(version=10110,displayVersion='1.1.1',build='2026.10.19-10110',date='19 oct 2026',title='Nombres claros de voces',updateRequired=False)
+          data['changes']=[
+            'Los nombres de voz muestran idioma, origen local/red y Masculina, Femenina o Sin clasificar.',
+            'Las voces que no indican género se pueden escuchar y etiquetar desde la ficha del personaje.',
+            'La etiqueta se guarda una vez para toda la aplicación y no modifica el identificador real de la voz.',
+            'Sin modificaciones de APK, firma, motor de voces o bibliotecas.'
+          ]
+          v.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          sw=Path('service-worker.js');old=sw.read_text(encoding='utf-8')
+          if old.count('1.1.1-10109')!=1:raise SystemExit('Cache previo inesperado')
+          sw.write_text(old.replace('1.1.1-10109','1.1.1-10110',1),encoding='utf-8')
+          print('Versión 10110 aplicada sin cambiar identificadores de voces.')
+          PY
+      - name: Validar independencia respecto a Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re,subprocess,tempfile,json
+          content=Path('index.html').read_text(encoding='utf-8')
+          for marker in ('function dv6VoiceGender10110','function dv6VoiceFriendly10110','function dv6BindGender10110','const DV6_APP_VERSION=10110;'):
+              assert marker in content,marker
+          assert 'voiceOptions(ch.voiceURI)' in content
+          scripts=[]
+          for item in re.finditer(r'<script(?:\s[^>]*)?>(.*?)</script>',content,re.I|re.S):
+              if 'src=' in item.group(0).split('>')[0].lower():continue
+              if item.group(1).strip():scripts.append(item.group(1))
+          assert len(scripts)==13,len(scripts)
+          with tempfile.TemporaryDirectory() as tmp:
+              for i,code in enumerate(scripts):
+                  path=Path(tmp)/(str(i)+'.js')
+                  path.write_text(code,encoding='utf-8')
+                  subprocess.run(['node','--check',str(path)],check=True)
+          assert json.loads(Path('version.json').read_text(encoding='utf-8'))['version']==10110
+          print('OK: JavaScript válido, IDs intactos.')
+          PY
+          node --check service-worker.js
+          git diff --check
+          test -z "$(git diff --name-only | grep -vE '^(index\.html|version\.json|service-worker\.js)$' || true)"
+      - name: Publicar web 10110
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html version.json service-worker.js
+          git diff --cached --quiet && exit 0
+          git commit -m "DramaVoice6 web10110: gender labels for native voice display"
+          git push
