@@ -27,7 +27,7 @@ jobs:
           assert 'noche:{masterVolume:.65' in s
           assert '<div class="dv6-player-exit-zone">' in s
           assert s.index('id="playerBackBtn"')>s.index('id="wakeLockBadge"')
-          assert 'class="dv111-narrator-card"' in s
+          assert 'card dv111-narrator-card' in s
           assert not re.search(r'<details class="char-collapse" data-key="[^"]*narratorKey\(\)[^"]*" open>',s)
           with tempfile.TemporaryDirectory() as tmp:
             d=Path(tmp)
