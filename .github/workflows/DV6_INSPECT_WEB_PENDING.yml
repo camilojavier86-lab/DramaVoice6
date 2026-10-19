@@ -1,0 +1,52 @@
+name: DV6 inspect WEB pending tasks (read only)
+on:
+  push:
+    paths:
+      - '.github/workflows/DV6_INSPECT_WEB_PENDING.yml'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show relevant code with line numbers
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('index.html').read_text(encoding='utf-8')
+          l=s.splitlines()
+          keys=[
+          'pasteBtn','clearBtn','previewPersonalPronunciation','renderPronRules','pronRulesList',
+          'pronRules','pronunciation','voice-test-status','stopPreview','previewVoice(',
+          'renderLibrary','narrator','playerExit','closePlayer','exitPlayer','Salir',
+          'player-close','player-exit','soundMix','Mezcla de sonido','duckingLevel',
+          'fadeAmbient','ambientFade','Probar mezcla','testMix','settings.masterVolume',
+          'voiceVolume','sfxVolume','narratorTest','stopSpeak','speechSynthesis.cancel',
+          'useNativeTTS','DramaVoiceNativeTTS','getClipboardText','navigator.clipboard.readText',
+          'clipboardData','execCommand'
+          ]
+          print('SIZE',len(s),'lines',len(l))
+          for k in keys:
+            hits=[i+1 for i,v in enumerate(l) if k.lower() in v.lower() and len(v)<5500]
+            print('INDEX',k,len(hits),hits[:35])
+          sections=[
+          ('PASTE',[r'pasteBtn',r'clearBtn',r'clipboard']),
+          ('PRON',[r'^function renderPronRules',r'previewPersonalPronunciation',r'^function previewVoice']),
+          ('PLAYER',[r'playerExit',r'closePlayer',r'player-exit',r'player-close',r'>Salir<',r'player-overlay']),
+          ('NARRATOR',[r'^async function renderLibrary',r'openLibraryCharacter',r'libNarrator',r'narratorTest']),
+          ('MIX',[r'Mezcla de sonido',r'Probar mezcla',r'duckingLevel',r'masterVolume'])
+          ]
+          for name,pats in sections:
+            print('SECTION',name)
+            selected=set()
+            for p in pats:
+              hit=[i for i,line in enumerate(l) if re.search(p,line,re.I) and len(line)<5000]
+              for i in hit[:13]:
+                selected.update(range(max(0,i-10),min(len(l),i+22)))
+            for i in sorted(selected):
+              if len(l[i])>2500:continue
+              print(f'SRC {name} {i+1:05d} {l[i][:1600]}')
+          PY
