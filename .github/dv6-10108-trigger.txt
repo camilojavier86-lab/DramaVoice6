@@ -1,0 +1,6 @@
+DramaVoice6 hotfix 10108 trigger
+Base estable web: 10107
+APK origen: Android v54, nueva versionCode: 55
+Alcance exclusivo: WindowInsets reales; pegar directo; limpiar sin confirmación.
+Conservación obligatoria: firma original SHA256 D1:19:8A:C5:72:A1:CB:97:EB:69:00:A8:1D:0E:01:CE:B8:96:E9:CF:AE:5D:42:25:01:49:9B:12:80:5D:71:2C.
+El workflow falla si cambia la firma o la base. No borrar datos ni caché.
