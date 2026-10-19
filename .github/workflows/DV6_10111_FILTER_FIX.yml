@@ -1,0 +1,72 @@
+name: DV6 10111 - Validar y corregir filtro de voces
+on:
+  push:
+    paths:
+      - '.github/workflows/DV6_10111_FILTER_FIX.yml'
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+      - name: Alinear sexo del personaje con etiqueta de voz
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object index.html)" = "9533f91727ecc76225302576fe62414a496e74d6"
+          python - <<'PY'
+          from pathlib import Path
+          import re,tempfile,subprocess
+          p=Path('index.html');s=p.read_text(encoding='utf-8')
+          a="const valid=all.filter(v=>norm(dv6VoiceGender10110(v))===gender);"
+          b="const voiceGender=gender==='masculino'?'masculina':'femenina';\n            const valid=all.filter(v=>norm(dv6VoiceGender10110(v))===voiceGender);"
+          if s.count(a)!=1:raise SystemExit('No se encontró el filtro único a reparar')
+          s=s.replace(a,b,1)
+          js=[m.group(1) for m in re.finditer(r'<script(?:\s[^>]*)?>(.*?)</script>',s,re.I|re.S) if 'src=' not in m.group(0).split('>')[0].lower() and m.group(1).strip()]
+          assert len(js)==13,len(js)
+          with tempfile.TemporaryDirectory() as d:
+            for i,code in enumerate(js):
+              f=Path(d)/(str(i)+'.js');f.write_text(code,encoding='utf-8')
+              subprocess.run(['node','--check',str(f)],check=True)
+            opts=s[s.index('function voiceOptions('):s.index('\n// DV6 10109:')]
+            script="""
+            const assert=require('assert');
+            const norm=x=>String(x||'').toLowerCase();
+            const dv6SupertonicSpeakerNumber=()=>0;
+            const dv6VoiceFriendly10110=v=>v.name;
+            const dv6VoiceGender10110=v=>v.gender;
+            const esc=x=>String(x);
+            const $=()=>({value:''});
+            const voices=[
+              {name:'Hombre',voiceURI:'H',gender:'Masculina',lang:'es-ES',localService:true},
+              {name:'Mujer',voiceURI:'M',gender:'Femenina',lang:'es-ES',localService:true},
+              {name:'Pendiente',voiceURI:'?',gender:'Sin clasificar',lang:'es-ES',localService:true}
+            ];
+            """
+            script+=opts+"""
+            const f=voiceOptions('','Femenino');
+            const m=voiceOptions('','Masculino');
+            assert(f.includes('value="M"') && f.includes('value="?"')&&!f.includes('value="H"'));
+            assert(m.includes('value="H"') && m.includes('value="?"')&&!m.includes('value="M"'));
+            const previous=voiceOptions('H','Femenino');
+            assert(previous.includes('value="H"')&&previous.includes('Voz anterior conservada'));
+            const none=voiceOptions('','');
+            assert(none.includes('value="H"')&&none.includes('value="M"'));
+            console.log('PASS: perfiles Masculino/Femenino, pendientes, voz previa.');
+            """
+            q=Path(d)/'test.js';q.write_text(script,encoding='utf-8')
+            subprocess.run(['node',str(q)],check=True)
+          p.write_text(s,encoding='utf-8')
+          PY
+          git diff --check
+          test "$(git diff --name-only)" = "index.html"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Fix and test 10111 male/female voice filter labels"
+          git push
