@@ -219,6 +219,7 @@ jobs:
           one("$('#testMixBtn').onclick=testAudioMix;","$('#testMixBtn').onclick=testAudioMix;\n"+mixjs,'mixer JS')
           one('<meta name="dv6-version" content="10111">','<meta name="dv6-version" content="10112">','meta')
           one('const DV6_APP_VERSION=10111;','const DV6_APP_VERSION=10112;','version')
+          s='\n'.join(line.rstrip() for line in s.split('\n'))
           path.write_text(s,encoding='utf-8')
           v=Path('version.json');j=json.loads(v.read_text(encoding='utf-8'))
           if j.get('version')!=10111:raise SystemExit('Base inesperada')
