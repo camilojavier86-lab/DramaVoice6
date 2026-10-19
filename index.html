@@ -2868,7 +2868,8 @@ function voiceOptions(selected,profile=''){
   const base='<option value="">— Selecciona una voz —</option>';
   const gender=norm(profile);
   if(gender!=='masculino'&&gender!=='femenino')return base+all.map(render).join('');
-  const valid=all.filter(v=>norm(dv6VoiceGender10110(v))===gender);
+  const voiceGender=gender==='masculino'?'masculina':'femenina';
+            const valid=all.filter(v=>norm(dv6VoiceGender10110(v))===voiceGender);
   const unknown=all.filter(v=>dv6VoiceGender10110(v)==='Sin clasificar');
   const present=valid.some(v=>id(v)===selected)||unknown.some(v=>id(v)===selected);
   const prev=voices.find(v=>id(v)===selected);
