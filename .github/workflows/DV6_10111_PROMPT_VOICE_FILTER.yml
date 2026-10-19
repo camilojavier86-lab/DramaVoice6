@@ -1,0 +1,248 @@
+name: DV6 web10111 - prompt y filtro de voces
+on:
+  push:
+    paths:
+      - '.github/dv6-10111-trigger.txt'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+      - name: Parche WEB 10111 de ficha y selector
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object index.html)" = "4f4fe73de3aaf36e9834a85f6663fcaa4e19c680"
+          test "$(git hash-object version.json)" = "f598d80d98d10f8fda16908c1d35c76190773b44"
+          test "$(git hash-object service-worker.js)" = "49d7b01c3af0f3600d390dac45dbc10bca2b3daa"
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          p=Path('index.html');s=p.read_text(encoding='utf8')
+          def once(old,new,label):
+            global s
+            if s.count(old)!=1:raise SystemExit(f'{label}: {s.count(old)} coincidencias.')
+            s=s.replace(old,new,1)
+          def between(start,stop,code,label):
+            global s
+            a=s.find(start)
+            if a<0 or s.find(start,a+1)>=0:raise SystemExit(label+' inicio ambiguo')
+            b=s.find(stop,a+len(start))
+            if b<0:raise SystemExit(label+' fin ausente')
+            s=s[:a]+code+s[b:]
+          parser=r'''
+          function extractPromptMetadata(text,current){
+            const raw=String(text||'').trim(),result={};if(!raw)return result;
+            const head=raw.split(/\s+[-–—]\s+|,|\n/)[0].trim();
+            if(/^\p{L}[\p{L}'’.-]*(?:\s+\p{L}[\p{L}'’.-]*){1,3}$/u.test(head)){
+              const first=norm(String(current?.name||'').split(/\s+/)[0]);
+              if(!first||first===norm(head.split(/\s+/)[0]))result.fullName=displayName(head);
+            }
+            const body=raw.includes(' - ')?raw.split(/\s+[-–—]\s+/).slice(1).join(' - '):raw;
+            const clause=body.split(/[,.;!?\n]/)[0].slice(0,220);
+            const female=/\b(?:mujer|female|woman|femenin[ao]|chica|muchacha|señora|judía|llegada|nacida|ella)\b/i.test(clause);
+            const male=/\b(?:hombre|male|man|masculin[oa]|chico|muchacho|señor|judío|llegado|nacido|él)\b/i.test(clause);
+            if(female&&!male)result.profile='Femenino';
+            if(male&&!female)result.profile='Masculino';
+            let m=raw.match(/\b(\d{1,3})\s*(?:years?\s*old|años?|anos?)\b/i);
+            if(m&&Number(m[1])>0&&Number(m[1])<=120)result.age=String(Number(m[1]));
+            m=raw.match(/\b(\d(?:[.,]\d{1,2})?)\s*(?:m|metros?)\b/i);
+            if(m)result.height=m[1].replace(',','.')+' m';
+            m=raw.match(/\b(?:llegad[oa]|radicad[oa]|vive|reside)\s+(?:a|en)\s+([\p{L}]+)(?:\s+hace\s+(dos|tres|cuatro|cinco|\d+))?/iu);
+            if(m){
+              const years={dos:2,tres:3,cuatro:4,cinco:5};
+              result.residence=m[1]+(m[2]?' (desde hace '+(years[m[2].toLowerCase()]||m[2])+' años)':'');
+            }
+            // NO deducir nacionalidad de religión ni ciudad o país de residencia.
+            m=raw.match(/\b(?:nacionalidad|de nacionalidad|originari[oa]\s+de|nacid[oa]\s+en)\s*[:\-]?\s*([\p{L}]+(?:\s+[\p{L}]+)?)/iu);
+            if(m){
+              const known=DV_PROMPT_NATIONALITIES.find(x=>x.p.test(m[1]));
+              if(known)result.nationality=known.n;
+            }
+            m=raw.match(/\b(?:acento|accent)\s*[:\-]?\s*([A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ\s-]{2,30})/i);
+            if(m){const x=m[1].split(/[,.!?;:]/)[0].trim();if(x)result.accent=x}
+            const voice=raw.match(/\b(?:su voz|voz|habla con voz)\s*(?:es|de|:|-)?\s*([^,.;\n]{1,65})/i);
+            if(voice){
+              const traits=[];
+              for(const [label,rx] of [['grave',/\bgrave\b/i],['aguda',/\bagud[ao]\b/i],['ronca',/\bronc[ao]\b/i],['suave',/\bsuave\b/i]])
+                if(rx.test(voice[1]))traits.push(label);
+              if(traits.length){
+                result.voiceTraits=traits.join(', ');
+                if(traits.includes('grave'))result.voiceStyle='Grave';
+                else if(traits.includes('aguda'))result.voiceStyle='Agudo';
+                else if(traits.includes('suave'))result.voiceStyle='Suave';
+              }
+            }
+            const chunks=body.split(/\s*,\s*/).map(x=>x.trim()).filter(Boolean);
+            const grab=rx=>chunks.filter(x=>rx.test(x)).join(', ');
+            result.promptDetails={
+              description:body.slice(0,1500),
+              appearance:grab(/\b(?:cuerpo|cintura|curvas?|piel|cara|ojos?|labios?|cabello|pelo|facciones?)\b/i),
+              clothing:grab(/\b(?:ropa|chaqueta|uñas|vestido|uniforme)\b/i),
+              personality:grab(/\b(?:carácter|personalidad|temperamento|expresión habitual)\b/i)
+            };
+            return result;
+          }
+          '''
+          between('function extractPromptMetadata(','\nfunction applyManualPromptMetadata(',parser,'parser')
+          apply=r'''
+          function dv6ApplyManualInfo10111(ch,raw,savePrompt){
+            const data=extractPromptMetadata(raw,ch);
+            if(data.fullName&&!ch.fullName)ch.fullName=data.fullName;
+            for(const field of ['age','profile','nationality','accent','height','residence','voiceTraits','voiceStyle'])
+              if(data[field]!=null&&isBlankField(field,ch[field]))ch[field]=data[field];
+            if(data.promptDetails)ch.promptDetails=data.promptDetails;
+            if(savePrompt)ch.visualPromptManual=String(raw||'').trim();
+            return ch;
+          }
+          function applyManualPromptMetadata(key,text){
+            const ch=charLib[key];if(!ch)return;
+            dv6ApplyManualInfo10111(ch,text,true);
+            if(!ch.visualPromptAuto)ch.visualPromptAuto=buildAutoVisualPrompt($('#story')?.value||'',ch);
+            charLib[key]=ch;saveLib();
+          }
+          function dv6MigratePrompts10111(){
+            let changed=false;
+            for(const key of Object.keys(charLib)){
+              const ch=charLib[key];
+              if(!ch||isNarratorName(ch.name||key)||!String(ch.visualPromptManual||'').trim())continue;
+              const before=JSON.stringify(ch);
+              dv6ApplyManualInfo10111(ch,ch.visualPromptManual,false);
+              if(JSON.stringify(ch)!==before)changed=true;
+            }
+            if(changed)saveLib();
+          }
+          dv6MigratePrompts10111();
+          '''
+          between('function applyManualPromptMetadata(','\nfunction spanishNumberUnder100(',apply,'guardar y migrar')
+          opts=r'''
+          function voiceOptions(selected,profile=''){
+            const lang=$('#langFilter')?.value||'';
+            const all=voices.filter(v=>!lang||String(v.lang||'').toLowerCase().startsWith(lang)).sort((a,b)=>{
+              const sa=dv6SupertonicSpeakerNumber(a),sb=dv6SupertonicSpeakerNumber(b);
+              if(sa&&sb)return sa-sb;if(sa)return -1;if(sb)return 1;
+              return String(a.name||'').localeCompare(String(b.name||''));
+            });
+            const id=v=>String(v.voiceURI||v.name);
+            const render=v=>'<option value="'+esc(id(v))+'" '+(id(v)===selected?'selected':'')+'>'+esc(dv6VoiceFriendly10110(v))+'</option>';
+            const base='<option value="">— Selecciona una voz —</option>';
+            const gender=norm(profile);
+            if(gender!=='masculino'&&gender!=='femenino')return base+all.map(render).join('');
+            const valid=all.filter(v=>norm(dv6VoiceGender10110(v))===gender);
+            const unknown=all.filter(v=>dv6VoiceGender10110(v)==='Sin clasificar');
+            const present=valid.some(v=>id(v)===selected)||unknown.some(v=>id(v)===selected);
+            const prev=voices.find(v=>id(v)===selected);
+            const retained=selected&&!present?'<optgroup label="Voz anterior conservada">'+
+              (prev?render(prev):'<option selected value="'+esc(selected)+'">Voz actual · '+esc(selected)+'</option>')+'</optgroup>':'';
+            return base+retained+(valid.length?'<optgroup label="Voces '+(gender==='masculino'?'masculinas':'femeninas')+'">'+valid.map(render).join('')+'</optgroup>':'')+
+              (unknown.length?'<optgroup label="Sin clasificar (puedes probarlas)">'+unknown.map(render).join('')+'</optgroup>':'');
+          }
+          '''
+          between('function voiceOptions(','\n// DV6 10109:',opts,'opciones de voz')
+          update=r'''
+          function dv6RefreshVoiceLabels10110(){
+            for(const select of document.querySelectorAll('select.voice,select.libVoice')){
+              const value=select.value;
+              const profile=select.classList.contains('libVoice')?
+                select.closest('details')?.querySelector('.libProfile')?.value:
+                select.dataset.dv6Profile;
+              select.innerHTML=voiceOptions(value,profile);
+              select.value=value;
+            }
+          }
+          '''
+          between('function dv6RefreshVoiceLabels10110()','\nfunction dv6BindGender10110(',update,'refrescar etiquetas')
+          once('<select class="voice">${voiceOptions(ch.voiceURI)}</select>',
+               '<select class="voice" data-dv6-profile="${esc(ch.profile||\'\')}">${voiceOptions(ch.voiceURI,ch.profile)}</select>','reparto')
+          once('<select class="libVoice">${voiceOptions(ch.voiceURI)}</select>',
+               '<select class="libVoice">${voiceOptions(ch.voiceURI,ch.profile)}</select>','biblioteca')
+          once("const profile=c.querySelector('.libProfile');","const profile=c.querySelector('.libProfile');\n    profile.addEventListener('change',()=>{const el=c.querySelector('.libVoice');const v=el.value;el.innerHTML=voiceOptions(v,profile.value);el.value=v;});",'filtro al cambiar perfil')
+          once("const description=ch.narrativeSummary||'Aún no hay suficientes datos narrativos sobre este personaje.';",
+               "const description=ch.promptDetails?.description||ch.narrativeSummary||'Aún no hay suficientes datos narrativos sobre este personaje.';",'descripcion reparto')
+          once("esc(ch.narrativeSummary||'DramaVoice irá completando aquí personalidad, gustos, vestuario y relaciones que la historia establezca explícitamente.')",
+               "esc(ch.promptDetails?.description||ch.narrativeSummary||'DramaVoice irá completando aquí personalidad, gustos, vestuario y relaciones que la historia establezca explícitamente.')",'descripcion biblioteca')
+          once('<input class="libAge" type="number" min="1" max="120" value="${esc(ch.age||\'\')}" placeholder="Edad">',
+               '<input class="libAge" type="number" min="1" max="120" value="${esc(ch.age||\'\')}" placeholder="Edad">\n              <input class="libHeight" value="${esc(ch.height||\'\')}" placeholder="Estatura">\n              <input class="libResidence" value="${esc(ch.residence||\'\')}" placeholder="Residencia">','campos ficha')
+          once("age:c.querySelector('.libAge').value,nationality:",
+               "age:c.querySelector('.libAge').value,height:c.querySelector('.libHeight').value.trim(),residence:c.querySelector('.libResidence').value.trim(),nationality:",'guardar ficha')
+          once("c.querySelector('.libAge'),c.querySelector('.libNationality')",
+               "c.querySelector('.libAge'),c.querySelector('.libHeight'),c.querySelector('.libResidence'),c.querySelector('.libNationality')",'editar nuevos campos')
+          once('<meta name="dv6-version" content="10110">','<meta name="dv6-version" content="10111">','meta')
+          once('const DV6_APP_VERSION=10110;','const DV6_APP_VERSION=10111;','version js')
+          p.write_text(s,encoding='utf8')
+          v=Path('version.json');j=json.loads(v.read_text(encoding='utf8'))
+          if j.get('version')!=10110:raise SystemExit('versión previa incorrecta')
+          j.update(version=10111,build='2026.10.19-10111',date='19 oct 2026',title='Ficha de personajes y voces por género')
+          j['changes']=[
+            'Prompt de personaje: nombre completo, género gramatical, edad, estatura, residencia y descripción visual.',
+            'No confunde religión ni residencia con nacionalidad. No inventa acento ni timbre de voz.',
+            'Revisa prompts ya guardados y completa solo campos que faltan sin cambiar valores manuales.',
+            'Filtra voces femeninas y masculinas, separa las no clasificadas y conserva siempre la selección previa.',
+            'Actualización web sin APK ni modificaciones de audio y biblioteca.'
+          ]
+          v.write_text(json.dumps(j,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
+          w=Path('service-worker.js');z=w.read_text(encoding='utf8')
+          if z.count('1.1.1-10110')!=1:raise SystemExit('service-worker versión previa')
+          w.write_text(z.replace('1.1.1-10110','1.1.1-10111'),encoding='utf8')
+          PY
+      - name: Validar JavaScript y casos del lector
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re,tempfile,subprocess,json
+          s=Path('index.html').read_text(encoding='utf8')
+          assert 'const DV6_APP_VERSION=10111;' in s
+          assert 'dv6MigratePrompts10111();' in s
+          js=[m.group(1) for m in re.finditer(r'<script(?:\s[^>]*)?>(.*?)</script>',s,re.I|re.S) if 'src=' not in m.group(0).split('>')[0].lower() and m.group(1).strip()]
+          assert len(js)==13,len(js)
+          with tempfile.TemporaryDirectory() as tmp:
+            for i,x in enumerate(js):
+              f=Path(tmp)/(str(i)+'.js');f.write_text(x,encoding='utf8')
+              subprocess.run(['node','--check',str(f)],check=True)
+            section=s[s.index('function extractPromptMetadata('):s.index('\nfunction dv6ApplyManualInfo10111(')]
+            pre="const norm=x=>String(x||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim(); const displayName=x=>x; const DV_PROMPT_NATIONALITIES=[{p:/panama|panamá/i,n:'Panamá'}];\n"
+            checks="""
+            const assert=require('assert');
+            const raw='Alejandra Zobotka - Judía de 21 años llegada a Panamá hace dos, 1.67 m, cuerpo delgado de cintura fina y curvas marcadas, piel clara, cara bonita de facciones definidas, ojos oscuros con delineado, labios llenos, cabello oscuro largo y lacio, ropa ajustada de universidad con una chaqueta de porristas sobre los hombros, uñas hechas, carácter intenso y seductor que con él se vuelve dulce y exigente, expresión habitual de quien mide el efecto que causa y todavía quiere más.';
+            const a=extractPromptMetadata(raw,{name:'Alejandra'});
+            assert.strictEqual(a.fullName,'Alejandra Zobotka');
+            assert.strictEqual(a.profile,'Femenino');
+            assert.strictEqual(a.age,'21');
+            assert.strictEqual(a.height,'1.67 m');
+            assert.ok(a.residence.includes('Panamá'));
+            assert.strictEqual(a.nationality,undefined);
+            assert.strictEqual(a.accent,undefined);
+            assert.strictEqual(a.voiceTraits,undefined);
+            assert.ok(a.promptDetails.appearance.includes('cabello oscuro'));
+            assert.ok(a.promptDetails.clothing.includes('chaqueta de porristas'));
+            assert.ok(a.promptDetails.personality.includes('carácter intenso'));
+            assert.strictEqual(extractPromptMetadata('Frank Ruiz - Judío de 27 años llegado a Panamá',{name:'Frank'}).profile,'Masculino');
+            assert.strictEqual(extractPromptMetadata('Alex Ruiz - 27 años vive en Panamá',{name:'Alex'}).profile,undefined);
+            console.log('PASS: ALEJANDRA, FRANK, ALEX, NACIONALIDAD');
+            """
+            test=Path(tmp)/'test.js';test.write_text(pre+section+'\n'+checks,encoding='utf8')
+            subprocess.run(['node',str(test)],check=True)
+          assert json.loads(Path('version.json').read_text(encoding='utf8'))['version']==10111
+          PY
+          node --check service-worker.js
+          git diff --check
+          test -z "$(git diff --name-only | grep -vE '^(index\.html|version\.json|service-worker\.js)$' || true)"
+      - name: Publicar solo 10111 web
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html version.json service-worker.js
+          git diff --cached --quiet && exit 0
+          git commit -m "DramaVoice6 web 10111: prompt metadata and voice gender filtering"
+          git push
