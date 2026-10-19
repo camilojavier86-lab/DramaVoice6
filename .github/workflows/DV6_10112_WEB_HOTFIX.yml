@@ -1,0 +1,276 @@
+name: DramaVoice 6 web 10112 - correcciones pendientes
+on:
+  push:
+    paths:
+      - '.github/dv6-10112-trigger.txt'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  hotfix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Parche aislado Web
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object index.html)" = "a22887ad02d3c0a6d06009b3cecbcab387a5a195"
+          test "$(git hash-object version.json)" = "071a11b7a11dc1f8beaa3bb850d8ec40d6285787"
+          test "$(git hash-object service-worker.js)" = "c9730b8cc2b4cfef866c92731c555989f564356f"
+          python - <<'PY'
+          from pathlib import Path
+          import json,re
+          path=Path('index.html');s=path.read_text(encoding='utf-8')
+          def one(old,new,label):
+            global s
+            if s.count(old)!=1:raise SystemExit(label+' anchor '+str(s.count(old)))
+            s=s.replace(old,new,1)
+          def portion(start,end,new,label):
+            global s
+            a=s.find(start);b=s.find(end,a+len(start))
+            if a<0 or b<0 or s.find(start,a+1)>=0:raise SystemExit(label+' ambiguous section')
+            s=s[:a]+new+s[b:]
+          css="""
+          <style id="dv6-10112-web-style">
+          .dv111-narrator-card{border-color:#9364de!important;background:linear-gradient(145deg,#1e1836,#09131d)!important}
+          .dv111-narrator-card .char-summary-name{color:#d0b5ff}
+          .dv6-player-exit-zone{display:flex;padding:64px 16px 9px;justify-content:flex-start;position:relative;z-index:6}
+          #playerBackBtn{min-height:55px;min-width:116px;touch-action:manipulation;position:relative;z-index:8}
+          .global-pron-head,.global-pron-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 42px 36px!important;gap:5px}
+          .global-pron-row input{min-width:0;padding:8px 5px;font-size:12px}
+          .global-pron-row button{width:100%!important;min-height:42px;height:42px!important;font-size:17px}
+          .global-pron-add{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px!important;gap:6px}
+          #previewNewPron{grid-column:auto!important;min-height:46px;width:44px;padding:0}
+          #addPronRule{grid-column:1/-1;min-height:46px}
+          #pronTestStatus{min-height:20px;margin:9px 0;font-size:12px}
+          #pasteFallback{padding:12px;border:1px solid #4e8e98;border-radius:14px;background:#0a222a;margin:12px 0}
+          #pasteFallback[hidden]{display:none!important}
+          #pasteFallback textarea{box-sizing:border-box;width:100%;min-height:116px}
+          #pasteFallback p{font-size:13px;line-height:1.45;color:#d1e0e7}
+          .dv6-fallback-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+          .dv6-mix-presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:16px 0 10px}
+          .dv6-mix-presets button{font:inherit;font-size:13px;padding:9px 5px;min-height:48px;border:1px solid #357e77;color:#d7fff5;border-radius:12px;background:#0a302c}
+          </style>
+          """
+          one('</head>',css+'</head>','CSS')
+          one('        <button class="btn small" id="playerBackBtn">← Salir</button>\n','','salir original')
+          one('        <span id="wakeLockBadge">PANTALLA</span>\n      </div>',
+              '        <span id="wakeLockBadge">PANTALLA</span>\n      </div>\n      <div class="dv6-player-exit-zone"><button class="btn small" id="playerBackBtn">← Salir</button></div>','salir seguro')
+          hit=re.findall(r'<details class="char-collapse" data-key="[^"]*narratorKey\(\)[^"]*" open>',s)
+          if len(hit)!=1:raise SystemExit('narrator open anchors '+str(len(hit)))
+          s=s.replace(hit[0],hit[0].replace(' open>','>'),1)
+
+          one('<div class="global-pron-head"><span>SE ESCRIBE</span><span>SE PRONUNCIA</span><span></span></div>',
+              '<div class="global-pron-head"><span>SE ESCRIBE</span><span>SE PRONUNCIA</span><span>PROBAR</span><span></span></div>',
+              'cabecera pron')
+          one('<div id="pronRulesList"></div>','<div id="pronRulesList"></div>\n        <div id="pronTestStatus" class="status" aria-live="polite"></div>','estado pron')
+          one('<input id="pronTo" placeholder="Se pronuncia">\n          <button class="btn small aqua" id="addPronRule">Agregar</button>',
+              '<input id="pronTo" placeholder="Se pronuncia">\n          <button type="button" class="btn small aqua" id="previewNewPron" aria-label="Probar pronunciación nueva">▶</button>\n          <button class="btn small aqua" id="addPronRule">Agregar</button>',
+              'nueva pron test')
+          pron=r'''
+          let dv6PronActive10112=null;
+          function dv6PronNote10112(msg,kind=''){
+            const st=$('#pronTestStatus');if(st){st.textContent=msg;st.className='status '+kind}
+          }
+          function dv6StopPron10112(){
+            const active=dv6PronActive10112;
+            if(!active)return false;
+            dv6PronActive10112=null;++dv6PreviewToken;
+            try{speechSynthesis.cancel()}catch(e){}
+            previewing=false;
+            active.button.textContent='▶';
+            active.button.setAttribute('aria-label','Probar pronunciación');
+            dv6PronNote10112('Prueba detenida.','good');
+            return true;
+          }
+          function dv6PlayPron10112(btn,phrase){
+            const text=String(phrase||'').trim();
+            if(dv6PronActive10112?.button===btn){dv6StopPron10112();return}
+            if(!text){dv6PronNote10112('Escribe cómo debe pronunciarse.','warn');return}
+            if(playing||paused){dv6PronNote10112('Detén el reproductor antes de probar.','warn');return}
+            if(typeof SpeechSynthesisUtterance==='undefined'||!('speechSynthesis' in window)){
+              dv6PronNote10112('Motor TTS no disponible.','warn');return
+            }
+            dv6StopPron10112();
+            try{speechSynthesis.cancel()}catch(e){}
+            const token=++dv6PreviewToken;
+            const u=new SpeechSynthesisUtterance(text);
+            configureUtterance(u,'NARRADOR');
+            if(!u.voice){const fallback=preferredPreviewVoice('NARRADOR');if(fallback)u.voice=fallback}
+            previewing=true;
+            dv6PronActive10112={token,button:btn};
+            btn.textContent='■';btn.setAttribute('aria-label','Detener pronunciación');
+            dv6PronNote10112('Preparando: '+text,'warn');
+            const end=(message,kind)=>{
+              if(dv6PronActive10112?.token!==token)return;
+              dv6PronActive10112=null;previewing=false;
+              btn.textContent='▶';btn.setAttribute('aria-label','Probar pronunciación');
+              dv6PronNote10112(message,kind);
+            };
+            u.onstart=()=>{if(dv6PronActive10112?.token===token)dv6PronNote10112('Reproduciendo: '+text,'good')};
+            u.onend=()=>end('Prueba terminada.','good');
+            u.onerror=x=>end('Falló la voz: '+(x?.error||'error de reproducción'),'warn');
+            setTimeout(()=>{
+              if(dv6PronActive10112?.token!==token)return;
+              try{speechSynthesis.speak(u)}catch(e){end('No se pudo reproducir la prueba.','warn')}
+            },90);
+          }
+          function renderPronRules(){
+            dv6StopPron10112();
+            const root=$('#pronRulesList');if(!root)return;root.innerHTML='';
+            const globals=(pronRules||[]).filter(r=>!r.scope||r.scope==='*');
+            globals.forEach(r=>{
+              const realIndex=pronRules.indexOf(r);
+              const row=document.createElement('div');row.className='global-pron-row';
+              row.innerHTML='<input class="rFrom" value="'+esc(r.from||'')+'" placeholder="Se escribe">'+
+                '<input class="rTo" value="'+esc(r.to||'')+'" placeholder="Se pronuncia">'+
+                '<button type="button" class="btn small aqua rPlay" aria-label="Probar pronunciación">▶</button>'+
+                '<button type="button" class="btn small danger rDelete" title="Eliminar">×</button>';
+              const save=()=>{r.from=row.querySelector('.rFrom').value;r.to=row.querySelector('.rTo').value;r.scope='*';localStorage.setItem(PRON_KEY,JSON.stringify(pronRules))};
+              row.querySelector('.rFrom').oninput=save;row.querySelector('.rTo').oninput=save;
+              row.querySelector('.rPlay').onclick=()=>{save();dv6PlayPron10112(row.querySelector('.rPlay'),row.querySelector('.rTo').value)};
+              row.querySelector('.rDelete').onclick=()=>{dv6StopPron10112();pronRules.splice(realIndex,1);localStorage.setItem(PRON_KEY,JSON.stringify(pronRules));renderPronRules()};
+              root.appendChild(row);
+            });
+            if(!globals.length)root.innerHTML='<div class="prompt-status" style="margin:8px 0">Sin reglas generales.</div>';
+          }
+          $('#previewNewPron').onclick=()=>dv6PlayPron10112($('#previewNewPron'),$('#pronTo').value);
+          $('#addPronRule').onclick=()=>{
+            const from=$('#pronFrom').value.trim(),to=$('#pronTo').value.trim();
+            if(!from||!to){dv6PronNote10112('Completa los dos campos.','warn');return}
+            dv6StopPron10112();pronRules.push({from,to,scope:'*'});
+            localStorage.setItem(PRON_KEY,JSON.stringify(pronRules));
+            $('#pronFrom').value='';$('#pronTo').value='';renderPronRules();
+            dv6PronNote10112('Pronunciación guardada.','good');
+          };
+          '''
+          portion('function renderPronRules(){','\nasync function importStoryDocument(',pron,'funciones pron')
+          fallback="""
+          <div id="pasteFallback" hidden>
+            <p>Android no permitió leer el portapapeles automáticamente. Mantén pulsado en el cuadro y elige Pegar. No se borrará tu historia hasta pulsar Usar texto.</p>
+            <textarea id="pasteFallbackEditor" placeholder="Pega aquí el texto desde Android"></textarea>
+            <div class="dv6-fallback-actions">
+              <button type="button" class="btn small aqua" id="applyManualPaste">Usar texto pegado</button>
+              <button type="button" class="btn small" id="cancelManualPaste">Cancelar</button>
+            </div>
+          </div>
+          """
+          one('<div id="analyzeStatus" class="history-inline-status"></div>',
+              '<div id="analyzeStatus" class="history-inline-status"></div>\n'+fallback,'fallback')
+          paste=r'''
+          function dv6SavePaste10112(text){
+            const box=$('#story');box.value=String(text);
+            localStorage.setItem(STORY_KEY,box.value);updateHistoryCaptureUI(box.value,false);
+            $('#analyzeStatus').textContent='Texto pegado. Listo para analizar.';
+            $('#analyzeStatus').className='history-inline-status good';
+            $('#pasteFallback').hidden=true;box.blur();
+          }
+          $('#applyManualPaste').onclick=()=>{
+            const text=$('#pasteFallbackEditor').value;
+            if(!text.trim()){$('#analyzeStatus').textContent='Pega primero el texto en el cuadro manual.';return}
+            dv6SavePaste10112(text);$('#pasteFallbackEditor').value='';
+          };
+          $('#cancelManualPaste').onclick=()=>{$('#pasteFallback').hidden=true;$('#pasteFallbackEditor').blur()};
+          $('#pasteBtn').onclick=async()=>{
+            let text='';
+            const native=window.DramaVoiceNativeTTS;
+            try{if(typeof native?.getClipboardText==='function')text=String(native.getClipboardText()||'')}catch(e){}
+            if(!text){try{if(navigator.clipboard?.readText)text=String(await navigator.clipboard.readText()||'')}catch(e){}}
+            if(!text){try{
+              if(navigator.clipboard?.read){
+                for(const item of await navigator.clipboard.read()){
+                  if(item.types?.includes('text/plain')){text=await (await item.getType('text/plain')).text();if(text)break}
+                }
+              }
+            }catch(e){}}
+            $('#story').blur();try{native?.hideKeyboard?.()}catch(e){}
+            if(text){dv6SavePaste10112(text);return}
+            $('#pasteFallback').hidden=false;
+            $('#analyzeStatus').textContent='Este APK no autorizó pegar automáticamente. Se abrió una opción manual.';
+            $('#analyzeStatus').className='history-inline-status warn';
+          };
+          '''
+          portion("$('#pasteBtn').onclick=async()=>{","\n$('#story').addEventListener(",paste,'pegado')
+          mix="""
+          <div class="dv6-mix-presets" role="group" aria-label="Perfiles de mezcla">
+            <button type="button" data-dv6-mix="dialogos">Diálogos</button>
+            <button type="button" data-dv6-mix="cine">Cine</button>
+            <button type="button" data-dv6-mix="noche">Nocturno</button>
+          </div><div class="status" id="dv6MixStatus10112" aria-live="polite"></div>
+          """
+          one('<button class="btn aqua" id="testMixBtn">Probar mezcla</button>',
+              mix+'<button class="btn aqua" id="testMixBtn">Probar mezcla</button>','mixer UI')
+          mixjs="""
+          const DV6_MIX_10112={
+            dialogos:{masterVolume:1,voiceVolume:1,ambientVolume:.2,sfxVolume:.4,duckingLevel:.15,ambientFadeMs:1250},
+            cine:{masterVolume:1,voiceVolume:1,ambientVolume:.55,sfxVolume:.75,duckingLevel:.45,ambientFadeMs:1000},
+            noche:{masterVolume:.65,voiceVolume:1,ambientVolume:.15,sfxVolume:.3,duckingLevel:.2,ambientFadeMs:1500}
+          };
+          document.querySelectorAll('[data-dv6-mix]').forEach(btn=>btn.addEventListener('click',()=>{
+            const data=DV6_MIX_10112[btn.dataset.dv6Mix];if(!data)return;
+            Object.entries(data).forEach(([key,value])=>{const slider=document.getElementById(key);if(slider)slider.value=value});
+            saveSettings();document.getElementById('dv6MixStatus10112').textContent='Perfil '+btn.textContent+' aplicado. Puedes ajustar cada barra.';
+          }));
+          """
+          one("$('#testMixBtn').onclick=testAudioMix;","$('#testMixBtn').onclick=testAudioMix;\n"+mixjs,'mixer JS')
+          one('<meta name="dv6-version" content="10111">','<meta name="dv6-version" content="10112">','meta')
+          one('const DV6_APP_VERSION=10111;','const DV6_APP_VERSION=10112;','version')
+          path.write_text(s,encoding='utf-8')
+          v=Path('version.json');j=json.loads(v.read_text(encoding='utf-8'))
+          if j.get('version')!=10111:raise SystemExit('Base inesperada')
+          j.update(version=10112,build='2026.10.19-10112',date='19 oct 2026',title='Correcciones web pendientes')
+          j['changes']=[
+            'Pronunciaciones generales con ▶ / ■ individual y prueba antes de Agregar.',
+            'Narrador compacto por defecto y con tarjeta morada.',
+            'Botón SALIR movido más abajo fuera de barra superior Android.',
+            'Perfiles de mezcla Diálogos, Cine y Nocturno con controles reales.',
+            'PEGAR reintenta API nativa y web; si Android bloquea portapapeles ofrece opción manual.',
+            'No modifica APK, firma, voces, sonido ni biblioteca.'
+          ]
+          v.write_text(json.dumps(j,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          w=Path('service-worker.js');z=w.read_text(encoding='utf-8')
+          if z.count('1.1.1-10111')!=1:raise SystemExit('SW no es 10111')
+          w.write_text(z.replace('1.1.1-10111','1.1.1-10112',1),encoding='utf-8')
+          PY
+      - name: Verificar sintaxis y alcance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re,tempfile,subprocess,json
+          s=Path('index.html').read_text(encoding='utf-8')
+          for t in ['dv6PlayPron10112','dv6StopPron10112','id="previewNewPron"','id="pronTestStatus"',
+                    'dv6-player-exit-zone','id="pasteFallback"','navigator.clipboard.read()',
+                    'data-dv6-mix="dialogos"','const DV6_APP_VERSION=10112;']:
+            assert t in s,t
+          assert s.count('id="playerBackBtn"')==1
+          assert s.count('id="pasteBtn"')==1
+          assert s.count('id="addPronRule"')==1
+          assert not re.search(r'<details class="char-collapse" data-key="[^"]*narratorKey\(\)[^"]*" open>',s)
+          scripts=[m.group(1) for m in re.finditer(r'<script(?:\s[^>]*)?>(.*?)</script>',s,re.I|re.S) if 'src=' not in m.group(0).split('>')[0].lower() and m.group(1).strip()]
+          assert len(scripts)==13,len(scripts)
+          with tempfile.TemporaryDirectory() as d:
+            for i,js in enumerate(scripts):
+              q=Path(d)/(str(i)+'.js');q.write_text(js,encoding='utf-8')
+              subprocess.run(['node','--check',str(q)],check=True)
+          assert json.loads(Path('version.json').read_text(encoding='utf-8'))['version']==10112
+          print('OK: scripts y puntos de integración.')
+          PY
+          node --check service-worker.js
+          git diff --check
+          test -z "$(git diff --name-only | grep -vE '^(index\.html|version\.json|service-worker\.js)$' || true)"
+      - name: Publicar solo web 10112
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html version.json service-worker.js
+          git diff --cached --quiet && exit 0
+          git commit -m "DramaVoice6 web10112: complete web pending tasks"
+          git push
