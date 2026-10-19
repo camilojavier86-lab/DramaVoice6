@@ -34,6 +34,10 @@ jobs:
           for a,b in [(1720,1900),(2700,2770),(2870,2970)]:
             for i in range(a-1,min(b,len(lines))):
               if len(lines[i])<2000:chosen.add(i)
+          print("### TARGETED EXTRACTIONS")
+          for a,b in [(1340,1430),(1854,1887),(1890,1940),(2735,2810),(2985,3015),(3060,3080)]:
+            for n in range(a-1,b):
+              if n < len(lines) and len(lines[n]) < 2400: print(f"TARGET {n+1:05d} {lines[n][:1850]}")
           print("### CODE EXCERPTS")
           for i in sorted(chosen):
             line=lines[i]
