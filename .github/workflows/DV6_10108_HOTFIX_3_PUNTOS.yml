@@ -2,6 +2,9 @@ name: DramaVoice6 10108 - Hotfix aislado (3 correcciones)
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - '.github/dv6-10108-trigger.txt'
 
 permissions:
   contents: write
