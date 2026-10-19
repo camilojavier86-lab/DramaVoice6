@@ -1,0 +1,141 @@
+name: DV6 10109 WEB - estilos vocales
+on:
+  push:
+    paths:
+      - '.github/dv6-10109-trigger.txt'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  vocal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Aplicar perfiles solo a la web
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object index.html)" = "707f17bf35faa35fbd511a8f980c477b8183db94"
+          test "$(git hash-object version.json)" = "0deb9ebfd1ff0e97b7d68e125ba0abcab2ce3723"
+          test "$(git hash-object service-worker.js)" = "ee4ef2cc935f4c4718d54f33ad1d87a32badac09"
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          p=Path('index.html');s=p.read_text(encoding='utf-8')
+          def once(old,new,label):
+              global s
+              n=s.count(old)
+              if n!=1:raise SystemExit(f'{label}: esperaba 1; hallé {n}')
+              s=s.replace(old,new,1)
+          style="""
+          <style id="dv6-10109-vocal-css">
+          .dv6-vocal-presets{padding:13px;margin-top:15px;border:1px solid #275d66;border-radius:15px;background:rgba(15,53,64,.35)}
+          .dv6-vocal-presets-title{color:#8ef0e9;font-weight:750;margin-bottom:9px;font-size:14px}
+          .dv6-vocal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+          .dv6-vocal-preset{font:inherit;font-weight:700;font-size:13px;min-height:45px;border-radius:11px;padding:9px 7px;border:1px solid #3b4e65;background:#182534;color:#e8f3fb;cursor:pointer;touch-action:manipulation}
+          .dv6-vocal-preset[aria-pressed="true"]{border-color:#c9a2ff;background:#6945c5;color:white}
+          .dv6-vocal-help{font-size:12px;line-height:1.35;color:#b8ccda;margin-top:9px}
+          @media(min-width:540px){.dv6-vocal-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+          </style>
+          """
+          once('</head>',style+'</head>','CSS')
+          helper="""
+          // DV6 10109: perfiles de tono/velocidad compatibles con APK v54.
+          const DV6_VOICE_PRESETS_10109=[
+            ['Natural',1,1],['Grave',.82,.76],['Sereno',.76,.93],
+            ['Juvenil',1.13,1.25],['Enérgico',1.27,1.09]
+          ];
+          const DV6_VOICE_PRESETS_HTML='<div class="dv6-vocal-presets"><div class="dv6-vocal-presets-title">Estilo vocal · Toca para escuchar</div><div class="dv6-vocal-grid">'+
+            DV6_VOICE_PRESETS_10109.map((p,i)=>'<button type="button" class="dv6-vocal-preset" data-dv6-preset="'+i+'">'+p[0]+'</button>').join('')+
+            '</div><div class="dv6-vocal-help">Cambia tono y ritmo sin cambiar la voz. Los ajustes manuales siguen disponibles.</div></div>';
+          function dv6WirePresets10109(card,rateSelector,pitchSelector,testSelector){
+            const rate=card.querySelector(rateSelector),pitch=card.querySelector(pitchSelector);
+            if(!rate||!pitch)return;
+            const buttons=Array.from(card.querySelectorAll('[data-dv6-preset]'));
+            const refresh=()=>{
+              buttons.forEach(b=>{
+                const p=DV6_VOICE_PRESETS_10109[Number(b.dataset.dv6Preset)];
+                const active=p&&Math.abs(Number(rate.value)-p[1])<.005&&Math.abs(Number(pitch.value)-p[2])<.005;
+                b.setAttribute('aria-pressed',String(!!active));
+              });
+            };
+            buttons.forEach(b=>b.onclick=()=>{
+              const p=DV6_VOICE_PRESETS_10109[Number(b.dataset.dv6Preset)];if(!p)return;
+              rate.value=String(p[1]);pitch.value=String(p[2]);
+              rate.dispatchEvent(new Event('input',{bubbles:true}));
+              pitch.dispatchEvent(new Event('input',{bubbles:true}));
+              refresh();
+              const test=card.querySelector(testSelector);if(test)test.click();
+            });
+            rate.addEventListener('input',refresh);
+            pitch.addEventListener('input',refresh);
+            refresh();
+          }
+          """
+          once('function renderCast(){',helper+'\nfunction renderCast(){','Funciones')
+          oldCast='<div class="label">Tono <span class="pitchLabel">__EXP__Number(ch.pitch||1).toFixed(2)}</span></div><input class="pitch" type="range" min=".65" max="1.35" step=".05" value="__EXP__ch.pitch||1}">'
+          oldCast=oldCast.replace('__EXP__',chr(36)+'{')
+          once(oldCast,oldCast+'\n            '+(chr(36)+'{')+'isNarratorName(name)?"":DV6_VOICE_PRESETS_HTML}','Reparto')
+          oldLib='<div class="label">Tono <span class="libPitchLabel">__EXP__Number(ch.pitch||1).toFixed(2)}</span></div><input class="libPitch" type="range" min=".65" max="1.35" step=".05" value="__EXP__ch.pitch||1}">'
+          oldLib=oldLib.replace('__EXP__',chr(36)+'{')
+          once(oldLib,oldLib+'\n              '+(chr(36)+'{')+'isNarratorName(ch.name)?"":DV6_VOICE_PRESETS_HTML}','Biblioteca')
+          castHandler="c.querySelector('.test').onclick=()=>{saveVoice();previewVoice(name,c.querySelector('.testPhrase').value,c.querySelector('.voice-test-status'))};"
+          once(castHandler,castHandler+"\n      if(!isNarratorName(name))dv6WirePresets10109(c,'.rate','.pitch','.test');",'Escucha reparto')
+          libHandler="c.querySelector('.libTest').onclick=()=>{saveMeta();previewVoice(ch.name,c.querySelector('.libTestPhrase').value,c.querySelector('.voice-test-status'))};"
+          once(libHandler,libHandler+"\n    if(!isNarratorName(ch.name))dv6WirePresets10109(c,'.libRate','.libPitch','.libTest');",'Escucha biblioteca')
+          once('<meta name="dv6-version" content="10108">','<meta name="dv6-version" content="10109">','Meta')
+          once('const DV6_APP_VERSION=10108;','const DV6_APP_VERSION=10109;','Versión JS')
+          p.write_text(s,encoding='utf-8')
+          vp=Path('version.json');v=json.loads(vp.read_text(encoding='utf-8'))
+          if v.get('version')!=10108:raise SystemExit('No es la base 10108')
+          v.update(version=10109,displayVersion='1.1.1',build='2026.10.19-10109',date='19 oct 2026',title='Perfiles vocales por personaje',updateRequired=False)
+          v['changes']=[
+            'Estilos Natural, Grave, Sereno, Juvenil y Enérgico por personaje.',
+            'Al escoger un estilo, se guardan valores audibles de velocidad y tono y se escucha la frase de prueba.',
+            'Disponible en Biblioteca y Reparto. No altera la voz fija del narrador.',
+            'Conserva fotos, biblioteca, voces asignadas y controles manuales.',
+            'Actualización web: sin cambios de APK o firma.'
+          ]
+          vp.write_text(json.dumps(v,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          sw=Path('service-worker.js');x=sw.read_text(encoding='utf-8')
+          if x.count('1.1.1-10108')!=1:raise SystemExit('Cache previo incorrecto')
+          sw.write_text(x.replace('1.1.1-10108','1.1.1-10109',1),encoding='utf-8')
+          PY
+      - name: Pruebas y aislamiento
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re,subprocess,tempfile,json
+          s=Path('index.html').read_text(encoding='utf-8')
+          assert 'dv6WirePresets10109' in s
+          assert '<meta name="dv6-version" content="10109">' in s
+          assert 'const DV6_APP_VERSION=10109;' in s
+          js=[]
+          for m in re.finditer(r'<script(?:\s[^>]*)?>(.*?)</script>',s,re.I|re.S):
+            if 'src=' in m.group(0).split('>')[0].lower():continue
+            if m.group(1).strip():js.append(m.group(1))
+          assert len(js)==13,len(js)
+          with tempfile.TemporaryDirectory() as d:
+            for i,script in enumerate(js):
+              p=Path(d)/(str(i)+'.js');p.write_text(script,encoding='utf-8')
+              subprocess.run(['node','--check',str(p)],check=True)
+          assert json.loads(Path('version.json').read_text(encoding='utf-8'))['version']==10109
+          print('OK: 13 scripts JavaScript válidos.')
+          PY
+          node --check service-worker.js
+          git diff --check
+          test -z "$(git diff --name-only | grep -vE '^(index\.html|version\.json|service-worker\.js)$' || true)"
+      - name: Publicar exclusivamente web
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html version.json service-worker.js
+          git diff --cached --quiet && exit 0
+          git commit -m "DramaVoice6 web10109: perfiles vocales por personaje"
+          git push
