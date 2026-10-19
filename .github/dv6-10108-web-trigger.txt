@@ -1,0 +1,3 @@
+Disparador para actualización web conservadora DramaVoice6 10108.
+No compilar APK ni cambiar firma. Solo controles Historia: Pegar (sin teclado) y Limpiar (sin confirmación).
+Barra de Android pendiente por ausencia de clave de firma.
