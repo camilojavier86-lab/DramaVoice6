@@ -1,0 +1,3 @@
+Lanzar solo actualización web de nombres de voz 10110 sobre 10109.
+Mantener identificadores Android originales. Etiquetas Masculina, Femenina, Sin clasificar, editables por voz.
+No generar ni modificar APK.
