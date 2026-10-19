@@ -1,0 +1,134 @@
+name: DramaVoice6 10108 WEB - Historia sin teclado, sin APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/dv6-10108-web-trigger.txt'
+
+permissions:
+  contents: write
+
+jobs:
+  web_hotfix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+      - name: Publicar build10108 WEB sin APK ni firma
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object index.html)" = "62372ed010742ecc177c1f49fe35f0346cd7d444"
+          test "$(git hash-object version.json)" = "85a2b8b5e463b7e4804e4023364acecd8974f097"
+          test "$(git hash-object service-worker.js)" = "0ecbd63d2c015e85d42039b63b9784a7317a3b90"
+
+          python - <<'PY_WEB'
+          from pathlib import Path
+          import json
+          
+          def rep_once(text, old, new, label):
+              n=text.count(old)
+              if n!=1:
+                  raise SystemExit(f"{label}: esperaba 1 coincidencia y encontré {n}")
+              return text.replace(old,new,1)
+          
+          p=Path("index.html")
+          text=p.read_text(encoding="utf-8")
+          
+          old_clear="""$('#clearBtn').onclick=()=>{const current=$('#story').value;if(current.trim()&&!confirm('¿Vaciar solamente el texto de Historia? La biblioteca de personajes, lugares y sonidos no se borrará.'))return;stopAll();$('#story').value='';localStorage.removeItem(STORY_KEY);scenes=[];activeScene=0;queueIndex=0;buildQueue();renderScenes();updatePlayer();$('#analyzeStatus').textContent='';updateHistoryCaptureUI('',false)};"""
+          new_clear="""$('#clearBtn').onclick=()=>{stopAll();const story=$('#story');story.value='';story.blur();try{window.DramaVoiceNativeTTS?.hideKeyboard?.()}catch{}localStorage.removeItem(STORY_KEY);scenes=[];activeScene=0;queueIndex=0;buildQueue();renderScenes();updatePlayer();$('#analyzeStatus').textContent='';updateHistoryCaptureUI('',false)};"""
+          text=rep_once(text,old_clear,new_clear,"botón Limpiar")
+          
+          old_paste="""$('#pasteBtn').onclick=async()=>{
+           let text='';
+           try{if(navigator.clipboard?.readText)text=await navigator.clipboard.readText()}catch{}
+           if(text){$('#story').value=text;localStorage.setItem(STORY_KEY,text);updateHistoryCaptureUI(text,false);$('#analyzeStatus').textContent='Texto pegado. Listo para analizar.';$('#analyzeStatus').className='history-inline-status good';$('#story').focus()}
+           else{$('#story').focus();$('#analyzeStatus').textContent='El navegador no permitió leer el portapapeles. Mantén pulsado en el cuadro y toca Pegar.';$('#analyzeStatus').className='history-inline-status warn'}
+          };"""
+          new_paste="""$('#pasteBtn').onclick=async()=>{
+           let text='';
+           try{
+             const native=window.DramaVoiceNativeTTS;
+             if(native?.hideKeyboard)native.hideKeyboard();
+             if(native?.getClipboardText)text=String(native.getClipboardText()||'');
+           }catch{}
+           if(!text){try{if(navigator.clipboard?.readText)text=await navigator.clipboard.readText()}catch{}}
+           const story=$('#story');story.blur();
+           if(text){
+             story.value=text;localStorage.setItem(STORY_KEY,text);updateHistoryCaptureUI(text,false);
+             $('#analyzeStatus').textContent='Texto pegado. Listo para analizar.';
+             $('#analyzeStatus').className='history-inline-status good';
+           }else{
+             $('#analyzeStatus').textContent='No encontré texto disponible en el portapapeles.';
+             $('#analyzeStatus').className='history-inline-status warn';
+           }
+          };"""
+          text=rep_once(text,old_paste,new_paste,"botón Pegar")
+          text=rep_once(text,'<meta name="dv6-version" content="10107">','<meta name="dv6-version" content="10108">',"meta versión")
+          text=rep_once(text,'const DV6_APP_VERSION=10107;','const DV6_APP_VERSION=10108;',"versión JS")
+          p.write_text(text,encoding="utf-8")
+          
+          version={
+            "version":10108,
+            "displayVersion":"1.1.1",
+            "build":"2026.10.18-10108",
+            "date":"18 oct 2026",
+            "title":"Historia: limpiar al instante y pegar sin teclado",
+            "updateRequired":False,
+            "changes":[
+              "El botón Pegar intenta leer el portapapeles directamente y no enfoca Historia ni abre el teclado.",
+              "El pegado automático depende del permiso del WebView hasta que se recupere la firma Android.",
+              "El botón Limpiar vacía Historia inmediatamente, sin solicitar una segunda confirmación.",
+              "Esta publicación web no cambia el APK: el ajuste de la barra de estado permanece pendiente."
+            ]
+          }
+          Path("version.json").write_text(json.dumps(version,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          
+          sw=Path("service-worker.js")
+          s=sw.read_text(encoding="utf-8")
+          s=rep_once(s,"1.1.1-10107","1.1.1-10108","service worker")
+          sw.write_text(s,encoding="utf-8")
+          
+          PY_WEB
+
+          grep -q '<meta name="dv6-version" content="10108">' index.html
+          grep -q 'const DV6_APP_VERSION=10108;' index.html
+          grep -q 'native?.getClipboardText' index.html
+          grep -q 'No encontré texto disponible en el portapapeles.' index.html
+          ! grep -q "¿Vaciar solamente el texto de Historia?" index.html
+
+          python - <<'PY_JS'
+          from pathlib import Path
+          import re,subprocess,tempfile
+          html=Path('index.html').read_text(encoding='utf-8')
+          blocks=[]
+          for m in re.finditer(r'<script(?:\s[^>]*)?>(.*?)</script>',html,re.S|re.I):
+              if 'src=' in m.group(0).split('>')[0].lower():
+                  continue
+              if m.group(1).strip():
+                  blocks.append(m.group(1))
+          with tempfile.TemporaryDirectory() as d:
+              for i,body in enumerate(blocks,1):
+                  q=Path(d)/f'{i:02d}.js'
+                  q.write_text(body,encoding='utf-8')
+                  subprocess.run(['node','--check',str(q)],check=True)
+          print(f'OK: {len(blocks)} bloques JavaScript válidos.')
+          PY_JS
+
+          python -m json.tool version.json >/dev/null
+          node --check service-worker.js
+          git diff --check
+          BAD="$(git diff --name-only | grep -vE '^(index\.html|version\.json|service-worker\.js)$' || true)"
+          test -z "$BAD"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html version.json service-worker.js
+          git commit -m "DramaVoice 6 build10108: barra del sistema y pegado directo"
+          git push
+
