@@ -1,0 +1,1 @@
+Disparar prueba y actualización WEB10111 sobre build10110: extracción conservadora de ficha desde prompts, filtro de voces por género, proteger voces asignadas, sin APK.
