@@ -1,0 +1,2 @@
+Disparar hotfix 10109 web exclusivo a partir de build10108.
+Alcance: presets perceptibles de velocidad y tono por personaje. Sin APK ni modificaciones de voz Android TTS.
