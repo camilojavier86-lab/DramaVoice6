@@ -1,0 +1,55 @@
+name: DV6 10109 - alinear perfiles a pasos de controles
+on:
+  push:
+    paths:
+      - '.github/workflows/DV6_10109_PRESET_STEP_FIX.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Ajuste quirúrgico y comprobación de controles
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re,subprocess,tempfile
+          p=Path('index.html');s=p.read_text(encoding='utf-8')
+          pairs=[
+            ("['Grave',.82,.76]","['Grave',.80,.75]"),
+            ("['Sereno',.76,.93]","['Sereno',.75,.95]"),
+            ("['Juvenil',1.13,1.25]","['Juvenil',1.15,1.25]"),
+            ("['Enérgico',1.27,1.09]","['Enérgico',1.25,1.10]")
+          ]
+          assert 'const DV6_APP_VERSION=10109;' in s
+          assert 'dv6WirePresets10109' in s
+          for old,new in pairs:
+            if s.count(old)!=1:raise SystemExit(f'Coincidencias inesperadas: {old}')
+            s=s.replace(old,new,1)
+          # Todos los presets deben coincidir con min=.65 y step=.05.
+          values=[(.65,1.35,1,1),(.65,1.35,.80,.75),(.65,1.35,.75,.95),(.65,1.35,1.15,1.25),(.65,1.35,1.25,1.10)]
+          for minimum,maximum,rate,pitch in values:
+            for val in [rate,pitch]:
+              steps=(val-minimum)/.05
+              assert minimum<=val<=maximum and abs(steps-round(steps))<.0001,val
+          js=[m.group(1) for m in re.finditer(r'<script(?:\s[^>]*)?>(.*?)</script>',s,re.I|re.S) if 'src=' not in m.group(0).split('>')[0].lower() and m.group(1).strip()]
+          assert len(js)==13,len(js)
+          with tempfile.TemporaryDirectory() as d:
+            for i,code in enumerate(js):
+              q=Path(d)/(str(i)+'.js');q.write_text(code,encoding='utf-8')
+              subprocess.run(['node','--check',str(q)],check=True)
+          p.write_text(s,encoding='utf-8')
+          print('OK: estilos coinciden con los pasos reales; JS válido.')
+          PY
+          git diff --check
+          test "$(git diff --name-only)" = "index.html"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Align 10109 voice profiles with slider step without changing Android"
+          git push
