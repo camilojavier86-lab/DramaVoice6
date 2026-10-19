@@ -1,0 +1,1316 @@
+Base version: {
+  "version": 10108,
+  "displayVersion": "1.1.1",
+  "build": "2026.10.18-10108",
+  "date": "18 oct 2026",
+  "title": "Historia: limpiar al instante y pegar sin teclado",
+  "updateRequired":
+INDEX bytes=2592520, total lines=8198
+
+### Velocidad: 2 matches
+
+--- around line 2756 ---
+2752:            <div class="label">Voz del dispositivo</div>
+2753:            <div class="cast-voice-row"><select class="voice">${voiceOptions(ch.voiceURI)}</select><button class="btn small aqua test">Probar</button></div>
+2754:            <input class="testPhrase" value="${esc(ch.testPhrase||'Hola. Esta es mi voz de prueba en DramaVoice 6.')}" placeholder="Frase de prueba">
+2755:            <div class="voice-test-status"></div>
+2756:            <div class="label">Velocidad <span class="rateLabel">${Number(ch.rate||1).toFixed(2)}×</span></div><input class="rate" type="range" min=".65" max="1.35" step=".05" value="${ch.rate||1}">
+2757:            <div class="label">Tono <span class="pitchLabel">${Number(ch.pitch||1).toFixed(2)}</span></div><input class="pitch" type="range" min=".65" max="1.35" step=".05" value="${ch.pitch||1}">
+2758:          </div>
+2759:        </div></details>`;
+2760:      const saveVoice=()=>{charLib[k]={...charLib[k],name:charLib[k]?.name||displayName(name),voiceURI:c.querySelector('.voice').value,rate:Number(c.querySelector('.rate').value),pitch:Number(c.querySelector('.pitch').value),testPhrase:c.querySelector('.testPhrase').value};saveLib()};
+2761:      c.querySelector('.voice').onchange=saveVoice;c.querySelector('.testPhrase').oninput=saveVoice;
+
+--- around line 2925 ---
+2921:              <div class="label">Voz del dispositivo</div>
+2922:              <div class="voice-line"><select class="libVoice">${voiceOptions(ch.voiceURI)}</select><button class="btn small aqua libTest">Probar</button></div>
+2923:              <input class="libTestPhrase" value="${esc(ch.testPhrase||'Hola. Esta es mi voz de prueba en DramaVoice 6.')}" placeholder="Frase de prueba">
+2924:              <div class="voice-test-status"></div>
+2925:              <div class="label">Velocidad <span class="libRateLabel">${Number(ch.rate||1).toFixed(2)}×</span></div><input class="libRate" type="range" min=".65" max="1.35" step=".05" value="${ch.rate||1}">
+2926:              <div class="label">Tono <span class="libPitchLabel">${Number(ch.pitch||1).toFixed(2)}</span></div><input class="libPitch" type="range" min=".65" max="1.35" step=".05" value="${ch.pitch||1}">
+2927:            </div>
+2928:            <div class="character-pron-box">
+2929:              <div class="character-pron-head"><div class="character-description-title" style="margin:0">PRONUNCIACIÓN</div><button class="help-dot" data-help="Estas reglas se aplican solo cuando habla este personaje. Por ejemplo: Joder → Fuck." aria-label="Ayuda pronunciación del personaje">?</button></div>
+2930:              <div class="character-pron-labels"><span>SE ESCRIBE</span><span>SE PRONUNCIA</span><span>PROBAR</span><span></span></div>
+
+### Tono: 9 matches
+
+--- around line 639 ---
+635: </head>
+636: <body>
+637: <div class="app">
+638:   <div class="brand">
+639:     <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABOYAAATmCAIAAAAKnjl9AABVeWNhQlgAAFV5anVtYgAAAB5qdW1kYzJwYQARABCAAACqADibcQNjMnBhAAAAVVNqdW1iAAAAR2p1bWRjMm1hABEAEIAAAKoAOJtxA3VybjpjMnBhOjIzNzUzNTA2LWYzN2ItNDQ4Ny1iNjZhLTM3YWVkMDhkZmU1MQAAAAx8anVtYgAAAClqdW1kYzJhcwARABCAAACqADibcQNjMnBhLmFzc2VydGlvbnMAAAAJ0Wp1bWIAAAA7anVtZEDLDDK7ikidpwsq1vR/Q2kTYzJwYS5pY29uAA
+640:     <div><h1>DramaVoice 6</h1><div class="sub">v1.1.1 · Android TTS nativo</div></div>
+641:     <div class="pwa-install-wrap">
+642:       <button id="installPwaBtn" class="btn small aqua pwa-install">⬇ Instalar app</button>
+643:       <span id="pwaInstalledBadge" class="pwa-installed">✓ Instalada</span>
+644:     </div>
+
+--- around line 826 ---
+822:         <div class="player-speaker-meta" id="playerSpeakerMeta"></div>
+823:         <div class="scene-now" id="playerChapter">CAPÍTULO ACTUAL</div>
+824:         <div class="scene-now" id="playerScene">Analiza una historia para comenzar</div>
+825:         <div class="player-location" id="playerLocation"></div>
+826:         <div class="place-player-note" id="playerPlacePhotoNote"></div>
+827:       </div>
+828:       <div class="player-bottom">
+829:         <input class="progress" id="turnProgress" type="range" min="0" max="0" value="0">
+830:         <div class="player-clock">
+831:           <div class="clock-box"><div class="clock-label">TRANSCURRIDO</div><div class="clock-value" id="elapsedTime">00:00</div></div>
+
+--- around line 992 ---
+988: JSZip uses the library pako released under the MIT license :
+989: https://github.com/nodeca/pako/blob/main/LICENSE
+990: */
+991: 
+992: !function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{("undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof self?self:this).JSZip=e()}}(function(){return function s(a,o,h){function u(r,e){if(!o[r]){if(!a[r]){var t="function"==typeof requ
+993: <script>
+994: const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+995: const KEY='dramavoice6-v20-characters';
+996: const SETTINGS='dramavoice6-v20-settings';
+997: const STORY_KEY='dramavoice6-v25-story';
+
+--- around line 1881 ---
+1877:  if(age==null){m=context.match(/\b((?:dieci\w+|veinti\w+|treinta(?:\s+y\s+\w+)?|cuarenta(?:\s+y\s+\w+)?|cincuenta(?:\s+y\s+\w+)?|sesenta(?:\s+y\s+\w+)?|setenta(?:\s+y\s+\w+)?|ochenta(?:\s+y\s+\w+)?|noventa(?:\s+y\s+\w+)?))\s*(?:años|anos)\b/i);if(m)age=spanishNumberUnder100(m[1])}
+1878:  if(age!=null&&age>=1&&age<=120){result.age=String(age);detected.push(`edad ${age}`)}
+1879:  for(const item of DV_NATIONALITIES){if(item.p.test(context)){result.nationality=item.n;result.accent=item.a;detected.push(item.n);break}}
+1880:  m=context.match(/\b(?:acento|tonada)\s+([a-záéíóúñü][a-záéíóúñü\s-]{2,28})/i);if(m){const ex=m[1].split(/[,.!?;:]/)[0].trim();if(ex&&ex.length<=30){result.accent=ex.replace(/\b\w/g,x=>x.toUpperCase());detected.push(`acento ${ex}`)}}
+1881:  const traitMap=[['grave',/\b(grave|profunda|profundo|voz baja)\b/i],['aguda',/\b(aguda|agudo|voz alta)\b/i],['ronca',/\b(ronca|ronco|rasposa|rasposo|áspera|aspero|áspero)\b/i],['suave',/\b(suave|dulce|cálida|calida|aterciopelada)\b/i],['nasal',/\b(nasal)\b/i],['clara',/\b(voz clara|dicción clara|diccion clara)\b/i],['potente',/\b(potente|fuerte|vozarron|vozarrón)\b/i
+1882:  const traits=[];for(const [label,rx] of traitMap)if(rx.test(context))traits.push(label);
+1883:  if(traits.length){result.voiceTraits=[...new Set(traits)].join(', ');detected.push(`voz: ${result.voiceTraits}`);if(traits.includes('grave'))result.voiceStyle='Grave';else if(traits.includes('aguda'))result.voiceStyle='Agudo';else if(traits.includes('suave'))result.voiceStyle='Suave';else if(traits.includes('juvenil'))result.voiceStyle='Juvenil';else if(traits.includ
+1884:  if(detected.length){result.autoDetected=true;result.autoDetectedFields=detected}
+1885:  return result;
+1886: }
+
+--- around line 2757 ---
+2753:            <div class="cast-voice-row"><select class="voice">${voiceOptions(ch.voiceURI)}</select><button class="btn small aqua test">Probar</button></div>
+2754:            <input class="testPhrase" value="${esc(ch.testPhrase||'Hola. Esta es mi voz de prueba en DramaVoice 6.')}" placeholder="Frase de prueba">
+2755:            <div class="voice-test-status"></div>
+2756:            <div class="label">Velocidad <span class="rateLabel">${Number(ch.rate||1).toFixed(2)}×</span></div><input class="rate" type="range" min=".65" max="1.35" step=".05" value="${ch.rate||1}">
+2757:            <div class="label">Tono <span class="pitchLabel">${Number(ch.pitch||1).toFixed(2)}</span></div><input class="pitch" type="range" min=".65" max="1.35" step=".05" value="${ch.pitch||1}">
+2758:          </div>
+2759:        </div></details>`;
+2760:      const saveVoice=()=>{charLib[k]={...charLib[k],name:charLib[k]?.name||displayName(name),voiceURI:c.querySelector('.voice').value,rate:Number(c.querySelector('.rate').value),pitch:Number(c.querySelector('.pitch').value),testPhrase:c.querySelector('.testPhrase').value};saveLib()};
+2761:      c.querySelector('.voice').onchange=saveVoice;c.querySelector('.testPhrase').oninput=saveVoice;
+2762:      c.querySelector('.rate').oninput=e=>{c.querySelector('.rateLabel').textContent=Number(e.target.value).toFixed(2)+'×';saveVoice()};
+
+--- around line 2926 ---
+2922:              <div class="voice-line"><select class="libVoice">${voiceOptions(ch.voiceURI)}</select><button class="btn small aqua libTest">Probar</button></div>
+2923:              <input class="libTestPhrase" value="${esc(ch.testPhrase||'Hola. Esta es mi voz de prueba en DramaVoice 6.')}" placeholder="Frase de prueba">
+2924:              <div class="voice-test-status"></div>
+2925:              <div class="label">Velocidad <span class="libRateLabel">${Number(ch.rate||1).toFixed(2)}×</span></div><input class="libRate" type="range" min=".65" max="1.35" step=".05" value="${ch.rate||1}">
+2926:              <div class="label">Tono <span class="libPitchLabel">${Number(ch.pitch||1).toFixed(2)}</span></div><input class="libPitch" type="range" min=".65" max="1.35" step=".05" value="${ch.pitch||1}">
+2927:            </div>
+2928:            <div class="character-pron-box">
+2929:              <div class="character-pron-head"><div class="character-description-title" style="margin:0">PRONUNCIACIÓN</div><button class="help-dot" data-help="Estas reglas se aplican solo cuando habla este personaje. Por ejemplo: Joder → Fuck." aria-label="Ayuda pronunciación del personaje">?</button></div>
+2930:              <div class="character-pron-labels"><span>SE ESCRIBE</span><span>SE PRONUNCIA</span><span>PROBAR</span><span></span></div>
+2931:              <div class="character-pron-table">${characterPronunciationRowsHtml(ch)}</div>
+
+--- around line 3034 ---
+3030:  const input=$('#newPlaceName');if(!input)return;const name=String(input.value||'').trim();if(!name)return;
+3031:  ensurePlace(name);input.value='';renderPlaces();$('#placeStatus').textContent=`Lugar “${name}” guardado.`;$('#placeStatus').className='status good';
+3032: }
+3033: async function updatePlayerPlaceBackdrop(){
+3034:  const player=$('#reproductor .player'),note=$('#playerPlacePhotoNote');if(!player)return;
+3035:  player.style.backgroundImage='';
+3036:  if(note)note.textContent=currentLocation?`📍 ${upperClosed(currentLocation)}`:'';
+3037: }
+3038: 
+3039: function buildQueue(){
+
+--- around line 5922 ---
+5918:       #reproductor .player.dv110-playing .dv110-wave span{animation-play-state:running}
+5919:       .dv110-wave span:nth-child(2n){animation-delay:-.42s}.dv110-wave span:nth-child(3n){animation-delay:-.72s}.dv110-wave span:nth-child(5n){animation-delay:-.18s}
+5920:       @keyframes dv110Wave{0%,100%{transform:scaleY(.5);opacity:.5}50%{transform:scaleY(3.1);opacity:1}}
+5921: 
+5922:       #playerVisualNote,#playerPlacePhotoNote{display:none!important}
+5923:       #playerSpeaker{font-size:clamp(17px,4.8vw,22px)!important;font-weight:850!important;letter-spacing:.04em;margin-top:8px}
+5924:       #playerSpeakerMeta{font-size:10px!important;color:var(--muted)!important;margin-top:3px}
+5925:       #playerLocation{display:inline-flex!important;align-items:center;justify-content:center;max-width:92%;margin:7px auto 0;padding:5px 10px;border-radius:999px;background:#11201e;border:1px solid #35e7d644;color:#aefbf4!important;font-size:11px!important;font-weight:700;line-height:1.2}
+5926:       #playerLocation:empty{display:none!important}
+5927:       #playerLocation.dv110-location-change{animation:dv110Location .42s ease-out}
+
+--- around line 6751 ---
+6747:       field.id='dv111SoundField';
+6748:       field.className='dv111-sound-field';
+6749:       field.setAttribute('aria-hidden','true');
+6750:       field.innerHTML='<span></span>'.repeat(18);
+6751:       const note=document.getElementById('playerPlacePhotoNote');
+6752:       (note||location).insertAdjacentElement('afterend',field);
+6753:     }
+6754:     return field;
+6755:   }
+6756: 
+
+### voice.?rate: 1 matches
+
+--- around line 4961 ---
+4957:       const pitch=x.isNarr?.96:Number(x.ch?.pitch||1);
+4958:       const volume=typeof effectiveVoiceVolume==='function'
+4959:         ? Number(effectiveVoiceVolume())
+4960:         : 1;
+4961:       return {voice:x.voice,rate,pitch,volume};
+4962:     }
+4963: 
+4964:     function clearActiveCallback(){
+4965:       if(activeId){
+4966:         callbacks.delete(String(activeId));
+
+### voice.?pitch: 0 matches
+
+### pitch: 21 matches
+
+--- around line 1055 ---
+1051:    charLib[k]={
+1052:      name:item.name||k,
+1053:      voiceURI:item.androidVoice||'',
+1054:      rate:1,
+1055:      pitch:1,
+1056:      profile:g
+1057:    };
+1058:  }
+1059:  localStorage.setItem(KEY,JSON.stringify(charLib));
+1060: }catch{}
+
+--- around line 1074 ---
+1070:  }
+1071:  charLib=upperLib;
+1072:  localStorage.setItem(KEY,JSON.stringify(charLib));
+1073: }catch{}
+1074: if(!charLib[norm('NARRADOR')]){charLib[norm('NARRADOR')]={name:'NARRADOR',voiceURI:'',rate:.96,pitch:.96,profile:'Narrador',age:'',nationality:'',accent:'',voiceStyle:'Natural',voiceTraits:'',testPhrase:'Esta es una prueba de narración en DramaVoice 6.'};localStorage.setItem(KEY,JSON.stringify(charLib))}
+1075: let openCastCharacter='';
+1076: let openLibraryCharacter='';
+1077: let openPlaceKey='';
+1078: let openSceneSoundEditor='';
+1079: const SOUND_OVERRIDE_KEY='dramavoice6-sound-overrides-v1';
+
+--- around line 1887 ---
+1883:  if(traits.length){result.voiceTraits=[...new Set(traits)].join(', ');detected.push(`voz: ${result.voiceTraits}`);if(traits.includes('grave'))result.voiceStyle='Grave';else if(traits.includes('aguda'))result.voiceStyle='Agudo';else if(traits.includes('suave'))result.voiceStyle='Suave';else if(traits.includes('juvenil'))result.voiceStyle='Juvenil';else if(traits.includ
+1884:  if(detected.length){result.autoDetected=true;result.autoDetectedFields=detected}
+1885:  return result;
+1886: }
+1887: function createCharacterRecord(name,rawStory){const upper=displayName(name);if(isNarratorName(upper))return {name:'NARRADOR',voiceURI:'',rate:.96,pitch:.96,profile:'Narrador',age:'',nationality:'',accent:'',voiceStyle:'Natural',voiceTraits:'',testPhrase:'Esta es una prueba de narración en DramaVoice 6.'};let record={name:upper,voiceURI:'',rate:1,pitch:1,profile:'',age
+1888: function isBlankField(field,val){if(val==null)return true;const s=String(val).trim();if(!s)return true;const n=norm(s);if(field==='profile')return n==='sin definir'||n==='neutral'||!n;if(field==='voiceStyle')return n==='natural';return false}
+1889: function mergeAutoDetectedCharacterFields(existing,inferred){
+1890:  const record={...existing};
+1891:  const fields=['profile','age','nationality','accent','voiceStyle','voiceTraits'];
+1892:  const filled=[];const detected=new Set([...(record.autoDetectedFields||[])]);
+
+--- around line 2757 ---
+2753:            <div class="cast-voice-row"><select class="voice">${voiceOptions(ch.voiceURI)}</select><button class="btn small aqua test">Probar</button></div>
+2754:            <input class="testPhrase" value="${esc(ch.testPhrase||'Hola. Esta es mi voz de prueba en DramaVoice 6.')}" placeholder="Frase de prueba">
+2755:            <div class="voice-test-status"></div>
+2756:            <div class="label">Velocidad <span class="rateLabel">${Number(ch.rate||1).toFixed(2)}×</span></div><input class="rate" type="range" min=".65" max="1.35" step=".05" value="${ch.rate||1}">
+2757:            <div class="label">Tono <span class="pitchLabel">${Number(ch.pitch||1).toFixed(2)}</span></div><input class="pitch" type="range" min=".65" max="1.35" step=".05" value="${ch.pitch||1}">
+2758:          </div>
+2759:        </div></details>`;
+2760:      const saveVoice=()=>{charLib[k]={...charLib[k],name:charLib[k]?.name||displayName(name),voiceURI:c.querySelector('.voice').value,rate:Number(c.querySelector('.rate').value),pitch:Number(c.querySelector('.pitch').value),testPhrase:c.querySelector('.testPhrase').value};saveLib()};
+2761:      c.querySelector('.voice').onchange=saveVoice;c.querySelector('.testPhrase').oninput=saveVoice;
+2762:      c.querySelector('.rate').oninput=e=>{c.querySelector('.rateLabel').textContent=Number(e.target.value).toFixed(2)+'×';saveVoice()};
+
+--- around line 2760 ---
+2756:            <div class="label">Velocidad <span class="rateLabel">${Number(ch.rate||1).toFixed(2)}×</span></div><input class="rate" type="range" min=".65" max="1.35" step=".05" value="${ch.rate||1}">
+2757:            <div class="label">Tono <span class="pitchLabel">${Number(ch.pitch||1).toFixed(2)}</span></div><input class="pitch" type="range" min=".65" max="1.35" step=".05" value="${ch.pitch||1}">
+2758:          </div>
+2759:        </div></details>`;
+2760:      const saveVoice=()=>{charLib[k]={...charLib[k],name:charLib[k]?.name||displayName(name),voiceURI:c.querySelector('.voice').value,rate:Number(c.querySelector('.rate').value),pitch:Number(c.querySelector('.pitch').value),testPhrase:c.querySelector('.testPhrase').value};saveLib()};
+2761:      c.querySelector('.voice').onchange=saveVoice;c.querySelector('.testPhrase').oninput=saveVoice;
+2762:      c.querySelector('.rate').oninput=e=>{c.querySelector('.rateLabel').textContent=Number(e.target.value).toFixed(2)+'×';saveVoice()};
+2763:      c.querySelector('.pitch').oninput=e=>{c.querySelector('.pitchLabel').textContent=Number(e.target.value).toFixed(2);saveVoice()};
+2764:      c.querySelector('.test').onclick=()=>{saveVoice();previewVoice(name,c.querySelector('.testPhrase').value,c.querySelector('.voice-test-status'))};
+2765:      refreshCharacterPhotoCard(c,k,name);
+
+--- around line 2763 ---
+2759:        </div></details>`;
+2760:      const saveVoice=()=>{charLib[k]={...charLib[k],name:charLib[k]?.name||displayName(name),voiceURI:c.querySelector('.voice').value,rate:Number(c.querySelector('.rate').value),pitch:Number(c.querySelector('.pitch').value),testPhrase:c.querySelector('.testPhrase').value};saveLib()};
+2761:      c.querySelector('.voice').onchange=saveVoice;c.querySelector('.testPhrase').oninput=saveVoice;
+2762:      c.querySelector('.rate').oninput=e=>{c.querySelector('.rateLabel').textContent=Number(e.target.value).toFixed(2)+'×';saveVoice()};
+2763:      c.querySelector('.pitch').oninput=e=>{c.querySelector('.pitchLabel').textContent=Number(e.target.value).toFixed(2);saveVoice()};
+2764:      c.querySelector('.test').onclick=()=>{saveVoice();previewVoice(name,c.querySelector('.testPhrase').value,c.querySelector('.voice-test-status'))};
+2765:      refreshCharacterPhotoCard(c,k,name);
+2766:    }
+2767:    const det=c.querySelector('details.char-collapse');det.addEventListener('toggle',()=>{if(det.open){openCastCharacter=k;root.querySelectorAll('details.char-collapse').forEach(o=>{if(o!==det)o.open=false})}else if(openCastCharacter===k)openCastCharacter=''});
+2768:    root.appendChild(c);
+
+--- around line 2926 ---
+2922:              <div class="voice-line"><select class="libVoice">${voiceOptions(ch.voiceURI)}</select><button class="btn small aqua libTest">Probar</button></div>
+2923:              <input class="libTestPhrase" value="${esc(ch.testPhrase||'Hola. Esta es mi voz de prueba en DramaVoice 6.')}" placeholder="Frase de prueba">
+2924:              <div class="voice-test-status"></div>
+2925:              <div class="label">Velocidad <span class="libRateLabel">${Number(ch.rate||1).toFixed(2)}×</span></div><input class="libRate" type="range" min=".65" max="1.35" step=".05" value="${ch.rate||1}">
+2926:              <div class="label">Tono <span class="libPitchLabel">${Number(ch.pitch||1).toFixed(2)}</span></div><input class="libPitch" type="range" min=".65" max="1.35" step=".05" value="${ch.pitch||1}">
+2927:            </div>
+2928:            <div class="character-pron-box">
+2929:              <div class="character-pron-head"><div class="character-description-title" style="margin:0">PRONUNCIACIÓN</div><button class="help-dot" data-help="Estas reglas se aplican solo cuando habla este personaje. Por ejemplo: Joder → Fuck." aria-label="Ayuda pronunciación del personaje">?</button></div>
+2930:              <div class="character-pron-labels"><span>SE ESCRIBE</span><span>SE PRONUNCIA</span><span>PROBAR</span><span></span></div>
+2931:              <div class="character-pron-table">${characterPronunciationRowsHtml(ch)}</div>
+
+--- around line 2941 ---
+2937:      </div></details>`;
+2938:    root.appendChild(c);
+2939: 
+2940:    const profile=c.querySelector('.libProfile');
+2941:    const saveMeta=()=>{charLib[k]={...charLib[k],profile:profile.value||charLib[k].profile||'',age:c.querySelector('.libAge').value,nationality:c.querySelector('.libNationality').value.trim(),accent:c.querySelector('.libAccent').value.trim(),voiceStyle:c.querySelector('.libStyle').value,voiceTraits:c.querySelector('.libTraits').value.trim(),voiceURI:c.querySelector('.
+2942:    [profile,c.querySelector('.libAge'),c.querySelector('.libNationality'),c.querySelector('.libAccent'),c.querySelector('.libStyle'),c.querySelector('.libTraits'),c.querySelector('.libVoice')].forEach(el=>{el.onchange=saveMeta;el.oninput=saveMeta});
+2943:    c.querySelector('.libTestPhrase').oninput=saveMeta;
+2944:    c.querySelector('.libRate').oninput=e=>{c.querySelector('.libRateLabel').textContent=Number(e.target.value).toFixed(2)+'×';saveMeta()};
+2945:    c.querySelector('.libPitch').oninput=e=>{c.querySelector('.libPitchLabel').textContent=Number(e.target.value).toFixed(2);saveMeta()};
+2946:    c.querySelector('.libTest').onclick=()=>{saveMeta();previewVoice(ch.name,c.querySelector('.libTestPhrase').value,c.querySelector('.voice-test-status'))};
+
+--- around line 2945 ---
+2941:    const saveMeta=()=>{charLib[k]={...charLib[k],profile:profile.value||charLib[k].profile||'',age:c.querySelector('.libAge').value,nationality:c.querySelector('.libNationality').value.trim(),accent:c.querySelector('.libAccent').value.trim(),voiceStyle:c.querySelector('.libStyle').value,voiceTraits:c.querySelector('.libTraits').value.trim(),voiceURI:c.querySelector('.
+2942:    [profile,c.querySelector('.libAge'),c.querySelector('.libNationality'),c.querySelector('.libAccent'),c.querySelector('.libStyle'),c.querySelector('.libTraits'),c.querySelector('.libVoice')].forEach(el=>{el.onchange=saveMeta;el.oninput=saveMeta});
+2943:    c.querySelector('.libTestPhrase').oninput=saveMeta;
+2944:    c.querySelector('.libRate').oninput=e=>{c.querySelector('.libRateLabel').textContent=Number(e.target.value).toFixed(2)+'×';saveMeta()};
+2945:    c.querySelector('.libPitch').oninput=e=>{c.querySelector('.libPitchLabel').textContent=Number(e.target.value).toFixed(2);saveMeta()};
+2946:    c.querySelector('.libTest').onclick=()=>{saveMeta();previewVoice(ch.name,c.querySelector('.libTestPhrase').value,c.querySelector('.voice-test-status'))};
+2947: 
+2948:    await refreshCharacterPhotoCard(c,k,ch.name);
+2949:    c.querySelectorAll('.reaction-file').forEach(inp=>inp.onchange=async e=>{const file=e.target.files&&e.target.files[0];if(!file)return;await saveCharacterPhoto(k,file,inp.dataset.slot||'neutral');await renderLibrary();renderCast();updatePlayerPortrait()});
+2950:    c.querySelectorAll('.removeReaction').forEach(btn=>btn.onclick=async()=>{await deleteCharacterPhoto(k,btn.dataset.slot||'neutral');await renderLibrary();renderCast();updatePlayerPortrait()});
+
+--- around line 3159 ---
+3155: }
+3156: function configureUtterance(u,speaker){
+3157:  if(isNarratorName(speaker)){
+3158:    const v=getNarratorVoice();if(v)u.voice=v;
+3159:    u.rate=.96;u.pitch=.96;u.volume=effectiveVoiceVolume();
+3160:    return;
+3161:  }
+3162:  const ch=characterRecordForName(speaker)||{};
+3163:  const v=getVoice(ch.voiceURI)||getNarratorVoice();if(v)u.voice=v;
+3164:  u.rate=Number(ch.rate||1);u.pitch=Number(ch.pitch||1);u.volume=effectiveVoiceVolume();
+
+--- around line 3164 ---
+3160:    return;
+3161:  }
+3162:  const ch=characterRecordForName(speaker)||{};
+3163:  const v=getVoice(ch.voiceURI)||getNarratorVoice();if(v)u.voice=v;
+3164:  u.rate=Number(ch.rate||1);u.pitch=Number(ch.pitch||1);u.volume=effectiveVoiceVolume();
+3165: }
+3166: function estimateSpeechMs(text,speaker){
+3167:  const words=Math.max(1,String(text||'').trim().split(/\s+/).length);
+3168:  const rate=isNarratorName(speaker) ? .96 : Number(characterRecordForName(speaker)?.rate||1);
+3169:  return Math.max(900,(words/(155*Math.max(.65,rate)))*60000);
+
+--- around line 4957 ---
+4953: 
+4954:     function nativeParams(speaker){
+4955:       const x=currentVoice(speaker);
+4956:       const rate=x.isNarr?.96:Number(x.ch?.rate||1);
+4957:       const pitch=x.isNarr?.96:Number(x.ch?.pitch||1);
+4958:       const volume=typeof effectiveVoiceVolume==='function'
+4959:         ? Number(effectiveVoiceVolume())
+4960:         : 1;
+4961:       return {voice:x.voice,rate,pitch,volume};
+4962:     }
+
+--- around line 4961 ---
+4957:       const pitch=x.isNarr?.96:Number(x.ch?.pitch||1);
+4958:       const volume=typeof effectiveVoiceVolume==='function'
+4959:         ? Number(effectiveVoiceVolume())
+4960:         : 1;
+4961:       return {voice:x.voice,rate,pitch,volume};
+4962:     }
+4963: 
+4964:     function clearActiveCallback(){
+4965:       if(activeId){
+4966:         callbacks.delete(String(activeId));
+
+--- around line 5014 ---
+5010:           const ok=bridge.speak(
+5011:             String(text||''),
+5012:             String(p.voice.name||''),
+5013:             Number(p.rate||1),
+5014:             Number(p.pitch||1),
+5015:             Math.max(0,Math.min(1,Number(p.volume||1))),
+5016:             id
+5017:           );
+5018:           if(!ok){
+5019:             callbacks.delete(id);
+
+--- around line 5240 ---
+5236:           // No fijamos una voz concreta. El sistema escoge la voz TTS predeterminada.
+5237:           try{u.voice=null}catch(e){}
+5238:           u.lang='es-PA';
+5239:           u.rate=narrator ? .96 : Number(ch.rate||1);
+5240:           u.pitch=narrator ? .96 : Number(ch.pitch||1);
+5241:           u.volume=(typeof effectiveVoiceVolume==='function')
+5242:             ? effectiveVoiceVolume()
+5243:             : 1;
+5244:           return;
+5245:         }catch(e){}
+
+### \.rate: 15 matches
+
+--- around line 2756 ---
+2752:            <div class="label">Voz del dispositivo</div>
+2753:            <div class="cast-voice-row"><select class="voice">${voiceOptions(ch.voiceURI)}</select><button class="btn small aqua test">Probar</button></div>
+2754:            <input class="testPhrase" value="${esc(ch.testPhrase||'Hola. Esta es mi voz de prueba en DramaVoice 6.')}" placeholder="Frase de prueba">
+2755:            <div class="voice-test-status"></div>
+2756:            <div class="label">Velocidad <span class="rateLabel">${Number(ch.rate||1).toFixed(2)}×</span></div><input class="rate" type="range" min=".65" max="1.35" step=".05" value="${ch.rate||1}">
+2757:            <div class="label">Tono <span class="pitchLabel">${Number(ch.pitch||1).toFixed(2)}</span></div><input class="pitch" type="range" min=".65" max="1.35" step=".05" value="${ch.pitch||1}">
+2758:          </div>
+2759:        </div></details>`;
+2760:      const saveVoice=()=>{charLib[k]={...charLib[k],name:charLib[k]?.name||displayName(name),voiceURI:c.querySelector('.voice').value,rate:Number(c.querySelector('.rate').value),pitch:Number(c.querySelector('.pitch').value),testPhrase:c.querySelector('.testPhrase').value};saveLib()};
+2761:      c.querySelector('.voice').onchange=saveVoice;c.querySelector('.testPhrase').oninput=saveVoice;
+
+--- around line 2760 ---
+2756:            <div class="label">Velocidad <span class="rateLabel">${Number(ch.rate||1).toFixed(2)}×</span></div><input class="rate" type="range" min=".65" max="1.35" step=".05" value="${ch.rate||1}">
+2757:            <div class="label">Tono <span class="pitchLabel">${Number(ch.pitch||1).toFixed(2)}</span></div><input class="pitch" type="range" min=".65" max="1.35" step=".05" value="${ch.pitch||1}">
+2758:          </div>
+2759:        </div></details>`;
+2760:      const saveVoice=()=>{charLib[k]={...charLib[k],name:charLib[k]?.name||displayName(name),voiceURI:c.querySelector('.voice').value,rate:Number(c.querySelector('.rate').value),pitch:Number(c.querySelector('.pitch').value),testPhrase:c.querySelector('.testPhrase').value};saveLib()};
+2761:      c.querySelector('.voice').onchange=saveVoice;c.querySelector('.testPhrase').oninput=saveVoice;
+2762:      c.querySelector('.rate').oninput=e=>{c.querySelector('.rateLabel').textContent=Number(e.target.value).toFixed(2)+'×';saveVoice()};
+2763:      c.querySelector('.pitch').oninput=e=>{c.querySelector('.pitchLabel').textContent=Number(e.target.value).toFixed(2);saveVoice()};
+2764:      c.querySelector('.test').onclick=()=>{saveVoice();previewVoice(name,c.querySelector('.testPhrase').value,c.querySelector('.voice-test-status'))};
+2765:      refreshCharacterPhotoCard(c,k,name);
+
+--- around line 2762 ---
+2758:          </div>
+2759:        </div></details>`;
+2760:      const saveVoice=()=>{charLib[k]={...charLib[k],name:charLib[k]?.name||displayName(name),voiceURI:c.querySelector('.voice').value,rate:Number(c.querySelector('.rate').value),pitch:Number(c.querySelector('.pitch').value),testPhrase:c.querySelector('.testPhrase').value};saveLib()};
+2761:      c.querySelector('.voice').onchange=saveVoice;c.querySelector('.testPhrase').oninput=saveVoice;
+2762:      c.querySelector('.rate').oninput=e=>{c.querySelector('.rateLabel').textContent=Number(e.target.value).toFixed(2)+'×';saveVoice()};
+2763:      c.querySelector('.pitch').oninput=e=>{c.querySelector('.pitchLabel').textContent=Number(e.target.value).toFixed(2);saveVoice()};
+2764:      c.querySelector('.test').onclick=()=>{saveVoice();previewVoice(name,c.querySelector('.testPhrase').value,c.querySelector('.voice-test-status'))};
+2765:      refreshCharacterPhotoCard(c,k,name);
+2766:    }
+2767:    const det=c.querySelector('details.char-collapse');det.addEventListener('toggle',()=>{if(det.open){openCastCharacter=k;root.querySelectorAll('details.char-collapse').forEach(o=>{if(o!==det)o.open=false})}else if(openCastCharacter===k)openCastCharacter=''});
+
+--- around line 2925 ---
+2921:              <div class="label">Voz del dispositivo</div>
+2922:              <div class="voice-line"><select class="libVoice">${voiceOptions(ch.voiceURI)}</select><button class="btn small aqua libTest">Probar</button></div>
+2923:              <input class="libTestPhrase" value="${esc(ch.testPhrase||'Hola. Esta es mi voz de prueba en DramaVoice 6.')}" placeholder="Frase de prueba">
+2924:              <div class="voice-test-status"></div>
+2925:              <div class="label">Velocidad <span class="libRateLabel">${Number(ch.rate||1).toFixed(2)}×</span></div><input class="libRate" type="range" min=".65" max="1.35" step=".05" value="${ch.rate||1}">
+2926:              <div class="label">Tono <span class="libPitchLabel">${Number(ch.pitch||1).toFixed(2)}</span></div><input class="libPitch" type="range" min=".65" max="1.35" step=".05" value="${ch.pitch||1}">
+2927:            </div>
+2928:            <div class="character-pron-box">
+2929:              <div class="character-pron-head"><div class="character-description-title" style="margin:0">PRONUNCIACIÓN</div><button class="help-dot" data-help="Estas reglas se aplican solo cuando habla este personaje. Por ejemplo: Joder → Fuck." aria-label="Ayuda pronunciación del personaje">?</button></div>
+2930:              <div class="character-pron-labels"><span>SE ESCRIBE</span><span>SE PRONUNCIA</span><span>PROBAR</span><span></span></div>
+
+--- around line 3159 ---
+3155: }
+3156: function configureUtterance(u,speaker){
+3157:  if(isNarratorName(speaker)){
+3158:    const v=getNarratorVoice();if(v)u.voice=v;
+3159:    u.rate=.96;u.pitch=.96;u.volume=effectiveVoiceVolume();
+3160:    return;
+3161:  }
+3162:  const ch=characterRecordForName(speaker)||{};
+3163:  const v=getVoice(ch.voiceURI)||getNarratorVoice();if(v)u.voice=v;
+3164:  u.rate=Number(ch.rate||1);u.pitch=Number(ch.pitch||1);u.volume=effectiveVoiceVolume();
+
+--- around line 3164 ---
+3160:    return;
+3161:  }
+3162:  const ch=characterRecordForName(speaker)||{};
+3163:  const v=getVoice(ch.voiceURI)||getNarratorVoice();if(v)u.voice=v;
+3164:  u.rate=Number(ch.rate||1);u.pitch=Number(ch.pitch||1);u.volume=effectiveVoiceVolume();
+3165: }
+3166: function estimateSpeechMs(text,speaker){
+3167:  const words=Math.max(1,String(text||'').trim().split(/\s+/).length);
+3168:  const rate=isNarratorName(speaker) ? .96 : Number(characterRecordForName(speaker)?.rate||1);
+3169:  return Math.max(900,(words/(155*Math.max(.65,rate)))*60000);
+
+--- around line 3168 ---
+3164:  u.rate=Number(ch.rate||1);u.pitch=Number(ch.pitch||1);u.volume=effectiveVoiceVolume();
+3165: }
+3166: function estimateSpeechMs(text,speaker){
+3167:  const words=Math.max(1,String(text||'').trim().split(/\s+/).length);
+3168:  const rate=isNarratorName(speaker) ? .96 : Number(characterRecordForName(speaker)?.rate||1);
+3169:  return Math.max(900,(words/(155*Math.max(.65,rate)))*60000);
+3170: }
+3171: function estimatedEventMs(e){
+3172:  if(!e)return 0;
+3173:  if(e.type==='speech')return estimateSpeechMs(e.text,e.speaker);
+
+--- around line 4956 ---
+4952:     }
+4953: 
+4954:     function nativeParams(speaker){
+4955:       const x=currentVoice(speaker);
+4956:       const rate=x.isNarr?.96:Number(x.ch?.rate||1);
+4957:       const pitch=x.isNarr?.96:Number(x.ch?.pitch||1);
+4958:       const volume=typeof effectiveVoiceVolume==='function'
+4959:         ? Number(effectiveVoiceVolume())
+4960:         : 1;
+4961:       return {voice:x.voice,rate,pitch,volume};
+
+--- around line 5013 ---
+5009:         try{
+5010:           const ok=bridge.speak(
+5011:             String(text||''),
+5012:             String(p.voice.name||''),
+5013:             Number(p.rate||1),
+5014:             Number(p.pitch||1),
+5015:             Math.max(0,Math.min(1,Number(p.volume||1))),
+5016:             id
+5017:           );
+5018:           if(!ok){
+
+--- around line 5239 ---
+5235: 
+5236:           // No fijamos una voz concreta. El sistema escoge la voz TTS predeterminada.
+5237:           try{u.voice=null}catch(e){}
+5238:           u.lang='es-PA';
+5239:           u.rate=narrator ? .96 : Number(ch.rate||1);
+5240:           u.pitch=narrator ? .96 : Number(ch.pitch||1);
+5241:           u.volume=(typeof effectiveVoiceVolume==='function')
+5242:             ? effectiveVoiceVolume()
+5243:             : 1;
+5244:           return;
+
+--- around line 7673 ---
+7669:       const ev=currentEvent();
+7670:       if(!ev||ev.type!=='speech')return;
+7671:       try{if(normalize(ev.speaker)!==normalize(speaker))return}catch(_){ }
+7672:       const style=speechStyle(ev);
+7673:       const baseRate=Number(u.rate||1),basePitch=Number(u.pitch||1),baseVolume=Number(u.volume??1);
+7674:       if(style==='thought'){
+7675:         u.rate=clamp(baseRate*.88,.55,1.35);u.pitch=clamp(basePitch*.90,.65,1.6);u.volume=clamp(baseVolume*.66,0,1);
+7676:       }else if(style==='whisper'){
+7677:         u.rate=clamp(baseRate*.91,.55,1.35);u.pitch=clamp(basePitch*.94,.65,1.6);u.volume=clamp(baseVolume*.72,0,1);
+7678:       }else if(style==='intimate'){
+
+--- around line 7675 ---
+7671:       try{if(normalize(ev.speaker)!==normalize(speaker))return}catch(_){ }
+7672:       const style=speechStyle(ev);
+7673:       const baseRate=Number(u.rate||1),basePitch=Number(u.pitch||1),baseVolume=Number(u.volume??1);
+7674:       if(style==='thought'){
+7675:         u.rate=clamp(baseRate*.88,.55,1.35);u.pitch=clamp(basePitch*.90,.65,1.6);u.volume=clamp(baseVolume*.66,0,1);
+7676:       }else if(style==='whisper'){
+7677:         u.rate=clamp(baseRate*.91,.55,1.35);u.pitch=clamp(basePitch*.94,.65,1.6);u.volume=clamp(baseVolume*.72,0,1);
+7678:       }else if(style==='intimate'){
+7679:         u.rate=clamp(baseRate*.94,.55,1.4);u.pitch=clamp(basePitch*.96,.65,1.65);u.volume=clamp(baseVolume*.86,0,1);
+7680:       }else if(style==='intense'){
+
+--- around line 7677 ---
+7673:       const baseRate=Number(u.rate||1),basePitch=Number(u.pitch||1),baseVolume=Number(u.volume??1);
+7674:       if(style==='thought'){
+7675:         u.rate=clamp(baseRate*.88,.55,1.35);u.pitch=clamp(basePitch*.90,.65,1.6);u.volume=clamp(baseVolume*.66,0,1);
+7676:       }else if(style==='whisper'){
+7677:         u.rate=clamp(baseRate*.91,.55,1.35);u.pitch=clamp(basePitch*.94,.65,1.6);u.volume=clamp(baseVolume*.72,0,1);
+7678:       }else if(style==='intimate'){
+7679:         u.rate=clamp(baseRate*.94,.55,1.4);u.pitch=clamp(basePitch*.96,.65,1.65);u.volume=clamp(baseVolume*.86,0,1);
+7680:       }else if(style==='intense'){
+7681:         u.rate=clamp(baseRate*1.05,.65,1.5);u.pitch=clamp(basePitch*1.02,.65,1.7);u.volume=clamp(baseVolume,0,1);
+7682:       }
+
+--- around line 7679 ---
+7675:         u.rate=clamp(baseRate*.88,.55,1.35);u.pitch=clamp(basePitch*.90,.65,1.6);u.volume=clamp(baseVolume*.66,0,1);
+7676:       }else if(style==='whisper'){
+7677:         u.rate=clamp(baseRate*.91,.55,1.35);u.pitch=clamp(basePitch*.94,.65,1.6);u.volume=clamp(baseVolume*.72,0,1);
+7678:       }else if(style==='intimate'){
+7679:         u.rate=clamp(baseRate*.94,.55,1.4);u.pitch=clamp(basePitch*.96,.65,1.65);u.volume=clamp(baseVolume*.86,0,1);
+7680:       }else if(style==='intense'){
+7681:         u.rate=clamp(baseRate*1.05,.65,1.5);u.pitch=clamp(basePitch*1.02,.65,1.7);u.volume=clamp(baseVolume,0,1);
+7682:       }
+7683:     };
+7684:   }
+
+--- around line 7681 ---
+7677:         u.rate=clamp(baseRate*.91,.55,1.35);u.pitch=clamp(basePitch*.94,.65,1.6);u.volume=clamp(baseVolume*.72,0,1);
+7678:       }else if(style==='intimate'){
+7679:         u.rate=clamp(baseRate*.94,.55,1.4);u.pitch=clamp(basePitch*.96,.65,1.65);u.volume=clamp(baseVolume*.86,0,1);
+7680:       }else if(style==='intense'){
+7681:         u.rate=clamp(baseRate*1.05,.65,1.5);u.pitch=clamp(basePitch*1.02,.65,1.7);u.volume=clamp(baseVolume,0,1);
+7682:       }
+7683:     };
+7684:   }
+7685: 
+7686:   const baseStopAll=typeof stopAll==='function'?stopAll:null;
+
+### getVoice: 9 matches
+
+--- around line 1993 ---
+1989:  const usable=pool.length?pool:all;
+1990:  let changed=0;
+1991:  for(const k of Object.keys(charLib)){
+1992:    const ch=charLib[k];if(!ch||isNarratorName(ch.name||k))continue;
+1993:    const current=getVoice(ch.voiceURI);
+1994:    if(ch.voiceURI&&current)continue; // respeta una asignación válida que el usuario ya hizo
+1995:    const pick=usable[stableSupertonicIndex(ch.name||k,usable.length)];
+1996:    if(pick){ch.voiceURI=pick.voiceURI||pick.name;changed++}
+1997:  }
+1998:  if(changed)saveLib();
+
+--- around line 2022 ---
+2018: }
+2019: 
+2020: function loadVoices(){
+2021:   if(!('speechSynthesis' in window)){$('#ttsSupport').textContent='Este navegador no expone Web Speech TTS.';$('#ttsSupport').className='status bad';return;}
+2022:   voices=speechSynthesis.getVoices()||[];
+2023:   const f=$('#langFilter').value;
+2024:   const shown=voices.filter(v=>!f||String(v.lang||'').toLowerCase().startsWith(f));
+2025:   const es=voices.filter(v=>String(v.lang||'').toLowerCase().startsWith('es'));
+2026:   const local=voices.filter(v=>v.localService);
+2027:   const st=getSupertonicVoices();
+
+--- around line 2062 ---
+2058: async function refreshVoicesManual(){
+2059:   const btn=$('#refreshVoicesBtn');
+2060:   const feedback=$('#voiceRefreshFeedback');
+2061:   if(!btn||btn.disabled)return;
+2062:   const before=(speechSynthesis.getVoices()||[]).map(v=>`${v.name}|${v.lang}|${v.voiceURI}`).sort().join('¦');
+2063:   const beforeCount=(speechSynthesis.getVoices()||[]).length;
+2064:   const started=new Date();
+2065:   btn.disabled=true;
+2066:   btn.classList.add('checking');
+2067:   btn.textContent='⟳ Comprobando…';
+
+--- around line 2063 ---
+2059:   const btn=$('#refreshVoicesBtn');
+2060:   const feedback=$('#voiceRefreshFeedback');
+2061:   if(!btn||btn.disabled)return;
+2062:   const before=(speechSynthesis.getVoices()||[]).map(v=>`${v.name}|${v.lang}|${v.voiceURI}`).sort().join('¦');
+2063:   const beforeCount=(speechSynthesis.getVoices()||[]).length;
+2064:   const started=new Date();
+2065:   btn.disabled=true;
+2066:   btn.classList.add('checking');
+2067:   btn.textContent='⟳ Comprobando…';
+2068:   if(feedback){feedback.textContent='Consultando Android/Chrome…';feedback.className='voice-refresh-feedback warn'}
+
+--- around line 2077 ---
+2073:   await new Promise(r=>setTimeout(r,350));
+2074:   loadVoices();
+2075:   await new Promise(r=>setTimeout(r,900));
+2076:   loadVoices();
+2077:   const afterVoices=speechSynthesis.getVoices()||[];
+2078:   const after=afterVoices.map(v=>`${v.name}|${v.lang}|${v.voiceURI}`).sort().join('¦');
+2079:   const st=getSupertonicVoices();
+2080:   const changed=before!==after;
+2081:   const clock=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+2082:   if(feedback){
+
+--- around line 2843 ---
+2839: }
+2840: let dv6PreviewToken=0;
+2841: function preferredPreviewVoice(characterName=''){
+2842:  const ch=characterRecordForName(characterName);
+2843:  return getVoice(ch?.voiceURI)||getNarratorVoice()||voices.find(v=>String(v.lang||'').toLowerCase().startsWith('es'))||voices[0]||null;
+2844: }
+2845: function previewPersonalPronunciation(characterKey,row){
+2846:  const ch=charLib[characterKey];if(!ch)return;
+2847:  const btn=row.querySelector('.character-pron-test');
+2848:  const feedback=row.closest('.character-pron-box')?.querySelector('.character-pron-feedback');
+
+--- around line 3147 ---
+3143:  currentLocation=currentLocationAt(queueIndex);
+3144:  await restoreLoopForPosition(queueIndex);
+3145:  updatePlayer();
+3146: };
+3147: function getVoice(uri){return voices.find(v=>(v.voiceURI||v.name)===uri)||null}
+3148: function escapeRegExp(s){return String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
+3149: function applyPronunciationRules(text,speaker){
+3150:  let out=String(text||'');
+3151:  for(const r of pronRules){if(!r?.from||!r?.to)continue;try{out=out.replace(new RegExp(escapeRegExp(r.from),'gi'),r.to)}catch{}}
+3152:  const ch=characterRecordForName(speaker)||null;
+
+--- around line 3163 ---
+3159:    u.rate=.96;u.pitch=.96;u.volume=effectiveVoiceVolume();
+3160:    return;
+3161:  }
+3162:  const ch=characterRecordForName(speaker)||{};
+3163:  const v=getVoice(ch.voiceURI)||getNarratorVoice();if(v)u.voice=v;
+3164:  u.rate=Number(ch.rate||1);u.pitch=Number(ch.pitch||1);u.volume=effectiveVoiceVolume();
+3165: }
+3166: function estimateSpeechMs(text,speaker){
+3167:  const words=Math.max(1,String(text||'').trim().split(/\s+/).length);
+3168:  const rate=isNarratorName(speaker) ? .96 : Number(characterRecordForName(speaker)?.rate||1);
+
+--- around line 4948 ---
+4944:         ? (characterRecordForName(speaker)||{})
+4945:         : {};
+4946:       let voice=null;
+4947:       if(isNarr && typeof getNarratorVoice==='function')voice=getNarratorVoice();
+4948:       if(!voice && typeof getVoice==='function')voice=getVoice(ch.voiceURI);
+4949:       if(!voice && typeof getNarratorVoice==='function')voice=getNarratorVoice();
+4950:       if(!voice && Array.isArray(window.voices))voice=window.voices[0]||null;
+4951:       return {voice,ch,isNarr};
+4952:     }
+4953: 
+
+### Voz del dispositivo: 2 matches
+
+--- around line 2752 ---
+2748:        <div class="char-detail">
+2749:          <div class="cast-description"><div class="label-mini">DESCRIPCIÓN DEL PERSONAJE</div>${esc(description)}</div>
+2750:          <div class="cast-voice-grid">
+2751:            <div class="char-summary-meta">${profileIsDefined(ch.profile)?esc(upperClosed(ch.profile)):'⚠ PERFIL DE VOZ POR CORREGIR'}${ch.accent?` · ${esc(upperClosed(ch.accent))}`:''}${ch.voiceTraits?` · ${esc(ch.voiceTraits)}`:''}</div>
+2752:            <div class="label">Voz del dispositivo</div>
+2753:            <div class="cast-voice-row"><select class="voice">${voiceOptions(ch.voiceURI)}</select><button class="btn small aqua test">Probar</button></div>
+2754:            <input class="testPhrase" value="${esc(ch.testPhrase||'Hola. Esta es mi voz de prueba en DramaVoice 6.')}" placeholder="Frase de prueba">
+2755:            <div class="voice-test-status"></div>
+2756:            <div class="label">Velocidad <span class="rateLabel">${Number(ch.rate||1).toFixed(2)}×</span></div><input class="rate" type="range" min=".65" max="1.35" step=".05" value="${ch.rate||1}">
+2757:            <div class="label">Tono <span class="pitchLabel">${Number(ch.pitch||1).toFixed(2)}</span></div><input class="pitch" type="range" min=".65" max="1.35" step=".05" value="${ch.pitch||1}">
+
+--- around line 2921 ---
+2917:              <input class="libTraits" style="grid-column:1/-1" value="${esc(ch.voiceTraits||'')}" placeholder="Rasgos de voz / forma de hablar">
+2918:            </div>
+2919:            ${profileIsDefined(ch.profile)?'':'<div class="profile-warning">⚠ DramaVoice no pudo reconstruir con seguridad si la voz es masculina o femenina. Selecciona una.</div>'}
+2920:            <div class="library-voice-box">
+2921:              <div class="label">Voz del dispositivo</div>
+2922:              <div class="voice-line"><select class="libVoice">${voiceOptions(ch.voiceURI)}</select><button class="btn small aqua libTest">Probar</button></div>
+2923:              <input class="libTestPhrase" value="${esc(ch.testPhrase||'Hola. Esta es mi voz de prueba en DramaVoice 6.')}" placeholder="Frase de prueba">
+2924:              <div class="voice-test-status"></div>
+2925:              <div class="label">Velocidad <span class="libRateLabel">${Number(ch.rate||1).toFixed(2)}×</span></div><input class="libRate" type="range" min=".65" max="1.35" step=".05" value="${ch.rate||1}">
+2926:              <div class="label">Tono <span class="libPitchLabel">${Number(ch.pitch||1).toFixed(2)}</span></div><input class="libPitch" type="range" min=".65" max="1.35" step=".05" value="${ch.pitch||1}">
+
+### Probar narrador: 2 matches
+
+--- around line 2742 ---
+2738:    const ch=charLib[k]||createCharacterRecord(name,$('#story')?.value||'');
+2739:    const c=document.createElement('div');c.className='compact-character';
+2740:    const compactMeta=isNarrator?'VOZ FIJA':compactCharacterMeta(ch);
+2741:    if(isNarrator){
+2742:      c.innerHTML=`<details class="char-collapse" data-key="${esc(k)}" ${openCastCharacter===k?'open':''}><summary class="char-summary"><div class="char-summary-photo"><div class="avatarFallback">◉</div></div><div><div class="char-summary-name name-upper">NARRADOR</div><div class="char-summary-meta">${esc(compactMeta)}</div></div><div class="char-summary-pill">ABRIR</d
+2743:      c.querySelector('.narratorTest').onclick=()=>previewVoice('NARRADOR','Esta es la voz fija del narrador en DramaVoice 6.',c.querySelector('.voice-test-status'));
+2744:    }else{
+2745:      const description=ch.narrativeSummary||'Aún no hay suficientes datos narrativos sobre este personaje.';
+2746:      c.innerHTML=`<details class="char-collapse" data-key="${esc(k)}" ${openCastCharacter===k?'open':''}>
+2747:        <summary class="char-summary"><div class="char-summary-photo avatar"><img class="charPhoto" alt="${esc(name)}" style="display:none"><div class="avatarFallback">${esc(initials(name))}</div></div><div><div class="char-summary-name name-upper">${esc(characterDisplayName(ch,name))}</div><div class="char-summary-meta">${esc(compactMeta)}</div></div><div class="char-
+
+--- around line 6813 ---
+6809:         <div class="dv111-narrator-voice">
+6810:           <div class="label">Voz del narrador</div>
+6811:           <select id="dv111NarratorVoice">${voiceOptions(ch.voiceURI||'')}</select>
+6812:           <input id="dv111NarratorPhrase" value="${esc(ch.testPhrase||'Esta es una prueba de narración en DramaVoice 6.')}" placeholder="Frase de prueba">
+6813:           <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small aqua" id="dv111NarratorTest">Probar narrador</button></div>
+6814:           <div class="voice-test-status" id="dv111NarratorStatus"></div>
+6815:           <div class="dv111-narrator-note">Esta cara y esta voz se cambian aquí, fuera del reproductor. El reproductor solo las utiliza.</div>
+6816:         </div>
+6817:       </div>`;
+6818:   }
+
+### Probar voz: 0 matches
+
+### previewVoice: 10 matches
+
+--- around line 2743 ---
+2739:    const c=document.createElement('div');c.className='compact-character';
+2740:    const compactMeta=isNarrator?'VOZ FIJA':compactCharacterMeta(ch);
+2741:    if(isNarrator){
+2742:      c.innerHTML=`<details class="char-collapse" data-key="${esc(k)}" ${openCastCharacter===k?'open':''}><summary class="char-summary"><div class="char-summary-photo"><div class="avatarFallback">◉</div></div><div><div class="char-summary-name name-upper">NARRADOR</div><div class="char-summary-meta">${esc(compactMeta)}</div></div><div class="char-summary-pill">ABRIR</d
+2743:      c.querySelector('.narratorTest').onclick=()=>previewVoice('NARRADOR','Esta es la voz fija del narrador en DramaVoice 6.',c.querySelector('.voice-test-status'));
+2744:    }else{
+2745:      const description=ch.narrativeSummary||'Aún no hay suficientes datos narrativos sobre este personaje.';
+2746:      c.innerHTML=`<details class="char-collapse" data-key="${esc(k)}" ${openCastCharacter===k?'open':''}>
+2747:        <summary class="char-summary"><div class="char-summary-photo avatar"><img class="charPhoto" alt="${esc(name)}" style="display:none"><div class="avatarFallback">${esc(initials(name))}</div></div><div><div class="char-summary-name name-upper">${esc(characterDisplayName(ch,name))}</div><div class="char-summary-meta">${esc(compactMeta)}</div></div><div class="char-
+2748:        <div class="char-detail">
+
+--- around line 2764 ---
+2760:      const saveVoice=()=>{charLib[k]={...charLib[k],name:charLib[k]?.name||displayName(name),voiceURI:c.querySelector('.voice').value,rate:Number(c.querySelector('.rate').value),pitch:Number(c.querySelector('.pitch').value),testPhrase:c.querySelector('.testPhrase').value};saveLib()};
+2761:      c.querySelector('.voice').onchange=saveVoice;c.querySelector('.testPhrase').oninput=saveVoice;
+2762:      c.querySelector('.rate').oninput=e=>{c.querySelector('.rateLabel').textContent=Number(e.target.value).toFixed(2)+'×';saveVoice()};
+2763:      c.querySelector('.pitch').oninput=e=>{c.querySelector('.pitchLabel').textContent=Number(e.target.value).toFixed(2);saveVoice()};
+2764:      c.querySelector('.test').onclick=()=>{saveVoice();previewVoice(name,c.querySelector('.testPhrase').value,c.querySelector('.voice-test-status'))};
+2765:      refreshCharacterPhotoCard(c,k,name);
+2766:    }
+2767:    const det=c.querySelector('details.char-collapse');det.addEventListener('toggle',()=>{if(det.open){openCastCharacter=k;root.querySelectorAll('details.char-collapse').forEach(o=>{if(o!==det)o.open=false})}else if(openCastCharacter===k)openCastCharacter=''});
+2768:    root.appendChild(c);
+2769:  });
+
+--- around line 2841 ---
+2837:  for(const r of pronRules||[]){if(!r?.from||!r?.to)continue;try{out=out.replace(new RegExp(escapeRegExp(r.from),'gi'),r.to)}catch{}}
+2838:  return out;
+2839: }
+2840: let dv6PreviewToken=0;
+2841: function preferredPreviewVoice(characterName=''){
+2842:  const ch=characterRecordForName(characterName);
+2843:  return getVoice(ch?.voiceURI)||getNarratorVoice()||voices.find(v=>String(v.lang||'').toLowerCase().startsWith('es'))||voices[0]||null;
+2844: }
+2845: function previewPersonalPronunciation(characterKey,row){
+2846:  const ch=charLib[characterKey];if(!ch)return;
+
+--- around line 2859 ---
+2855:  previewing=true;
+2856:  try{speechSynthesis.cancel()}catch{}
+2857:  const u=new SpeechSynthesisUtterance(to); // prueba exactamente SE PRONUNCIA, sin volver a transformar el texto
+2858:  configureUtterance(u,ch.name||characterKey);
+2859:  if(!u.voice){const fallback=preferredPreviewVoice(ch.name||characterKey);if(fallback)u.voice=fallback}
+2860:  if(btn){btn.textContent='■';btn.disabled=true}
+2861:  setFeedback(`Preparando prueba${u.voice?` con ${u.voice.name}`:''}…`,'warn');
+2862:  const done=(msg,kind='')=>{if(token!==dv6PreviewToken)return;previewing=false;if(btn){btn.textContent='▶';btn.disabled=false}setFeedback(msg,kind)};
+2863:  u.onstart=()=>{if(token===dv6PreviewToken)setFeedback(`Reproduciendo: “${to}”`,'good')};
+2864:  u.onend=()=>done('Prueba terminada.','good');
+
+--- around line 2946 ---
+2942:    [profile,c.querySelector('.libAge'),c.querySelector('.libNationality'),c.querySelector('.libAccent'),c.querySelector('.libStyle'),c.querySelector('.libTraits'),c.querySelector('.libVoice')].forEach(el=>{el.onchange=saveMeta;el.oninput=saveMeta});
+2943:    c.querySelector('.libTestPhrase').oninput=saveMeta;
+2944:    c.querySelector('.libRate').oninput=e=>{c.querySelector('.libRateLabel').textContent=Number(e.target.value).toFixed(2)+'×';saveMeta()};
+2945:    c.querySelector('.libPitch').oninput=e=>{c.querySelector('.libPitchLabel').textContent=Number(e.target.value).toFixed(2);saveMeta()};
+2946:    c.querySelector('.libTest').onclick=()=>{saveMeta();previewVoice(ch.name,c.querySelector('.libTestPhrase').value,c.querySelector('.voice-test-status'))};
+2947: 
+2948:    await refreshCharacterPhotoCard(c,k,ch.name);
+2949:    c.querySelectorAll('.reaction-file').forEach(inp=>inp.onchange=async e=>{const file=e.target.files&&e.target.files[0];if(!file)return;await saveCharacterPhoto(k,file,inp.dataset.slot||'neutral');await renderLibrary();renderCast();updatePlayerPortrait()});
+2950:    c.querySelectorAll('.removeReaction').forEach(btn=>btn.onclick=async()=>{await deleteCharacterPhoto(k,btn.dataset.slot||'neutral');await renderLibrary();renderCast();updatePlayerPortrait()});
+2951:    c.querySelector('.registerPrompt').onclick=()=>{const current=String(charLib[k].visualPromptManual||charLib[k].visualPromptAuto||'');const value=prompt(`Registra el prompt visual de ${characterDisplayName(charLib[k],ch.name)}. Si lo dejas vacío, DramaVoice volverá a usar el automático.`,current);if(value===null)return;if(value.trim())applyManualPromptMetadata(k,val
+
+--- around line 3281 ---
+3277:    if(advance&&playing)nextAuto();
+3278:  };
+3279:  speechSynthesis.speak(u);
+3280: }
+3281: function previewVoice(name,text,statusEl){
+3282:  if(playing||paused){statusEl.textContent='Detén la escena para probar una voz sin alterar la reproducción.';statusEl.style.color='var(--warn)';return}
+3283:  if(!('speechSynthesis' in window)){statusEl.textContent='TTS no disponible.';statusEl.style.color='var(--warn)';return}
+3284:  const token=++dv6PreviewToken;
+3285:  previewing=true;
+3286:  try{speechSynthesis.cancel()}catch{}
+
+--- around line 3288 ---
+3284:  const token=++dv6PreviewToken;
+3285:  previewing=true;
+3286:  try{speechSynthesis.cancel()}catch{}
+3287:  const u=new SpeechSynthesisUtterance(applyPronunciationRules(text||'Prueba de voz',name));configureUtterance(u,name);
+3288:  if(!u.voice){const fallback=preferredPreviewVoice(name);if(fallback)u.voice=fallback}
+3289:  statusEl.textContent=`Preparando prueba${u.voice?` con ${u.voice.name}`:''}…`;statusEl.style.color='var(--warn)';
+3290:  const done=(msg,color='')=>{if(token!==dv6PreviewToken)return;previewing=false;statusEl.textContent=msg;if(color)statusEl.style.color=color};
+3291:  u.onstart=()=>{if(token===dv6PreviewToken){statusEl.textContent='Probando solamente esta voz…';statusEl.style.color='var(--aqua)'}};
+3292:  u.onend=()=>done('Prueba terminada.','var(--aqua)');
+3293:  u.onerror=e=>done(`No se pudo reproducir la prueba${e?.error?`: ${e.error}`:''}.`,'var(--warn)');
+
+--- around line 5032 ---
+5028:       },80);
+5029:       return true;
+5030:     }
+5031: 
+5032:     if(typeof previewVoice==='function'){
+5033:       previewVoice=function(name,text,statusEl){
+5034:         if(playing||paused){
+5035:           statusEl.textContent='Detén la escena para probar una voz sin alterar la reproducción.';
+5036:           statusEl.style.color='var(--warn)';
+5037:           return;
+
+--- around line 5033 ---
+5029:       return true;
+5030:     }
+5031: 
+5032:     if(typeof previewVoice==='function'){
+5033:       previewVoice=function(name,text,statusEl){
+5034:         if(playing||paused){
+5035:           statusEl.textContent='Detén la escena para probar una voz sin alterar la reproducción.';
+5036:           statusEl.style.color='var(--warn)';
+5037:           return;
+5038:         }
+
+--- around line 6877 ---
+6873:       ch.testPhrase=phrase?.value||ch.testPhrase||'Esta es una prueba de narración en DramaVoice 6.';
+6874:       try{saveLib()}catch(e){}
+6875:       prioritizeNarratorVoice();
+6876:       const st=card.querySelector('#dv111NarratorStatus');
+6877:       if(typeof previewVoice==='function')previewVoice('NARRADOR',ch.testPhrase,st);
+6878:     };
+6879:   }
+6880: 
+6881:   async function decorateNarratorCast(){
+6882:     const root=document.getElementById('castList');if(!root)return;
+
+### characterRecordForName: 11 matches
+
+--- around line 1298 ---
+1294:    if(candidates.length===1)return candidates[0];
+1295:  }
+1296:  return exact;
+1297: }
+1298: function characterRecordForName(name){const k=characterKeyForName(name);return charLib[k]||null}
+1299: function isNarratorName(s){return norm(s)==='narrador'}
+1300: 
+1301: function splitChapterDisplay(value){
+1302:  const raw=String(value||'').trim();
+1303:  let m=raw.match(/^\s*(?:cap[ií]tulo\s*)?(\d+)\s*(?:[-–—:|]\s*)?(.*)$/i);
+
+--- around line 1704 ---
+1700:  const t=norm(text);
+1701:  if(/\b(hombre|masculino|varon|varón|male|man)\b/.test(t))return 'MASCULINO';
+1702:  if(/\b(mujer|femenino|hembra|female|woman)\b/.test(t))return 'FEMENINO';
+1703:  if(speaker){
+1704:    const p=norm(characterRecordForName(speaker)?.profile||'');
+1705:    if(p==='masculino')return 'MASCULINO';
+1706:    if(p==='femenino')return 'FEMENINO';
+1707:  }
+1708:  return '';
+1709: }
+
+--- around line 2842 ---
+2838:  return out;
+2839: }
+2840: let dv6PreviewToken=0;
+2841: function preferredPreviewVoice(characterName=''){
+2842:  const ch=characterRecordForName(characterName);
+2843:  return getVoice(ch?.voiceURI)||getNarratorVoice()||voices.find(v=>String(v.lang||'').toLowerCase().startsWith('es'))||voices[0]||null;
+2844: }
+2845: function previewPersonalPronunciation(characterKey,row){
+2846:  const ch=charLib[characterKey];if(!ch)return;
+2847:  const btn=row.querySelector('.character-pron-test');
+
+--- around line 3108 ---
+3104: }
+3105: 
+3106: function characterMetaLine(speaker){
+3107:  if(!speaker||isNarratorName(speaker))return '';
+3108:  const ch=characterRecordForName(speaker)||{};
+3109:  const parts=[];
+3110:  if(ch.age)parts.push(`${ch.age} AÑOS`);
+3111:  if(ch.nationality)parts.push(upperClosed(ch.nationality));
+3112:  return parts.join(' · ');
+3113: }
+
+--- around line 3152 ---
+3148: function escapeRegExp(s){return String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
+3149: function applyPronunciationRules(text,speaker){
+3150:  let out=String(text||'');
+3151:  for(const r of pronRules){if(!r?.from||!r?.to)continue;try{out=out.replace(new RegExp(escapeRegExp(r.from),'gi'),r.to)}catch{}}
+3152:  const ch=characterRecordForName(speaker)||null;
+3153:  for(const r of (ch?.pronunciations||[])){if(!r?.from||!r?.to)continue;try{out=out.replace(new RegExp(escapeRegExp(r.from),'gi'),r.to)}catch{}}
+3154:  return out;
+3155: }
+3156: function configureUtterance(u,speaker){
+3157:  if(isNarratorName(speaker)){
+
+--- around line 3162 ---
+3158:    const v=getNarratorVoice();if(v)u.voice=v;
+3159:    u.rate=.96;u.pitch=.96;u.volume=effectiveVoiceVolume();
+3160:    return;
+3161:  }
+3162:  const ch=characterRecordForName(speaker)||{};
+3163:  const v=getVoice(ch.voiceURI)||getNarratorVoice();if(v)u.voice=v;
+3164:  u.rate=Number(ch.rate||1);u.pitch=Number(ch.pitch||1);u.volume=effectiveVoiceVolume();
+3165: }
+3166: function estimateSpeechMs(text,speaker){
+3167:  const words=Math.max(1,String(text||'').trim().split(/\s+/).length);
+
+--- around line 3168 ---
+3164:  u.rate=Number(ch.rate||1);u.pitch=Number(ch.pitch||1);u.volume=effectiveVoiceVolume();
+3165: }
+3166: function estimateSpeechMs(text,speaker){
+3167:  const words=Math.max(1,String(text||'').trim().split(/\s+/).length);
+3168:  const rate=isNarratorName(speaker) ? .96 : Number(characterRecordForName(speaker)?.rate||1);
+3169:  return Math.max(900,(words/(155*Math.max(.65,rate)))*60000);
+3170: }
+3171: function estimatedEventMs(e){
+3172:  if(!e)return 0;
+3173:  if(e.type==='speech')return estimateSpeechMs(e.text,e.speaker);
+
+--- around line 4943 ---
+4939:     let activeId='';
+4940: 
+4941:     function currentVoice(speaker){
+4942:       const isNarr=typeof isNarratorName==='function' && isNarratorName(speaker);
+4943:       const ch=typeof characterRecordForName==='function'
+4944:         ? (characterRecordForName(speaker)||{})
+4945:         : {};
+4946:       let voice=null;
+4947:       if(isNarr && typeof getNarratorVoice==='function')voice=getNarratorVoice();
+4948:       if(!voice && typeof getVoice==='function')voice=getVoice(ch.voiceURI);
+
+--- around line 4944 ---
+4940: 
+4941:     function currentVoice(speaker){
+4942:       const isNarr=typeof isNarratorName==='function' && isNarratorName(speaker);
+4943:       const ch=typeof characterRecordForName==='function'
+4944:         ? (characterRecordForName(speaker)||{})
+4945:         : {};
+4946:       let voice=null;
+4947:       if(isNarr && typeof getNarratorVoice==='function')voice=getNarratorVoice();
+4948:       if(!voice && typeof getVoice==='function')voice=getVoice(ch.voiceURI);
+4949:       if(!voice && typeof getNarratorVoice==='function')voice=getNarratorVoice();
+
+--- around line 5231 ---
+5227: 
+5228:     configureUtterance=function(u,speaker){
+5229:       if(fallbackIsActive()){
+5230:         try{
+5231:           const ch=(typeof characterRecordForName==='function')
+5232:             ? (characterRecordForName(speaker)||{})
+5233:             : {};
+5234:           const narrator=(typeof isNarratorName==='function') && isNarratorName(speaker);
+5235: 
+5236:           // No fijamos una voz concreta. El sistema escoge la voz TTS predeterminada.
+
+--- around line 5232 ---
+5228:     configureUtterance=function(u,speaker){
+5229:       if(fallbackIsActive()){
+5230:         try{
+5231:           const ch=(typeof characterRecordForName==='function')
+5232:             ? (characterRecordForName(speaker)||{})
+5233:             : {};
+5234:           const narrator=(typeof isNarratorName==='function') && isNarratorName(speaker);
+5235: 
+5236:           // No fijamos una voz concreta. El sistema escoge la voz TTS predeterminada.
+5237:           try{u.voice=null}catch(e){}
+
+### renderCharacter: 0 matches
+
+### renderChar: 0 matches
+
+### saveLib: 19 matches
+
+--- around line 1867 ---
+1863:    if(meta[field]!=null && isBlankField(field,ch[field]))ch[field]=meta[field];
+1864:  }
+1865:  ch.visualPromptManual=String(text||'').trim();
+1866:  if(!ch.visualPromptAuto)ch.visualPromptAuto=buildAutoVisualPrompt($('#story')?.value||'',ch);
+1867:  charLib[key]=ch;saveLib();
+1868: }
+1869: 
+1870: function spanishNumberUnder100(raw){const s=norm(raw).replace(/-/g,' ').replace(/\s+/g,' ').trim(),d={'uno':1,'una':1,'un':1,'dos':2,'tres':3,'cuatro':4,'cinco':5,'seis':6,'siete':7,'ocho':8,'nueve':9,'diez':10,'once':11,'doce':12,'trece':13,'catorce':14,'quince':15,'dieciseis':16,'dieciséis':16,'diecisiete':17,'dieciocho':18,'diecinueve':19,'veinte':20,'veintiuno':21
+1871: function collectCharacterContext(raw,name){const blocks=String(raw||'').replace(/\r/g,'').split(/\n\s*\n/),target=norm(name),selected=[];for(let i=0;i<blocks.length;i++){const b=blocks[i],nb=norm(b),tag=(b.match(/^\s*\[([^\]]+)\]/)||[])[1]||'',isOwn=norm(tag.split('|')[0])===target,mentions=nb.includes(target);if(isOwn||mentions){selected.push(b);if(isOwn&&i>0&&/^\s*\
+1872: function inferCharacterVoiceProfile(raw,name){
+
+--- around line 1926 ---
+1922: function esc(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+1923: function goTab(id){$$('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));$$('.section').forEach(s=>s.classList.toggle('active',s.id===id));if(id==='historia')updateHistoryCaptureUI($('#story')?.value||'',scenes.length>0);if(id==='escenas')renderScenes();if(id==='reparto')renderCast();if(id==='personajes')renderLibrary();if(id==='sonidos')renderSounds(
+1924: $$('.tab').forEach(b=>b.onclick=()=>goTab(b.dataset.tab));
+1925: 
+1926: function saveLib(){localStorage.setItem(KEY,JSON.stringify(charLib))}
+1927: let ambientDuckingActive=false;
+1928: function clamp01(v){return Math.max(0,Math.min(1,Number(v)||0))}
+1929: function effectiveMaster(){return clamp01(settings.masterVolume??1)}
+1930: function effectiveVoiceVolume(){return clamp01(effectiveMaster()*Number(settings.voiceVolume??1))}
+1931: function effectiveAmbientVolume(factor=1){return clamp01(effectiveMaster()*Number(settings.ambientVolume??.28)*Number(factor||1)*(ambientDuckingActive?Number(settings.duckingLevel??.45):1))}
+
+--- around line 1998 ---
+1994:    if(ch.voiceURI&&current)continue; // respeta una asignación válida que el usuario ya hizo
+1995:    const pick=usable[stableSupertonicIndex(ch.name||k,usable.length)];
+1996:    if(pick){ch.voiceURI=pick.voiceURI||pick.name;changed++}
+1997:  }
+1998:  if(changed)saveLib();
+1999:  return changed;
+2000: }
+2001: function getNarratorVoice(){
+2002:  const st=getSupertonicVoices();
+2003:  if(st.length)return st.find(v=>dv6SupertonicSpeakerNumber(v)===1)||st[0];
+
+--- around line 2280 ---
+2276:  const names=new Set(['NARRADOR']);
+2277:  scenes.forEach(s=>s.events.forEach(e=>{if((e.type==='speech'||e.type==='vocalizacion')&&e.speaker)names.add(e.speaker)}));
+2278:  const created=[]; let enrichedCount=0; let autoCount=0;
+2279:  names.forEach(n=>{const res=upsertCharacterFromStory(n,rawStory);const k=norm(n);if(res.created&&!isNarratorName(n))created.push(charLib[k]);if(res.enriched)enrichedCount++;if(charLib[k]?.autoDetected)autoCount++;});
+2280:  saveLib();syncPlacesFromScenes();activeScene=0;queueIndex=0;buildQueue();updateHistoryCaptureUI(rawStory,true);renderCast();renderLibrary();renderPlaces();updatePlayer();renderPronRules();
+2281:  const autoCreated=created.filter(x=>x.autoDetected).length;
+2282:  const locationCount=scenes.reduce((n,s)=>n+s.events.filter(e=>e.type==='location').length,0);
+2283:  let msg=scenes.length?`✓ ${chapterTitle} · ${scenes.length} escena(s) · ${locationCount} lugar(es)`:'No encontré escenas o intervenciones.';
+2284:  if(created.length)msg+=` ${created.length} personaje(s) nuevo(s) creado(s).`;
+2285: 
+
+--- around line 2760 ---
+2756:            <div class="label">Velocidad <span class="rateLabel">${Number(ch.rate||1).toFixed(2)}×</span></div><input class="rate" type="range" min=".65" max="1.35" step=".05" value="${ch.rate||1}">
+2757:            <div class="label">Tono <span class="pitchLabel">${Number(ch.pitch||1).toFixed(2)}</span></div><input class="pitch" type="range" min=".65" max="1.35" step=".05" value="${ch.pitch||1}">
+2758:          </div>
+2759:        </div></details>`;
+2760:      const saveVoice=()=>{charLib[k]={...charLib[k],name:charLib[k]?.name||displayName(name),voiceURI:c.querySelector('.voice').value,rate:Number(c.querySelector('.rate').value),pitch:Number(c.querySelector('.pitch').value),testPhrase:c.querySelector('.testPhrase').value};saveLib()};
+2761:      c.querySelector('.voice').onchange=saveVoice;c.querySelector('.testPhrase').oninput=saveVoice;
+2762:      c.querySelector('.rate').oninput=e=>{c.querySelector('.rateLabel').textContent=Number(e.target.value).toFixed(2)+'×';saveVoice()};
+2763:      c.querySelector('.pitch').oninput=e=>{c.querySelector('.pitchLabel').textContent=Number(e.target.value).toFixed(2);saveVoice()};
+2764:      c.querySelector('.test').onclick=()=>{saveVoice();previewVoice(name,c.querySelector('.testPhrase').value,c.querySelector('.voice-test-status'))};
+2765:      refreshCharacterPhotoCard(c,k,name);
+
+--- around line 2812 ---
+2808: Se borrarán sus reacciones faciales, voz y configuración guardada.`);
+2809:  if(!ok)return false;
+2810: 
+2811:  delete charLib[key];
+2812:  saveLib();
+2813:  for(const r of REACTION_SLOTS)await deleteCharacterPhoto(key,r.key);
+2814: 
+2815:  /* Si está en la escena activa seguirá apareciendo en el reparto como personaje detectado,
+2816:     pero ya no conserva datos guardados. */
+2817:  await renderLibrary();
+
+--- around line 2881 ---
+2877:      if(!arr.some(x=>norm(x.from)===norm(r.from)&&norm(x.to)===norm(r.to)))arr.push({from:r.from,to:r.to});
+2878:    }else globals.push({...r,scope:'*'});
+2879:  }
+2880:  pronRules=globals;
+2881:  localStorage.setItem(PRON_KEY,JSON.stringify(pronRules));saveLib();
+2882: }
+2883: 
+2884: async function renderLibrary(){
+2885:  const root=$('#libraryList');root.innerHTML='';
+2886:  const q=norm($('#characterSearch')?.value||'');
+
+--- around line 2941 ---
+2937:      </div></details>`;
+2938:    root.appendChild(c);
+2939: 
+2940:    const profile=c.querySelector('.libProfile');
+2941:    const saveMeta=()=>{charLib[k]={...charLib[k],profile:profile.value||charLib[k].profile||'',age:c.querySelector('.libAge').value,nationality:c.querySelector('.libNationality').value.trim(),accent:c.querySelector('.libAccent').value.trim(),voiceStyle:c.querySelector('.libStyle').value,voiceTraits:c.querySelector('.libTraits').value.trim(),voiceURI:c.querySelector('.
+2942:    [profile,c.querySelector('.libAge'),c.querySelector('.libNationality'),c.querySelector('.libAccent'),c.querySelector('.libStyle'),c.querySelector('.libTraits'),c.querySelector('.libVoice')].forEach(el=>{el.onchange=saveMeta;el.oninput=saveMeta});
+2943:    c.querySelector('.libTestPhrase').oninput=saveMeta;
+2944:    c.querySelector('.libRate').oninput=e=>{c.querySelector('.libRateLabel').textContent=Number(e.target.value).toFixed(2)+'×';saveMeta()};
+2945:    c.querySelector('.libPitch').oninput=e=>{c.querySelector('.libPitchLabel').textContent=Number(e.target.value).toFixed(2);saveMeta()};
+2946:    c.querySelector('.libTest').onclick=()=>{saveMeta();previewVoice(ch.name,c.querySelector('.libTestPhrase').value,c.querySelector('.voice-test-status'))};
+
+--- around line 2951 ---
+2947: 
+2948:    await refreshCharacterPhotoCard(c,k,ch.name);
+2949:    c.querySelectorAll('.reaction-file').forEach(inp=>inp.onchange=async e=>{const file=e.target.files&&e.target.files[0];if(!file)return;await saveCharacterPhoto(k,file,inp.dataset.slot||'neutral');await renderLibrary();renderCast();updatePlayerPortrait()});
+2950:    c.querySelectorAll('.removeReaction').forEach(btn=>btn.onclick=async()=>{await deleteCharacterPhoto(k,btn.dataset.slot||'neutral');await renderLibrary();renderCast();updatePlayerPortrait()});
+2951:    c.querySelector('.registerPrompt').onclick=()=>{const current=String(charLib[k].visualPromptManual||charLib[k].visualPromptAuto||'');const value=prompt(`Registra el prompt visual de ${characterDisplayName(charLib[k],ch.name)}. Si lo dejas vacío, DramaVoice volverá a usar el automático.`,current);if(value===null)return;if(value.trim())applyManualPromptMetadata(k,val
+2952:    c.querySelector('.copyPrompt').onclick=async e=>{const text=activeVisualPrompt(charLib[k]);const ok=await copyTextSmart(text);const old=e.currentTarget.textContent;e.currentTarget.textContent=ok?'✓ Copiado':'Sin prompt';setTimeout(()=>e.currentTarget.textContent=old,1200)};
+2953:    c.querySelectorAll('.character-pron-row').forEach(row=>{
+2954:      const i=Number(row.dataset.index);
+2955:      const savePron=()=>{const arr=ensureCharacterPronunciations(charLib[k]);if(!arr[i])return;arr[i]={from:row.querySelector('.cpFrom').value,to:row.querySelector('.cpTo').value};saveLib()};
+2956:      row.querySelector('.cpFrom').oninput=savePron;row.querySelector('.cpTo').oninput=savePron;
+
+--- around line 2955 ---
+2951:    c.querySelector('.registerPrompt').onclick=()=>{const current=String(charLib[k].visualPromptManual||charLib[k].visualPromptAuto||'');const value=prompt(`Registra el prompt visual de ${characterDisplayName(charLib[k],ch.name)}. Si lo dejas vacío, DramaVoice volverá a usar el automático.`,current);if(value===null)return;if(value.trim())applyManualPromptMetadata(k,val
+2952:    c.querySelector('.copyPrompt').onclick=async e=>{const text=activeVisualPrompt(charLib[k]);const ok=await copyTextSmart(text);const old=e.currentTarget.textContent;e.currentTarget.textContent=ok?'✓ Copiado':'Sin prompt';setTimeout(()=>e.currentTarget.textContent=old,1200)};
+2953:    c.querySelectorAll('.character-pron-row').forEach(row=>{
+2954:      const i=Number(row.dataset.index);
+2955:      const savePron=()=>{const arr=ensureCharacterPronunciations(charLib[k]);if(!arr[i])return;arr[i]={from:row.querySelector('.cpFrom').value,to:row.querySelector('.cpTo').value};saveLib()};
+2956:      row.querySelector('.cpFrom').oninput=savePron;row.querySelector('.cpTo').oninput=savePron;
+2957:      row.querySelector('.character-pron-test').onclick=()=>{savePron();previewPersonalPronunciation(k,row)};
+2958:      row.querySelector('.character-pron-delete').onclick=()=>{ensureCharacterPronunciations(charLib[k]).splice(i,1);saveLib();renderLibrary()};
+2959:    });
+2960:    c.querySelector('.addCharacterPron').onclick=()=>{ensureCharacterPronunciations(charLib[k]).push({from:'',to:''});saveLib();renderLibrary()};
+
+--- around line 2958 ---
+2954:      const i=Number(row.dataset.index);
+2955:      const savePron=()=>{const arr=ensureCharacterPronunciations(charLib[k]);if(!arr[i])return;arr[i]={from:row.querySelector('.cpFrom').value,to:row.querySelector('.cpTo').value};saveLib()};
+2956:      row.querySelector('.cpFrom').oninput=savePron;row.querySelector('.cpTo').oninput=savePron;
+2957:      row.querySelector('.character-pron-test').onclick=()=>{savePron();previewPersonalPronunciation(k,row)};
+2958:      row.querySelector('.character-pron-delete').onclick=()=>{ensureCharacterPronunciations(charLib[k]).splice(i,1);saveLib();renderLibrary()};
+2959:    });
+2960:    c.querySelector('.addCharacterPron').onclick=()=>{ensureCharacterPronunciations(charLib[k]).push({from:'',to:''});saveLib();renderLibrary()};
+2961: 
+2962:    c.querySelector('.deleteCharacter').onclick=async()=>{await deleteCharacterFromLibrary(ch.name)};
+2963:    const det=c.querySelector('details.char-collapse');det.addEventListener('toggle',()=>{if(det.open){openLibraryCharacter=k;root.querySelectorAll('details.char-collapse').forEach(o=>{if(o!==det)o.open=false})}else if(openLibraryCharacter===k)openLibraryCharacter=''});
+
+--- around line 2960 ---
+2956:      row.querySelector('.cpFrom').oninput=savePron;row.querySelector('.cpTo').oninput=savePron;
+2957:      row.querySelector('.character-pron-test').onclick=()=>{savePron();previewPersonalPronunciation(k,row)};
+2958:      row.querySelector('.character-pron-delete').onclick=()=>{ensureCharacterPronunciations(charLib[k]).splice(i,1);saveLib();renderLibrary()};
+2959:    });
+2960:    c.querySelector('.addCharacterPron').onclick=()=>{ensureCharacterPronunciations(charLib[k]).push({from:'',to:''});saveLib();renderLibrary()};
+2961: 
+2962:    c.querySelector('.deleteCharacter').onclick=async()=>{await deleteCharacterFromLibrary(ch.name)};
+2963:    const det=c.querySelector('details.char-collapse');det.addEventListener('toggle',()=>{if(det.open){openLibraryCharacter=k;root.querySelectorAll('details.char-collapse').forEach(o=>{if(o!==det)o.open=false})}else if(openLibraryCharacter===k)openLibraryCharacter=''});
+2964:  }
+2965: }
+
+--- around line 4135 ---
+4131: $('#characterSearch').oninput=renderLibrary;$('#soundSearch').oninput=renderSounds;$('#placeSearch').oninput=renderPlaces;
+4132: $('#addPlaceBtn').onclick=addManualPlace;$('#newPlaceName').onkeydown=e=>{if(e.key==='Enter')addManualPlace()};
+4133: 
+4134: window.addEventListener('beforeunload',()=>{saveResume();stopAll()});
+4135: const savedStory=localStorage.getItem(STORY_KEY);if(savedStory){$('#story').value=savedStory;scenes=parseStory(savedStory);const names=new Set(['NARRADOR']);scenes.forEach(s=>s.events.forEach(e=>{if((e.type==='speech'||e.type==='vocalizacion')&&e.speaker)names.add(e.speaker)}));names.forEach(n=>{upsertCharacterFromStory(n,savedStory)});saveLib();syncPlacesFromScenes()
+4136: migrateScopedPronRules();normalizePlaceHierarchy();buildQueue();updateTaxonomyControls();updateHistoryCaptureUI($('#story').value,scenes.length>0);updatePlayer();renderSounds();renderLibrary();renderScenes();renderPronRules();loadVoices();openSettingsPage('');
+4137: 
+4138: // v31 — instalación PWA y actualización offline
+4139: let dv6InstallPrompt=null;
+4140: const dv6InstallBtn=document.getElementById('installPwaBtn');
+
+--- around line 6077 ---
+6073:         if(found&&String(ch.visualPromptAuto||'').trim()!==found){ch.visualPromptAuto=found;changed=true}
+6074:         if(Array.isArray(ch.narrativeFacts)&&ch.narrativeFacts.length){ch.narrativeFacts=[];changed=true}
+6075:         if(ch.narrativeSummary){ch.narrativeSummary='';changed=true}
+6076:       });
+6077:       if(changed&&typeof saveLib==='function')saveLib();
+6078:     }catch(e){console.warn('DV6 v1.1.1: prompt',e)}
+6079:   }
+6080:   try{
+6081:     window.buildAutoVisualPrompt=(raw,ch)=>strictPromptFor(raw,ch?.name||'')||String(ch?.visualPromptAuto||'').trim();
+6082:     window.enrichCharacterNarrative=(record,raw,name)=>{
+
+--- around line 6427 ---
+6423:         voiceStyle:'Natural',
+6424:         voiceTraits:'',
+6425:         testPhrase:'Esta es una prueba de narración en DramaVoice 6.'
+6426:       };
+6427:       try{saveLib()}catch(e){}
+6428:     }
+6429:     return charLib[key];
+6430:   }
+6431:   function actualNarratorVoice(){
+6432:     const ch=narratorRecord();
+
+### voiceURI: 34 matches
+
+--- around line 1053 ---
+1049:    if(!item || k==='narrador' || charLib[k])continue;
+1050:    const g=item.profile?.gender==='femenina'?'Femenino':item.profile?.gender==='masculina'?'Masculino':'';
+1051:    charLib[k]={
+1052:      name:item.name||k,
+1053:      voiceURI:item.androidVoice||'',
+1054:      rate:1,
+1055:      pitch:1,
+1056:      profile:g
+1057:    };
+1058:  }
+
+--- around line 1074 ---
+1070:  }
+1071:  charLib=upperLib;
+1072:  localStorage.setItem(KEY,JSON.stringify(charLib));
+1073: }catch{}
+1074: if(!charLib[norm('NARRADOR')]){charLib[norm('NARRADOR')]={name:'NARRADOR',voiceURI:'',rate:.96,pitch:.96,profile:'Narrador',age:'',nationality:'',accent:'',voiceStyle:'Natural',voiceTraits:'',testPhrase:'Esta es una prueba de narración en DramaVoice 6.'};localStorage.setItem(KEY,JSON.stringify(charLib))}
+1075: let openCastCharacter='';
+1076: let openLibraryCharacter='';
+1077: let openPlaceKey='';
+1078: let openSceneSoundEditor='';
+1079: const SOUND_OVERRIDE_KEY='dramavoice6-sound-overrides-v1';
+
+--- around line 1887 ---
+1883:  if(traits.length){result.voiceTraits=[...new Set(traits)].join(', ');detected.push(`voz: ${result.voiceTraits}`);if(traits.includes('grave'))result.voiceStyle='Grave';else if(traits.includes('aguda'))result.voiceStyle='Agudo';else if(traits.includes('suave'))result.voiceStyle='Suave';else if(traits.includes('juvenil'))result.voiceStyle='Juvenil';else if(traits.includ
+1884:  if(detected.length){result.autoDetected=true;result.autoDetectedFields=detected}
+1885:  return result;
+1886: }
+1887: function createCharacterRecord(name,rawStory){const upper=displayName(name);if(isNarratorName(upper))return {name:'NARRADOR',voiceURI:'',rate:.96,pitch:.96,profile:'Narrador',age:'',nationality:'',accent:'',voiceStyle:'Natural',voiceTraits:'',testPhrase:'Esta es una prueba de narración en DramaVoice 6.'};let record={name:upper,voiceURI:'',rate:1,pitch:1,profile:'',age
+1888: function isBlankField(field,val){if(val==null)return true;const s=String(val).trim();if(!s)return true;const n=norm(s);if(field==='profile')return n==='sin definir'||n==='neutral'||!n;if(field==='voiceStyle')return n==='natural';return false}
+1889: function mergeAutoDetectedCharacterFields(existing,inferred){
+1890:  const record={...existing};
+1891:  const fields=['profile','age','nationality','accent','voiceStyle','voiceTraits'];
+1892:  const filled=[];const detected=new Set([...(record.autoDetectedFields||[])]);
+
+--- around line 1973 ---
+1969: updateVolumeLabels();
+1970: 
+1971: 
+1972: function dv6SupertonicSpeakerNumber(v){
+1973:  const raw=`${v?.name||''} ${v?.voiceURI||''}`;
+1974:  const m=raw.match(/\bDV6\s*Supertonic\s*(10|[1-9])\b/i)||raw.match(/\bSupertonic\b[^0-9]*(10|[1-9])\b/i);
+1975:  return m?Number(m[1]):0;
+1976: }
+1977: function getSupertonicVoices(){
+1978:  return voices.filter(v=>dv6SupertonicSpeakerNumber(v)>0).sort((a,b)=>dv6SupertonicSpeakerNumber(a)-dv6SupertonicSpeakerNumber(b));
+
+--- around line 1993 ---
+1989:  const usable=pool.length?pool:all;
+1990:  let changed=0;
+1991:  for(const k of Object.keys(charLib)){
+1992:    const ch=charLib[k];if(!ch||isNarratorName(ch.name||k))continue;
+1993:    const current=getVoice(ch.voiceURI);
+1994:    if(ch.voiceURI&&current)continue; // respeta una asignación válida que el usuario ya hizo
+1995:    const pick=usable[stableSupertonicIndex(ch.name||k,usable.length)];
+1996:    if(pick){ch.voiceURI=pick.voiceURI||pick.name;changed++}
+1997:  }
+1998:  if(changed)saveLib();
+
+--- around line 1994 ---
+1990:  let changed=0;
+1991:  for(const k of Object.keys(charLib)){
+1992:    const ch=charLib[k];if(!ch||isNarratorName(ch.name||k))continue;
+1993:    const current=getVoice(ch.voiceURI);
+1994:    if(ch.voiceURI&&current)continue; // respeta una asignación válida que el usuario ya hizo
+1995:    const pick=usable[stableSupertonicIndex(ch.name||k,usable.length)];
+1996:    if(pick){ch.voiceURI=pick.voiceURI||pick.name;changed++}
+1997:  }
+1998:  if(changed)saveLib();
+1999:  return changed;
+
+--- around line 1996 ---
+1992:    const ch=charLib[k];if(!ch||isNarratorName(ch.name||k))continue;
+1993:    const current=getVoice(ch.voiceURI);
+1994:    if(ch.voiceURI&&current)continue; // respeta una asignación válida que el usuario ya hizo
+1995:    const pick=usable[stableSupertonicIndex(ch.name||k,usable.length)];
+1996:    if(pick){ch.voiceURI=pick.voiceURI||pick.name;changed++}
+1997:  }
+1998:  if(changed)saveLib();
+1999:  return changed;
+2000: }
+2001: function getNarratorVoice(){
+
+--- around line 2062 ---
+2058: async function refreshVoicesManual(){
+2059:   const btn=$('#refreshVoicesBtn');
+2060:   const feedback=$('#voiceRefreshFeedback');
+2061:   if(!btn||btn.disabled)return;
+2062:   const before=(speechSynthesis.getVoices()||[]).map(v=>`${v.name}|${v.lang}|${v.voiceURI}`).sort().join('¦');
+2063:   const beforeCount=(speechSynthesis.getVoices()||[]).length;
+2064:   const started=new Date();
+2065:   btn.disabled=true;
+2066:   btn.classList.add('checking');
+2067:   btn.textContent='⟳ Comprobando…';
+
+--- around line 2078 ---
+2074:   loadVoices();
+2075:   await new Promise(r=>setTimeout(r,900));
+2076:   loadVoices();
+2077:   const afterVoices=speechSynthesis.getVoices()||[];
+2078:   const after=afterVoices.map(v=>`${v.name}|${v.lang}|${v.voiceURI}`).sort().join('¦');
+2079:   const st=getSupertonicVoices();
+2080:   const changed=before!==after;
+2081:   const clock=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+2082:   if(feedback){
+2083:     if(st.length){
+
+--- around line 2726 ---
+2722:    const sa=dv6SupertonicSpeakerNumber(a),sb=dv6SupertonicSpeakerNumber(b);
+2723:    if(sa&&sb)return sa-sb;if(sa)return -1;if(sb)return 1;
+2724:    return String(a.name||'').localeCompare(String(b.name||''));
+2725:  });
+2726:  return `<option value="">— Selecciona una voz —</option>`+list.map(v=>{const sid=dv6SupertonicSpeakerNumber(v);return `<option value="${esc(v.voiceURI||v.name)}" ${(v.voiceURI||v.name)===selected?'selected':''}>${sid?'★ ':''}${esc(v.name)} · ${esc(v.lang)}${v.localService?' · local':''}</option>`}).join('');
+2727: }
+2728: 
+2729: 
+2730: function renderCast(){
+2731:  const root=$('#castList');if(!root)return;root.innerHTML='';
+
+--- around line 2753 ---
+2749:          <div class="cast-description"><div class="label-mini">DESCRIPCIÓN DEL PERSONAJE</div>${esc(description)}</div>
+2750:          <div class="cast-voice-grid">
+2751:            <div class="char-summary-meta">${profileIsDefined(ch.profile)?esc(upperClosed(ch.profile)):'⚠ PERFIL DE VOZ POR CORREGIR'}${ch.accent?` · ${esc(upperClosed(ch.accent))}`:''}${ch.voiceTraits?` · ${esc(ch.voiceTraits)}`:''}</div>
+2752:            <div class="label">Voz del dispositivo</div>
+2753:            <div class="cast-voice-row"><select class="voice">${voiceOptions(ch.voiceURI)}</select><button class="btn small aqua test">Probar</button></div>
+2754:            <input class="testPhrase" value="${esc(ch.testPhrase||'Hola. Esta es mi voz de prueba en DramaVoice 6.')}" placeholder="Frase de prueba">
+2755:            <div class="voice-test-status"></div>
+2756:            <div class="label">Velocidad <span class="rateLabel">${Number(ch.rate||1).toFixed(2)}×</span></div><input class="rate" type="range" min=".65" max="1.35" step=".05" value="${ch.rate||1}">
+2757:            <div class="label">Tono <span class="pitchLabel">${Number(ch.pitch||1).toFixed(2)}</span></div><input class="pitch" type="range" min=".65" max="1.35" step=".05" value="${ch.pitch||1}">
+2758:          </div>
+
+--- around line 2760 ---
+2756:            <div class="label">Velocidad <span class="rateLabel">${Number(ch.rate||1).toFixed(2)}×</span></div><input class="rate" type="range" min=".65" max="1.35" step=".05" value="${ch.rate||1}">
+2757:            <div class="label">Tono <span class="pitchLabel">${Number(ch.pitch||1).toFixed(2)}</span></div><input class="pitch" type="range" min=".65" max="1.35" step=".05" value="${ch.pitch||1}">
+2758:          </div>
+2759:        </div></details>`;
+2760:      const saveVoice=()=>{charLib[k]={...charLib[k],name:charLib[k]?.name||displayName(name),voiceURI:c.querySelector('.voice').value,rate:Number(c.querySelector('.rate').value),pitch:Number(c.querySelector('.pitch').value),testPhrase:c.querySelector('.testPhrase').value};saveLib()};
+2761:      c.querySelector('.voice').onchange=saveVoice;c.querySelector('.testPhrase').oninput=saveVoice;
+2762:      c.querySelector('.rate').oninput=e=>{c.querySelector('.rateLabel').textContent=Number(e.target.value).toFixed(2)+'×';saveVoice()};
+2763:      c.querySelector('.pitch').oninput=e=>{c.querySelector('.pitchLabel').textContent=Number(e.target.value).toFixed(2);saveVoice()};
+2764:      c.querySelector('.test').onclick=()=>{saveVoice();previewVoice(name,c.querySelector('.testPhrase').value,c.querySelector('.voice-test-status'))};
+2765:      refreshCharacterPhotoCard(c,k,name);
+
+--- around line 2843 ---
+2839: }
+2840: let dv6PreviewToken=0;
+2841: function preferredPreviewVoice(characterName=''){
+2842:  const ch=characterRecordForName(characterName);
+2843:  return getVoice(ch?.voiceURI)||getNarratorVoice()||voices.find(v=>String(v.lang||'').toLowerCase().startsWith('es'))||voices[0]||null;
+2844: }
+2845: function previewPersonalPronunciation(characterKey,row){
+2846:  const ch=charLib[characterKey];if(!ch)return;
+2847:  const btn=row.querySelector('.character-pron-test');
+2848:  const feedback=row.closest('.character-pron-box')?.querySelector('.character-pron-feedback');
+
+--- around line 2896 ---
+2892:  if(!arr.length){root.innerHTML='<div class="card help">No hay personajes guardados. Los personajes se crean automáticamente al analizar una narración.</div>';return}
+2893:  arr.sort((a,b)=>a.name.localeCompare(b.name));
+2894: 
+2895:  for(const ch of arr){
+2896:    const k=norm(ch.name),v=voices.find(x=>(x.voiceURI||x.name)===ch.voiceURI),meta=compactCharacterMeta(ch);
+2897:    const c=document.createElement('div');c.className='card library-accordion';
+2898:    c.innerHTML=`<details class="char-collapse" data-key="${esc(k)}" ${openLibraryCharacter===k?'open':''}>
+2899:      <summary class="char-summary"><div class="char-summary-photo library-photo"><img class="libPhoto charPhoto" alt="${esc(ch.name)}" style="display:none"><span class="libFallback avatarFallback">${esc(initials(ch.name))}</span></div><div><div class="char-summary-name name-upper">${esc(characterDisplayName(ch,ch.name))}</div><div class="char-summary-meta">${esc(meta)
+2900:      <div class="char-detail">
+2901:        <div class="character-description"><div class="character-description-title">DESCRIPCIÓN NARRATIVA</div>${esc(ch.narrativeSummary||'DramaVoice irá completando aquí personalidad, gustos, vestuario y relaciones que la historia establezca explícitamente.')}</div>
+
+--- around line 2899 ---
+2895:  for(const ch of arr){
+2896:    const k=norm(ch.name),v=voices.find(x=>(x.voiceURI||x.name)===ch.voiceURI),meta=compactCharacterMeta(ch);
+2897:    const c=document.createElement('div');c.className='card library-accordion';
+2898:    c.innerHTML=`<details class="char-collapse" data-key="${esc(k)}" ${openLibraryCharacter===k?'open':''}>
+2899:      <summary class="char-summary"><div class="char-summary-photo library-photo"><img class="libPhoto charPhoto" alt="${esc(ch.name)}" style="display:none"><span class="libFallback avatarFallback">${esc(initials(ch.name))}</span></div><div><div class="char-summary-name name-upper">${esc(characterDisplayName(ch,ch.name))}</div><div class="char-summary-meta">${esc(meta)
+2900:      <div class="char-detail">
+2901:        <div class="character-description"><div class="character-description-title">DESCRIPCIÓN NARRATIVA</div>${esc(ch.narrativeSummary||'DramaVoice irá completando aquí personalidad, gustos, vestuario y relaciones que la historia establezca explícitamente.')}</div>
+2902:        <div class="library-compact-grid">
+2903:          <div>
+2904:            <div class="library-reaction-grid">${reactionSlotsMarkup('libphoto',k,ch.name)}</div>
+
+### rateInput: 0 matches
+
+### pitchInput: 0 matches
