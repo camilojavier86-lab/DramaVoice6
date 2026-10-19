@@ -39,6 +39,10 @@ jobs:
           ('NARRATOR',[r'^async function renderLibrary',r'openLibraryCharacter',r'libNarrator',r'narratorTest']),
           ('MIX',[r'Mezcla de sonido',r'Probar mezcla',r'duckingLevel',r'masterVolume'])
           ]
+          print('TARGETED_RANGES')
+          for a,b in [(120,220),(690,725),(816,852),(3910,3970),(6960,7090),(7090,7175),(8200,8290),(470,550)]:
+            for i in range(a-1,min(b,len(l))):
+              if len(l[i])<3000:print(f'RANGE {i+1:05d} {l[i][:2400]}')
           for name,pats in sections:
             print('SECTION',name)
             selected=set()
