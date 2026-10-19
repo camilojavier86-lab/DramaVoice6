@@ -1,19 +1,14 @@
 {
-  "version": 10107,
+  "version": 10108,
   "displayVersion": "1.1.1",
-  "build": "2026.10.05-10107",
-  "date": "5 oct 2026",
-  "title": "Biblioteca escalable y capas inteligentes",
+  "build": "2026.10.18-10108",
+  "date": "18 oct 2026",
+  "title": "Historia: limpiar al instante y pegar sin teclado",
   "updateRequired": false,
   "changes": [
-    "Descompone solicitudes de ambiente compuestas en capas independientes para buscar cada sonido por separado.",
-    "Usa la propia biblioteca para inferir si cada componente debe comportarse como Ambiente, SFX o Vocalización, permitiendo que el reconocimiento mejore a medida que crece la colección.",
-    "Amplía el reconocimiento de sonidos sin depender de una lista cerrada de acciones ni descartar coincidencias válidas por una familia demasiado estricta.",
-    "Conserva SFX normales cuando entra un diálogo y corta únicamente vocalizaciones que puedan invadir la voz.",
-    "Reutiliza efectos SFX ya detectados por el analizador dentro de la narración cuando corresponden a una acción que el narrador está contando.",
-    "Corrige el botón de prueba de sonido para que el estado de detener no vuelva a iniciar el audio.",
-    "Muestra en cada capa, con mayor tamaño, el sonido exacto que DramaVoice está buscando; si falta, lo indica explícitamente para poder agregarlo a la biblioteca.",
-    "Mantiene la caché de la biblioteca y la invalida únicamente al agregar, editar o eliminar sonidos para conservar rendimiento con colecciones grandes.",
-    "Actualización exclusivamente web: no modifica el APK, el puente Android, la firma ni los datos locales."
+    "El botón Pegar intenta leer el portapapeles directamente y no enfoca Historia ni abre el teclado.",
+    "El pegado automático depende del permiso del WebView hasta que se recupere la firma Android.",
+    "El botón Limpiar vacía Historia inmediatamente, sin solicitar una segunda confirmación.",
+    "Esta publicación web no cambia el APK: el ajuste de la barra de estado permanece pendiente."
   ]
 }

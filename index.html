@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>DramaVoice 6 v1.1.1</title>
-<meta name="dv6-version" content="10107">
+<meta name="dv6-version" content="10108">
 
 <meta name="theme-color" content="#07090d">
 <meta name="application-name" content="DramaVoice 6">
@@ -2287,7 +2287,7 @@ function analyze(){
 }
 
 $('#analyzeBtn').onclick=analyze;
-$('#clearBtn').onclick=()=>{const current=$('#story').value;if(current.trim()&&!confirm('¿Vaciar solamente el texto de Historia? La biblioteca de personajes, lugares y sonidos no se borrará.'))return;stopAll();$('#story').value='';localStorage.removeItem(STORY_KEY);scenes=[];activeScene=0;queueIndex=0;buildQueue();renderScenes();updatePlayer();$('#analyzeStatus').textContent='';updateHistoryCaptureUI('',false)};
+$('#clearBtn').onclick=()=>{stopAll();const story=$('#story');story.value='';story.blur();try{window.DramaVoiceNativeTTS?.hideKeyboard?.()}catch{}localStorage.removeItem(STORY_KEY);scenes=[];activeScene=0;queueIndex=0;buildQueue();renderScenes();updatePlayer();$('#analyzeStatus').textContent='';updateHistoryCaptureUI('',false)};
 
 function inferLegacySoundType(rec,label,family){
  const c=norm(rec?.category||'');
@@ -4099,9 +4099,21 @@ $('#testMixBtn').onclick=testAudioMix;
 
 $('#pasteBtn').onclick=async()=>{
  let text='';
- try{if(navigator.clipboard?.readText)text=await navigator.clipboard.readText()}catch{}
- if(text){$('#story').value=text;localStorage.setItem(STORY_KEY,text);updateHistoryCaptureUI(text,false);$('#analyzeStatus').textContent='Texto pegado. Listo para analizar.';$('#analyzeStatus').className='history-inline-status good';$('#story').focus()}
- else{$('#story').focus();$('#analyzeStatus').textContent='El navegador no permitió leer el portapapeles. Mantén pulsado en el cuadro y toca Pegar.';$('#analyzeStatus').className='history-inline-status warn'}
+ try{
+   const native=window.DramaVoiceNativeTTS;
+   if(native?.hideKeyboard)native.hideKeyboard();
+   if(native?.getClipboardText)text=String(native.getClipboardText()||'');
+ }catch{}
+ if(!text){try{if(navigator.clipboard?.readText)text=await navigator.clipboard.readText()}catch{}}
+ const story=$('#story');story.blur();
+ if(text){
+   story.value=text;localStorage.setItem(STORY_KEY,text);updateHistoryCaptureUI(text,false);
+   $('#analyzeStatus').textContent='Texto pegado. Listo para analizar.';
+   $('#analyzeStatus').className='history-inline-status good';
+ }else{
+   $('#analyzeStatus').textContent='No encontré texto disponible en el portapapeles.';
+   $('#analyzeStatus').className='history-inline-status warn';
+ }
 };
 $('#story').addEventListener('input',()=>updateHistoryCaptureUI($('#story').value,false));
 $('#copyGeneralPromptBtn').onclick=async()=>{const ok=await copyTextSmart(activeGeneralImagePrompt());const st=$('#characterPromptStatus');st.textContent=ok?'✓ Prompt general copiado.':'No se pudo copiar automáticamente.';st.className='status '+(ok?'good':'warn');setTimeout(()=>{st.textContent=''},1600)};
@@ -4160,7 +4172,7 @@ if(dv6InstallBtn)dv6InstallBtn.addEventListener('click',async()=>{
 dv6RefreshInstallUi();
 
 // v44 — actualizaciones inteligentes de la PWA
-const DV6_APP_VERSION=10107;
+const DV6_APP_VERSION=10108;
 const DV6_VERSION_URL='./version.json';
 let dv6UpdateInfo=null;
 let dv6UpdateRegistration=null;
