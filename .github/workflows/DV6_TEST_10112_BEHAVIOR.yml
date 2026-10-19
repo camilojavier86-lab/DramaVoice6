@@ -1,0 +1,103 @@
+name: DV6 10112 - pruebas de comportamiento (sin cambios)
+on:
+  push:
+    paths:
+      - '.github/workflows/DV6_TEST_10112_BEHAVIOR.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probar reproducción, detención, pegado y configuración
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re,subprocess,tempfile
+          s=Path('index.html').read_text(encoding='utf-8')
+          assert 'const DV6_APP_VERSION=10112;' in s
+          pronunciation=s[s.index('let dv6PronActive10112=null;'):s.index('function renderPronRules(){')]
+          clipboard=s[s.index('function dv6SavePaste10112(text){'):s.index("$('#story').addEventListener(")]
+          assert 'const DV6_MIX_10112=' in s
+          assert 'dialogos:{masterVolume:1' in s
+          assert 'cine:{masterVolume:1' in s
+          assert 'noche:{masterVolume:.65' in s
+          assert '<div class="dv6-player-exit-zone">' in s
+          assert s.index('id="playerBackBtn"')>s.index('id="wakeLockBadge"')
+          assert 'class="dv111-narrator-card"' in s
+          assert not re.search(r'<details class="char-collapse" data-key="[^"]*narratorKey\(\)[^"]*" open>',s)
+          with tempfile.TemporaryDirectory() as tmp:
+            d=Path(tmp)
+            (d/'pron.js').write_text(pronunciation,encoding='utf-8')
+            (d/'paste.js').write_text(clipboard,encoding='utf-8')
+            t=r"""
+            const assert=require('assert'),vm=require('vm'),fs=require('fs');
+            const pronunciation=fs.readFileSync(process.argv[2],'utf8');
+            const paste=fs.readFileSync(process.argv[3],'utf8');
+            const makeButton=()=>({textContent:'▶',attributes:{},setAttribute(k,v){this.attributes[k]=v}});
+            const status={textContent:'',className:''};
+            let lastUtterance=null,cancelCount=0;
+            class FakeUtterance{constructor(text){this.text=text;this.voice=null}}
+            const context={
+              playing:false,paused:false,previewing:false,dv6PreviewToken:0,
+              window:{speechSynthesis:{}},SpeechSynthesisUtterance:FakeUtterance,
+              speechSynthesis:{cancel:()=>cancelCount++,speak:u=>{lastUtterance=u;u.onstart?.()}},
+              configureUtterance:(u,who)=>{assert.strictEqual(who,'NARRADOR')},
+              preferredPreviewVoice:()=>({name:'Voz de prueba'}),
+              $:selector=>selector==='#pronTestStatus'?status:null,
+              setTimeout:fn=>fn()
+            };
+            vm.createContext(context);
+            vm.runInContext(pronunciation+'\\n;globalThis.__p= {play:dv6PlayPron10112,stop:dv6StopPron10112};',context);
+            const b=makeButton();
+            context.__p.play(b,'Dráma bois');
+            assert.strictEqual(b.textContent,'■');
+            assert.strictEqual(lastUtterance.text,'Dráma bois');
+            assert(status.textContent.includes('Reproduciendo'));
+            context.__p.play(b,'Dráma bois');
+            assert.strictEqual(b.textContent,'▶');
+            assert(cancelCount>0);
+            context.__p.play(b,'Col');
+            lastUtterance.onend();
+            assert.strictEqual(b.textContent,'▶');
+            assert.strictEqual(context.previewing,false);
+            console.log('PASS: Pronunciación empieza, reproduce texto exacto y se detiene.');
+            const nodes={
+              '#story':{value:'Historia anterior',blur(){}},
+              '#analyzeStatus':{textContent:'',className:''},
+              '#pasteFallback':{hidden:true},
+              '#pasteFallbackEditor':{value:'',blur(){}},
+              '#pasteBtn':{},'#applyManualPaste':{},'#cancelManualPaste':{}
+            };
+            const store={};
+            const clip={
+              navigator:{clipboard:{readText:async()=> 'Nueva historia del portapapeles'}},
+              window:{DramaVoiceNativeTTS:null},
+              $:selector=>nodes[selector],
+              STORY_KEY:'TEST-STORY',localStorage:{setItem:(k,v)=>{store[k]=v}},
+              updateHistoryCaptureUI:()=>{}
+            };
+            vm.createContext(clip);
+            vm.runInContext(paste,clip);
+            (async()=>{
+              await nodes['#pasteBtn'].onclick();
+              assert.strictEqual(nodes['#story'].value,'Nueva historia del portapapeles');
+              assert.strictEqual(store['TEST-STORY'],'Nueva historia del portapapeles');
+              assert.strictEqual(nodes['#pasteFallback'].hidden,true);
+              clip.navigator.clipboard.readText=async()=>{throw new Error('Clipboard denied')};
+              await nodes['#pasteBtn'].onclick();
+              assert.strictEqual(nodes['#pasteFallback'].hidden,false);
+              assert.strictEqual(nodes['#story'].value,'Nueva historia del portapapeles');
+              nodes['#pasteFallbackEditor'].value='Texto pegado manualmente';
+              nodes['#applyManualPaste'].onclick();
+              assert.strictEqual(nodes['#story'].value,'Texto pegado manualmente');
+              assert.strictEqual(nodes['#pasteFallback'].hidden,true);
+              console.log('PASS: portapapeles web, bloqueo Android y pegado manual sin pérdida.');
+            })().catch(e=>{console.error(e);process.exit(1)});
+            """
+            (d/'test.js').write_text(t,encoding='utf-8')
+            subprocess.run(['node',str(d/'test.js'),str(d/'pron.js'),str(d/'paste.js')],check=True)
+          PY
