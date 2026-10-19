@@ -1,15 +1,14 @@
 {
-  "version": 10109,
+  "version": 10110,
   "displayVersion": "1.1.1",
-  "build": "2026.10.19-10109",
+  "build": "2026.10.19-10110",
   "date": "19 oct 2026",
-  "title": "Perfiles vocales por personaje",
+  "title": "Nombres claros de voces",
   "updateRequired": false,
   "changes": [
-    "Estilos Natural, Grave, Sereno, Juvenil y Enérgico por personaje.",
-    "Al escoger un estilo, se guardan valores audibles de velocidad y tono y se escucha la frase de prueba.",
-    "Disponible en Biblioteca y Reparto. No altera la voz fija del narrador.",
-    "Conserva fotos, biblioteca, voces asignadas y controles manuales.",
-    "Actualización web: sin cambios de APK o firma."
+    "Los nombres de voz muestran idioma, origen local/red y Masculina, Femenina o Sin clasificar.",
+    "Las voces que no indican género se pueden escuchar y etiquetar desde la ficha del personaje.",
+    "La etiqueta se guarda una vez para toda la aplicación y no modifica el identificador real de la voz.",
+    "Sin modificaciones de APK, firma, motor de voces o bibliotecas."
   ]
 }

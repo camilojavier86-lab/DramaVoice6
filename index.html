@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>DramaVoice 6 v1.1.1</title>
-<meta name="dv6-version" content="10109">
+<meta name="dv6-version" content="10110">
 
 <meta name="theme-color" content="#07090d">
 <meta name="application-name" content="DramaVoice 6">
@@ -641,6 +641,13 @@ details.scene-details summary{cursor:pointer;color:#c9d4e5;font-weight:800;font-
 .dv6-vocal-preset[aria-pressed="true"]{border-color:#c9a2ff;background:#6945c5;color:white}
 .dv6-vocal-help{font-size:12px;line-height:1.35;color:#b8ccda;margin-top:9px}
 @media(min-width:540px){.dv6-vocal-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+</style>
+
+<style id="dv6-10110-voice-names">
+.dv6-voice-gender-10110{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:10px 0 16px}
+.dv6-voice-gender-10110 label{font-size:13px;font-weight:750;color:#a2e8e7}
+.dv6-voice-gender-10110 select{flex:1;min-width:146px;padding:11px;border-radius:11px;border:1px solid #425164;background:#0d1725;color:#f5f8fc;font:inherit;font-size:14px}
+.dv6-voice-gender-10110 small{width:100%;color:#afc0ce;font-size:12px;line-height:1.45}
 </style>
 </head>
 <body>
@@ -2726,6 +2733,71 @@ function renderSceneSoundEditor(root,scene,sceneIndex,lib){
 
 function refreshActiveQueue(sceneIndex){buildQueue();if(sceneIndex===activeScene)updatePlayer()}
 
+
+// DV6 10110: las etiquetas son metadatos de presentación, no nombres Android.
+const DV6_GENDER_KEY_10110='dramavoice6-voice-genders-v1';
+let dv6VoiceGenders10110=(()=>{
+  try{
+    const data=JSON.parse(localStorage.getItem(DV6_GENDER_KEY_10110)||'{}');
+    return data && typeof data==='object' && !Array.isArray(data)?data:{};
+  }catch(e){return {}}
+})();
+function dv6VoiceId10110(v){return String(v?.voiceURI||v?.name||'')}
+function dv6VoiceGender10110(v){
+  const id=dv6VoiceId10110(v);
+  const saved=dv6VoiceGenders10110[id];
+  if(saved==='Masculina'||saved==='Femenina')return saved;
+  if(/#female(?:_\d+)?/i.test(id))return 'Femenina';
+  if(/#male(?:_\d+)?/i.test(id))return 'Masculina';
+  return 'Sin clasificar';
+}
+function dv6VoiceFriendly10110(v){
+  const original=String(v.name||'Voz');
+  const shortName=original.replace(/\s*[·|]\s*[a-z]{2}[-_][a-z]{2}[-_].*$/i,'').trim()||original;
+  const country=String(v.lang||'').toLowerCase().startsWith('es-es')?'España':
+    String(v.lang||'').toLowerCase().startsWith('es-us')?'EE. UU.':
+    String(v.lang||'').toLowerCase().startsWith('es-')?'Español':String(v.lang||'');
+  const type=v.localService?'Local':'Red';
+  return [shortName,dv6VoiceGender10110(v),country,type].filter(Boolean).join(' · ');
+}
+const DV6_GENDER_FIELD_10110='<div class="dv6-voice-gender-10110">'+
+  '<label>Esta voz</label><select class="dv6Gender10110" aria-label="Clasificación de la voz">'+
+  '<option value="">Sin clasificar</option><option value="Masculina">Masculina</option>'+
+  '<option value="Femenina">Femenina</option></select>'+
+  '<small>Escucha con Probar y clasifica una sola vez. El nombre se actualizará en todos los personajes.</small></div>';
+function dv6RefreshVoiceLabels10110(){
+  for(const select of document.querySelectorAll('select.voice,select.libVoice')){
+    for(const option of select.options){
+      const voice=voices.find(v=>dv6VoiceId10110(v)===option.value);
+      if(voice)option.textContent=dv6VoiceFriendly10110(voice);
+    }
+  }
+}
+function dv6BindGender10110(card,voiceSelector){
+  const voiceEl=card.querySelector(voiceSelector);
+  const genderEl=card.querySelector('.dv6Gender10110');
+  if(!voiceEl||!genderEl)return;
+  const sync=()=>{
+    const voice=voices.find(v=>dv6VoiceId10110(v)===voiceEl.value);
+    const key=voice?dv6VoiceId10110(voice):voiceEl.value;
+    const kind=voice?dv6VoiceGender10110(voice):dv6VoiceGenders10110[key]||'Sin clasificar';
+    genderEl.value=kind==='Masculina'||kind==='Femenina'?kind:'';
+    genderEl.disabled=!key;
+  };
+  voiceEl.addEventListener('change',sync);
+  genderEl.addEventListener('change',()=>{
+    const voice=voices.find(v=>dv6VoiceId10110(v)===voiceEl.value);
+    const key=voice?dv6VoiceId10110(voice):voiceEl.value;
+    if(!key)return;
+    if(genderEl.value==='Masculina'||genderEl.value==='Femenina'){
+      dv6VoiceGenders10110[key]=genderEl.value;
+    }else delete dv6VoiceGenders10110[key];
+    localStorage.setItem(DV6_GENDER_KEY_10110,JSON.stringify(dv6VoiceGenders10110));
+    dv6RefreshVoiceLabels10110();sync();
+  });
+  sync();
+}
+
 function voiceOptions(selected){
  const f=$('#langFilter').value;
  const list=voices.filter(v=>!f||String(v.lang||'').toLowerCase().startsWith(f)).sort((a,b)=>{
@@ -2733,7 +2805,7 @@ function voiceOptions(selected){
    if(sa&&sb)return sa-sb;if(sa)return -1;if(sb)return 1;
    return String(a.name||'').localeCompare(String(b.name||''));
  });
- return `<option value="">— Selecciona una voz —</option>`+list.map(v=>{const sid=dv6SupertonicSpeakerNumber(v);return `<option value="${esc(v.voiceURI||v.name)}" ${(v.voiceURI||v.name)===selected?'selected':''}>${sid?'★ ':''}${esc(v.name)} · ${esc(v.lang)}${v.localService?' · local':''}</option>`}).join('');
+ return `<option value="">— Selecciona una voz —</option>`+list.map(v=>{const sid=dv6SupertonicSpeakerNumber(v);return `<option value="${esc(v.voiceURI||v.name)}" ${(v.voiceURI||v.name)===selected?'selected':''}>${sid?'★ ':''}${esc(dv6VoiceFriendly10110(v))}</option>`}).join('');
 }
 
 
@@ -2794,6 +2866,7 @@ function renderCast(){
            <div class="char-summary-meta">${profileIsDefined(ch.profile)?esc(upperClosed(ch.profile)):'⚠ PERFIL DE VOZ POR CORREGIR'}${ch.accent?` · ${esc(upperClosed(ch.accent))}`:''}${ch.voiceTraits?` · ${esc(ch.voiceTraits)}`:''}</div>
            <div class="label">Voz del dispositivo</div>
            <div class="cast-voice-row"><select class="voice">${voiceOptions(ch.voiceURI)}</select><button class="btn small aqua test">Probar</button></div>
+            ${isNarratorName(name)?"":DV6_GENDER_FIELD_10110}
            <input class="testPhrase" value="${esc(ch.testPhrase||'Hola. Esta es mi voz de prueba en DramaVoice 6.')}" placeholder="Frase de prueba">
            <div class="voice-test-status"></div>
            <div class="label">Velocidad <span class="rateLabel">${Number(ch.rate||1).toFixed(2)}×</span></div><input class="rate" type="range" min=".65" max="1.35" step=".05" value="${ch.rate||1}">
@@ -2806,6 +2879,7 @@ function renderCast(){
      c.querySelector('.rate').oninput=e=>{c.querySelector('.rateLabel').textContent=Number(e.target.value).toFixed(2)+'×';saveVoice()};
      c.querySelector('.pitch').oninput=e=>{c.querySelector('.pitchLabel').textContent=Number(e.target.value).toFixed(2);saveVoice()};
      c.querySelector('.test').onclick=()=>{saveVoice();previewVoice(name,c.querySelector('.testPhrase').value,c.querySelector('.voice-test-status'))};
+      if(!isNarratorName(name))dv6BindGender10110(c,'.voice');
       if(!isNarratorName(name))dv6WirePresets10109(c,'.rate','.pitch','.test');
      refreshCharacterPhotoCard(c,k,name);
    }
@@ -2965,6 +3039,7 @@ async function renderLibrary(){
            <div class="library-voice-box">
              <div class="label">Voz del dispositivo</div>
              <div class="voice-line"><select class="libVoice">${voiceOptions(ch.voiceURI)}</select><button class="btn small aqua libTest">Probar</button></div>
+              ${isNarratorName(ch.name)?"":DV6_GENDER_FIELD_10110}
              <input class="libTestPhrase" value="${esc(ch.testPhrase||'Hola. Esta es mi voz de prueba en DramaVoice 6.')}" placeholder="Frase de prueba">
              <div class="voice-test-status"></div>
              <div class="label">Velocidad <span class="libRateLabel">${Number(ch.rate||1).toFixed(2)}×</span></div><input class="libRate" type="range" min=".65" max="1.35" step=".05" value="${ch.rate||1}">
@@ -2990,6 +3065,7 @@ async function renderLibrary(){
    c.querySelector('.libRate').oninput=e=>{c.querySelector('.libRateLabel').textContent=Number(e.target.value).toFixed(2)+'×';saveMeta()};
    c.querySelector('.libPitch').oninput=e=>{c.querySelector('.libPitchLabel').textContent=Number(e.target.value).toFixed(2);saveMeta()};
    c.querySelector('.libTest').onclick=()=>{saveMeta();previewVoice(ch.name,c.querySelector('.libTestPhrase').value,c.querySelector('.voice-test-status'))};
+    if(!isNarratorName(ch.name))dv6BindGender10110(c,'.libVoice');
     if(!isNarratorName(ch.name))dv6WirePresets10109(c,'.libRate','.libPitch','.libTest');
 
    await refreshCharacterPhotoCard(c,k,ch.name);
@@ -4219,7 +4295,7 @@ if(dv6InstallBtn)dv6InstallBtn.addEventListener('click',async()=>{
 dv6RefreshInstallUi();
 
 // v44 — actualizaciones inteligentes de la PWA
-const DV6_APP_VERSION=10109;
+const DV6_APP_VERSION=10110;
 const DV6_VERSION_URL='./version.json';
 let dv6UpdateInfo=null;
 let dv6UpdateRegistration=null;
