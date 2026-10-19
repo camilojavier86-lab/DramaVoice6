@@ -1,0 +1,327 @@
+name: DramaVoice6 10108 - Hotfix aislado (3 correcciones)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  hotfix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout exacto de la base estable
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Comprobar que web sigue siendo build10107
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object index.html)" = "62372ed010742ecc177c1f49fe35f0346cd7d444"
+          test "$(git hash-object version.json)" = "85a2b8b5e463b7e4804e4023364acecd8974f097"
+          test "$(git hash-object service-worker.js)" = "0ecbd63d2c015e85d42039b63b9784a7317a3b90"
+          test "$(git hash-object .github/workflows/DramaVoice6_v54_ANDROID_TTS.yml)" = "1d59484518bdab25b52a75ea95cf4e5b46ddbe61"
+          test -z "$(git status --porcelain)"
+          echo "Base 10107 verificada. No se modifica ninguna función existente."
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Recuperar exclusivamente la clave Android original
+        id: signing
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: dramavoice6-signing-v54-v1
+
+      - name: Bloquear compilación si falta o cambia la firma
+        shell: bash
+        env:
+          SIGNING_CACHE_HIT: ${{ steps.signing.outputs.cache-hit }}
+        run: |
+          set -euo pipefail
+          if [ "$SIGNING_CACHE_HIT" != "true" ] || [ ! -s "$HOME/.android/debug.keystore" ]; then
+            echo "::error::No está disponible la clave original; no se crea ninguna clave nueva."
+            exit 1
+          fi
+          EXPECTED="D1:19:8A:C5:72:A1:CB:97:EB:69:00:A8:1D:0E:01:CE:B8:96:E9:CF:AE:5D:42:25:01:49:9B:12:80:5D:71:2C"
+          keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey > /tmp/dv6-key-check.txt
+          ACTUAL="$(sed -n 's/.*SHA256: //p' /tmp/dv6-key-check.txt | head -1 | tr -d '\r')"
+          test "$ACTUAL" = "$EXPECTED" || { echo "::error::Firma distinta; cancelado."; exit 1; }
+          printf 'SHA256: %s\n' "$ACTUAL" > DV6_SIGNING_FINGERPRINT.txt
+          echo "Se conservará el mismo certificado de la instalación Android."
+
+      - name: Reutilizar proyecto Android v54 exacto sin alterar voces
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY_EXTRACT'
+          from pathlib import Path
+          import re
+          s = Path('.github/workflows/DramaVoice6_v54_ANDROID_TTS.yml').read_text(encoding='utf-8')
+          m = re.search(r'(?ms)^      - name: Create Android v54 project\n        shell: bash\n        run: \|\n(.*?)(?=^      - name: Validate v54 voice architecture\n)', s)
+          if not m:
+              raise SystemExit('ERROR: no se pudo identificar el Android v54 estable.')
+          lines = m.group(1).splitlines()
+          script=[]
+          for line in lines:
+              if line.strip() and not line.startswith('          '):
+                  raise SystemExit('ERROR: indentación inesperada en fuente Android.')
+              script.append(line[10:] if len(line)>=10 else '')
+          Path('/tmp/dv6-v54-source.sh').write_text('\n'.join(script)+'\n',encoding='utf-8')
+          print('Android v54 extraído sin modificar el puente de voces.')
+          PY_EXTRACT
+          bash /tmp/dv6-v54-source.sh
+
+      - name: Aplicar exclusivamente insets y portapapeles al Android v55
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY_NATIVE'
+          from pathlib import Path
+          def one(s,old,new,label):
+              count=s.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: se esperaba exactamente 1 coincidencia; encontradas {count}')
+              return s.replace(old,new,1)
+
+          gradle=Path('app/build.gradle.kts')
+          g=gradle.read_text(encoding='utf-8')
+          g=one(g,'versionCode = 54','versionCode = 55','versionCode')
+          g=one(g,'versionName = "54.0"','versionName = "55.0"','versionName')
+          gradle.write_text(g,encoding='utf-8')
+
+          java=Path('app/src/main/java/com/dramavoice6/nativeapp/MainActivity.java')
+          s=java.read_text(encoding='utf-8')
+          s=one(s,'import android.content.Context;','import android.content.Context;\nimport android.content.ClipboardManager;','ClipboardManager')
+          s=one(s,'import android.os.Bundle;','import android.os.Bundle;\nimport android.os.Build;','Build')
+          s=one(s,'import android.webkit.WebViewClient;','import android.webkit.WebViewClient;\nimport android.view.WindowInsets;\nimport android.view.inputmethod.InputMethodManager;\nimport android.widget.FrameLayout;','Insets imports')
+          s=one(s,'setContentView(webView);',"""FrameLayout root = new FrameLayout(this);
+                  root.setBackgroundColor(Color.rgb(7, 9, 13));
+                  root.addView(webView, new FrameLayout.LayoutParams(
+                          FrameLayout.LayoutParams.MATCH_PARENT,
+                          FrameLayout.LayoutParams.MATCH_PARENT
+                  ));
+                  root.setOnApplyWindowInsetsListener((view, insets) -> {
+                      int top;
+                      int left;
+                      int right;
+                      if (Build.VERSION.SDK_INT >= 30) {
+                          android.graphics.Insets sys = insets.getInsets(
+                                  WindowInsets.Type.statusBars() | WindowInsets.Type.displayCutout());
+                          top = sys.top;
+                          left = sys.left;
+                          right = sys.right;
+                      } else {
+                          top = insets.getSystemWindowInsetTop();
+                          left = insets.getSystemWindowInsetLeft();
+                          right = insets.getSystemWindowInsetRight();
+                      }
+                      view.setPadding(left, top, right, 0);
+                      return insets;
+                  });
+                  setContentView(root);
+                  root.requestApplyInsets();""",'Android window insets')
+          s=one(s,'@JavascriptInterface\n                  public void stop()',"""@JavascriptInterface
+                  public String getClipboardText() {
+                      try {
+                          ClipboardManager manager = (ClipboardManager)
+                                  context.getSystemService(Context.CLIPBOARD_SERVICE);
+                          if (manager == null || !manager.hasPrimaryClip()
+                                  || manager.getPrimaryClip() == null
+                                  || manager.getPrimaryClip().getItemCount() < 1) return "";
+                          CharSequence value = manager.getPrimaryClip().getItemAt(0).coerceToText(context);
+                          return value == null ? "" : value.toString();
+                      } catch (Exception e) {
+                          return "";
+                      }
+                  }
+
+                  @JavascriptInterface
+                  public void hideKeyboard() {
+                      runOnUiThread(() -> {
+                          try {
+                              InputMethodManager imm = (InputMethodManager)
+                                      context.getSystemService(Context.INPUT_METHOD_SERVICE);
+                              if (imm != null && webView != null)
+                                  imm.hideSoftInputFromWindow(webView.getWindowToken(), 0);
+                              if (webView != null) webView.clearFocus();
+                          } catch (Exception ignored) {}
+                      });
+                  }
+
+                  @JavascriptInterface
+                  public void stop()""",'Android clipboard bridge')
+          java.write_text(s,encoding='utf-8')
+
+          js=Path('app/src/main/assets/native-bridge.js')
+          source=js.read_text(encoding='utf-8')
+          new=one(source,"if(sub)sub.textContent='v54 · Android TTS nativo';","if(sub)sub.textContent='v55 · Android TTS nativo';",'Etiqueta v55')
+          new=one(new,"if(versionLine)versionLine.textContent='Versión instalada: v54 Android TTS';","if(versionLine)versionLine.textContent='Versión instalada: v55 Android TTS';",'Versión visible')
+          js.write_text(new,encoding='utf-8')
+          assert new.replace("if(sub)sub.textContent='v55 · Android TTS nativo';","if(sub)sub.textContent='v54 · Android TTS nativo';").replace("if(versionLine)versionLine.textContent='Versión instalada: v55 Android TTS';","if(versionLine)versionLine.textContent='Versión instalada: v54 Android TTS';")==source
+          assert 'applicationId = "com.dramavoice6.nativeapp"' in g
+          assert 'targetSdk = 35' in g
+          print('Solo MainActivity, versión APK y dos etiquetas visuales; motor TTS intacto.')
+          PY_NATIVE
+          grep -q 'WindowInsets.Type.statusBars()' app/src/main/java/com/dramavoice6/nativeapp/MainActivity.java
+          grep -q 'public String getClipboardText()' app/src/main/java/com/dramavoice6/nativeapp/MainActivity.java
+          grep -q 'public void hideKeyboard()' app/src/main/java/com/dramavoice6/nativeapp/MainActivity.java
+          grep -q 'new TextToSpeech(context, status ->' app/src/main/java/com/dramavoice6/nativeapp/MainActivity.java
+          grep -q 'Set<Voice> voiceSet = tts.getVoices()' app/src/main/java/com/dramavoice6/nativeapp/MainActivity.java
+
+      - name: Instalar Gradle 8.9
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L --fail --retry 4 "https://services.gradle.org/distributions/gradle-8.9-bin.zip" -o gradle.zip
+          unzip -q gradle.zip
+
+      - name: Compilar APK compatible con instalación actual
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./gradle-8.9/bin/gradle --no-daemon :app:assembleDebug
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          SIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          test -x "$SIGNER"
+          "$SIGNER" verify --print-certs "$APK" > DV6_APK_SIGNER.txt
+          cat DV6_APK_SIGNER.txt
+          EXPECTED=D1198AC572A1CB97EB6900A81D0E01CEB896E9CFAE5D422501499B12805D712C
+          ACTUAL="$(sed -n 's/Signer #1 certificate SHA-256 digest: //p' DV6_APK_SIGNER.txt | head -1 | tr '[:lower:]' '[:upper:]' | tr -d '\r')"
+          test "$ACTUAL" = "$EXPECTED" || { echo "::error::Firma APK no coincide con la app instalada."; exit 1; }
+          cp "$APK" DramaVoice6-v55-HOTFIX10108.apk
+
+      - name: Entregar APK sin tocar datos ni caché
+        uses: actions/upload-artifact@v4
+        with:
+          name: DramaVoice6-v55-HOTFIX10108
+          path: |
+            DramaVoice6-v55-HOTFIX10108.apk
+            DV6_SIGNING_FINGERPRINT.txt
+            DV6_APK_SIGNER.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publicar web build10108
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object index.html)" = "62372ed010742ecc177c1f49fe35f0346cd7d444"
+          test "$(git hash-object version.json)" = "85a2b8b5e463b7e4804e4023364acecd8974f097"
+          test "$(git hash-object service-worker.js)" = "0ecbd63d2c015e85d42039b63b9784a7317a3b90"
+
+          python - <<'PY_WEB'
+          from pathlib import Path
+          import json
+          
+          def rep_once(text, old, new, label):
+              n=text.count(old)
+              if n!=1:
+                  raise SystemExit(f"{label}: esperaba 1 coincidencia y encontré {n}")
+              return text.replace(old,new,1)
+          
+          p=Path("index.html")
+          text=p.read_text(encoding="utf-8")
+          
+          old_clear="""$('#clearBtn').onclick=()=>{const current=$('#story').value;if(current.trim()&&!confirm('¿Vaciar solamente el texto de Historia? La biblioteca de personajes, lugares y sonidos no se borrará.'))return;stopAll();$('#story').value='';localStorage.removeItem(STORY_KEY);scenes=[];activeScene=0;queueIndex=0;buildQueue();renderScenes();updatePlayer();$('#analyzeStatus').textContent='';updateHistoryCaptureUI('',false)};"""
+          new_clear="""$('#clearBtn').onclick=()=>{stopAll();const story=$('#story');story.value='';story.blur();try{window.DramaVoiceNativeTTS?.hideKeyboard?.()}catch{}localStorage.removeItem(STORY_KEY);scenes=[];activeScene=0;queueIndex=0;buildQueue();renderScenes();updatePlayer();$('#analyzeStatus').textContent='';updateHistoryCaptureUI('',false)};"""
+          text=rep_once(text,old_clear,new_clear,"botón Limpiar")
+          
+          old_paste="""$('#pasteBtn').onclick=async()=>{
+           let text='';
+           try{if(navigator.clipboard?.readText)text=await navigator.clipboard.readText()}catch{}
+           if(text){$('#story').value=text;localStorage.setItem(STORY_KEY,text);updateHistoryCaptureUI(text,false);$('#analyzeStatus').textContent='Texto pegado. Listo para analizar.';$('#analyzeStatus').className='history-inline-status good';$('#story').focus()}
+           else{$('#story').focus();$('#analyzeStatus').textContent='El navegador no permitió leer el portapapeles. Mantén pulsado en el cuadro y toca Pegar.';$('#analyzeStatus').className='history-inline-status warn'}
+          };"""
+          new_paste="""$('#pasteBtn').onclick=async()=>{
+           let text='';
+           try{
+             const native=window.DramaVoiceNativeTTS;
+             if(native?.hideKeyboard)native.hideKeyboard();
+             if(native?.getClipboardText)text=String(native.getClipboardText()||'');
+           }catch{}
+           if(!text){try{if(navigator.clipboard?.readText)text=await navigator.clipboard.readText()}catch{}}
+           const story=$('#story');story.blur();
+           if(text){
+             story.value=text;localStorage.setItem(STORY_KEY,text);updateHistoryCaptureUI(text,false);
+             $('#analyzeStatus').textContent='Texto pegado. Listo para analizar.';
+             $('#analyzeStatus').className='history-inline-status good';
+           }else{
+             $('#analyzeStatus').textContent='No encontré texto disponible en el portapapeles.';
+             $('#analyzeStatus').className='history-inline-status warn';
+           }
+          };"""
+          text=rep_once(text,old_paste,new_paste,"botón Pegar")
+          text=rep_once(text,'<meta name="dv6-version" content="10107">','<meta name="dv6-version" content="10108">',"meta versión")
+          text=rep_once(text,'const DV6_APP_VERSION=10107;','const DV6_APP_VERSION=10108;',"versión JS")
+          p.write_text(text,encoding="utf-8")
+          
+          version={
+            "version":10108,
+            "displayVersion":"1.1.1",
+            "build":"2026.10.18-10108",
+            "date":"18 oct 2026",
+            "title":"Interfaz Android segura y pegado directo",
+            "updateRequired":False,
+            "changes":[
+              "La app Android respeta la barra superior del sistema y ya no dibuja DramaVoice debajo de la hora, notificaciones o batería.",
+              "El botón Pegar toma directamente el texto del portapapeles de Android sin enfocar el cuadro ni abrir el teclado.",
+              "Mantiene como respaldo la API web del portapapeles cuando DramaVoice se usa fuera del APK.",
+              "El botón Limpiar vacía Historia inmediatamente, sin solicitar una segunda confirmación.",
+              "No modifica voces, personajes, sonidos, biblioteca, escenas ni la lógica de reproducción de build10107."
+            ]
+          }
+          Path("version.json").write_text(json.dumps(version,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          
+          sw=Path("service-worker.js")
+          s=sw.read_text(encoding="utf-8")
+          s=rep_once(s,"1.1.1-10107","1.1.1-10108","service worker")
+          sw.write_text(s,encoding="utf-8")
+          
+          PY_WEB
+
+          grep -q '<meta name="dv6-version" content="10108">' index.html
+          grep -q 'const DV6_APP_VERSION=10108;' index.html
+          grep -q 'native?.getClipboardText' index.html
+          grep -q 'No encontré texto disponible en el portapapeles.' index.html
+          ! grep -q "¿Vaciar solamente el texto de Historia?" index.html
+
+          python - <<'PY_JS'
+          from pathlib import Path
+          import re,subprocess,tempfile
+          html=Path('index.html').read_text(encoding='utf-8')
+          blocks=[]
+          for m in re.finditer(r'<script(?:\s[^>]*)?>(.*?)</script>',html,re.S|re.I):
+              if 'src=' in m.group(0).split('>')[0].lower():
+                  continue
+              if m.group(1).strip():
+                  blocks.append(m.group(1))
+          with tempfile.TemporaryDirectory() as d:
+              for i,body in enumerate(blocks,1):
+                  q=Path(d)/f'{i:02d}.js'
+                  q.write_text(body,encoding='utf-8')
+                  subprocess.run(['node','--check',str(q)],check=True)
+          print(f'OK: {len(blocks)} bloques JavaScript válidos.')
+          PY_JS
+
+          python -m json.tool version.json >/dev/null
+          node --check service-worker.js
+          git diff --check
+          BAD="$(git diff --name-only | grep -vE '^(index\.html|version\.json|service-worker\.js)$' || true)"
+          test -z "$BAD"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html version.json service-worker.js
+          git commit -m "DramaVoice 6 build10108: barra del sistema y pegado directo"
+          git push
+
