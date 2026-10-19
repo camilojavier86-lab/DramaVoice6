@@ -1,14 +1,15 @@
 {
-  "version": 10110,
+  "version": 10111,
   "displayVersion": "1.1.1",
-  "build": "2026.10.19-10110",
+  "build": "2026.10.19-10111",
   "date": "19 oct 2026",
-  "title": "Nombres claros de voces",
+  "title": "Ficha de personajes y voces por género",
   "updateRequired": false,
   "changes": [
-    "Los nombres de voz muestran idioma, origen local/red y Masculina, Femenina o Sin clasificar.",
-    "Las voces que no indican género se pueden escuchar y etiquetar desde la ficha del personaje.",
-    "La etiqueta se guarda una vez para toda la aplicación y no modifica el identificador real de la voz.",
-    "Sin modificaciones de APK, firma, motor de voces o bibliotecas."
+    "Prompt de personaje: nombre completo, género gramatical, edad, estatura, residencia y descripción visual.",
+    "No confunde religión ni residencia con nacionalidad. No inventa acento ni timbre de voz.",
+    "Revisa prompts ya guardados y completa solo campos que faltan sin cambiar valores manuales.",
+    "Filtra voces femeninas y masculinas, separa las no clasificadas y conserva siempre la selección previa.",
+    "Actualización web sin APK ni modificaciones de audio y biblioteca."
   ]
 }
