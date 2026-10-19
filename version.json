@@ -1,14 +1,15 @@
 {
-  "version": 10108,
+  "version": 10109,
   "displayVersion": "1.1.1",
-  "build": "2026.10.18-10108",
-  "date": "18 oct 2026",
-  "title": "Historia: limpiar al instante y pegar sin teclado",
+  "build": "2026.10.19-10109",
+  "date": "19 oct 2026",
+  "title": "Perfiles vocales por personaje",
   "updateRequired": false,
   "changes": [
-    "El botón Pegar intenta leer el portapapeles directamente y no enfoca Historia ni abre el teclado.",
-    "El pegado automático depende del permiso del WebView hasta que se recupere la firma Android.",
-    "El botón Limpiar vacía Historia inmediatamente, sin solicitar una segunda confirmación.",
-    "Esta publicación web no cambia el APK: el ajuste de la barra de estado permanece pendiente."
+    "Estilos Natural, Grave, Sereno, Juvenil y Enérgico por personaje.",
+    "Al escoger un estilo, se guardan valores audibles de velocidad y tono y se escucha la frase de prueba.",
+    "Disponible en Biblioteca y Reparto. No altera la voz fija del narrador.",
+    "Conserva fotos, biblioteca, voces asignadas y controles manuales.",
+    "Actualización web: sin cambios de APK o firma."
   ]
 }

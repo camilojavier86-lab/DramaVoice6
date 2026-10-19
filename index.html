@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>DramaVoice 6 v1.1.1</title>
-<meta name="dv6-version" content="10108">
+<meta name="dv6-version" content="10109">
 
 <meta name="theme-color" content="#07090d">
 <meta name="application-name" content="DramaVoice 6">
@@ -631,6 +631,16 @@ details.scene-details summary{cursor:pointer;color:#c9d4e5;font-weight:800;font-
  .character-pron-labels,.character-pron-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 48px 28px}
 }
 
+</style>
+
+<style id="dv6-10109-vocal-css">
+.dv6-vocal-presets{padding:13px;margin-top:15px;border:1px solid #275d66;border-radius:15px;background:rgba(15,53,64,.35)}
+.dv6-vocal-presets-title{color:#8ef0e9;font-weight:750;margin-bottom:9px;font-size:14px}
+.dv6-vocal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.dv6-vocal-preset{font:inherit;font-weight:700;font-size:13px;min-height:45px;border-radius:11px;padding:9px 7px;border:1px solid #3b4e65;background:#182534;color:#e8f3fb;cursor:pointer;touch-action:manipulation}
+.dv6-vocal-preset[aria-pressed="true"]{border-color:#c9a2ff;background:#6945c5;color:white}
+.dv6-vocal-help{font-size:12px;line-height:1.35;color:#b8ccda;margin-top:9px}
+@media(min-width:540px){.dv6-vocal-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 </style>
 </head>
 <body>
@@ -2727,6 +2737,39 @@ function voiceOptions(selected){
 }
 
 
+
+// DV6 10109: perfiles de tono/velocidad compatibles con APK v54.
+const DV6_VOICE_PRESETS_10109=[
+  ['Natural',1,1],['Grave',.82,.76],['Sereno',.76,.93],
+  ['Juvenil',1.13,1.25],['Enérgico',1.27,1.09]
+];
+const DV6_VOICE_PRESETS_HTML='<div class="dv6-vocal-presets"><div class="dv6-vocal-presets-title">Estilo vocal · Toca para escuchar</div><div class="dv6-vocal-grid">'+
+  DV6_VOICE_PRESETS_10109.map((p,i)=>'<button type="button" class="dv6-vocal-preset" data-dv6-preset="'+i+'">'+p[0]+'</button>').join('')+
+  '</div><div class="dv6-vocal-help">Cambia tono y ritmo sin cambiar la voz. Los ajustes manuales siguen disponibles.</div></div>';
+function dv6WirePresets10109(card,rateSelector,pitchSelector,testSelector){
+  const rate=card.querySelector(rateSelector),pitch=card.querySelector(pitchSelector);
+  if(!rate||!pitch)return;
+  const buttons=Array.from(card.querySelectorAll('[data-dv6-preset]'));
+  const refresh=()=>{
+    buttons.forEach(b=>{
+      const p=DV6_VOICE_PRESETS_10109[Number(b.dataset.dv6Preset)];
+      const active=p&&Math.abs(Number(rate.value)-p[1])<.005&&Math.abs(Number(pitch.value)-p[2])<.005;
+      b.setAttribute('aria-pressed',String(!!active));
+    });
+  };
+  buttons.forEach(b=>b.onclick=()=>{
+    const p=DV6_VOICE_PRESETS_10109[Number(b.dataset.dv6Preset)];if(!p)return;
+    rate.value=String(p[1]);pitch.value=String(p[2]);
+    rate.dispatchEvent(new Event('input',{bubbles:true}));
+    pitch.dispatchEvent(new Event('input',{bubbles:true}));
+    refresh();
+    const test=card.querySelector(testSelector);if(test)test.click();
+  });
+  rate.addEventListener('input',refresh);
+  pitch.addEventListener('input',refresh);
+  refresh();
+}
+
 function renderCast(){
  const root=$('#castList');if(!root)return;root.innerHTML='';
  const head=$('#castChapterHeading');if(head)head.textContent=chapterTitle||'CAPÍTULO';
@@ -2755,6 +2798,7 @@ function renderCast(){
            <div class="voice-test-status"></div>
            <div class="label">Velocidad <span class="rateLabel">${Number(ch.rate||1).toFixed(2)}×</span></div><input class="rate" type="range" min=".65" max="1.35" step=".05" value="${ch.rate||1}">
            <div class="label">Tono <span class="pitchLabel">${Number(ch.pitch||1).toFixed(2)}</span></div><input class="pitch" type="range" min=".65" max="1.35" step=".05" value="${ch.pitch||1}">
+            ${isNarratorName(name)?"":DV6_VOICE_PRESETS_HTML}
          </div>
        </div></details>`;
      const saveVoice=()=>{charLib[k]={...charLib[k],name:charLib[k]?.name||displayName(name),voiceURI:c.querySelector('.voice').value,rate:Number(c.querySelector('.rate').value),pitch:Number(c.querySelector('.pitch').value),testPhrase:c.querySelector('.testPhrase').value};saveLib()};
@@ -2762,6 +2806,7 @@ function renderCast(){
      c.querySelector('.rate').oninput=e=>{c.querySelector('.rateLabel').textContent=Number(e.target.value).toFixed(2)+'×';saveVoice()};
      c.querySelector('.pitch').oninput=e=>{c.querySelector('.pitchLabel').textContent=Number(e.target.value).toFixed(2);saveVoice()};
      c.querySelector('.test').onclick=()=>{saveVoice();previewVoice(name,c.querySelector('.testPhrase').value,c.querySelector('.voice-test-status'))};
+      if(!isNarratorName(name))dv6WirePresets10109(c,'.rate','.pitch','.test');
      refreshCharacterPhotoCard(c,k,name);
    }
    const det=c.querySelector('details.char-collapse');det.addEventListener('toggle',()=>{if(det.open){openCastCharacter=k;root.querySelectorAll('details.char-collapse').forEach(o=>{if(o!==det)o.open=false})}else if(openCastCharacter===k)openCastCharacter=''});
@@ -2924,6 +2969,7 @@ async function renderLibrary(){
              <div class="voice-test-status"></div>
              <div class="label">Velocidad <span class="libRateLabel">${Number(ch.rate||1).toFixed(2)}×</span></div><input class="libRate" type="range" min=".65" max="1.35" step=".05" value="${ch.rate||1}">
              <div class="label">Tono <span class="libPitchLabel">${Number(ch.pitch||1).toFixed(2)}</span></div><input class="libPitch" type="range" min=".65" max="1.35" step=".05" value="${ch.pitch||1}">
+              ${isNarratorName(ch.name)?"":DV6_VOICE_PRESETS_HTML}
            </div>
            <div class="character-pron-box">
              <div class="character-pron-head"><div class="character-description-title" style="margin:0">PRONUNCIACIÓN</div><button class="help-dot" data-help="Estas reglas se aplican solo cuando habla este personaje. Por ejemplo: Joder → Fuck." aria-label="Ayuda pronunciación del personaje">?</button></div>
@@ -2944,6 +2990,7 @@ async function renderLibrary(){
    c.querySelector('.libRate').oninput=e=>{c.querySelector('.libRateLabel').textContent=Number(e.target.value).toFixed(2)+'×';saveMeta()};
    c.querySelector('.libPitch').oninput=e=>{c.querySelector('.libPitchLabel').textContent=Number(e.target.value).toFixed(2);saveMeta()};
    c.querySelector('.libTest').onclick=()=>{saveMeta();previewVoice(ch.name,c.querySelector('.libTestPhrase').value,c.querySelector('.voice-test-status'))};
+    if(!isNarratorName(ch.name))dv6WirePresets10109(c,'.libRate','.libPitch','.libTest');
 
    await refreshCharacterPhotoCard(c,k,ch.name);
    c.querySelectorAll('.reaction-file').forEach(inp=>inp.onchange=async e=>{const file=e.target.files&&e.target.files[0];if(!file)return;await saveCharacterPhoto(k,file,inp.dataset.slot||'neutral');await renderLibrary();renderCast();updatePlayerPortrait()});
@@ -4172,7 +4219,7 @@ if(dv6InstallBtn)dv6InstallBtn.addEventListener('click',async()=>{
 dv6RefreshInstallUi();
 
 // v44 — actualizaciones inteligentes de la PWA
-const DV6_APP_VERSION=10108;
+const DV6_APP_VERSION=10109;
 const DV6_VERSION_URL='./version.json';
 let dv6UpdateInfo=null;
 let dv6UpdateRegistration=null;
