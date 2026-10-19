@@ -1,15 +1,16 @@
 {
-  "version": 10111,
+  "version": 10112,
   "displayVersion": "1.1.1",
-  "build": "2026.10.19-10111",
+  "build": "2026.10.19-10112",
   "date": "19 oct 2026",
-  "title": "Ficha de personajes y voces por género",
+  "title": "Correcciones web pendientes",
   "updateRequired": false,
   "changes": [
-    "Prompt de personaje: nombre completo, género gramatical, edad, estatura, residencia y descripción visual.",
-    "No confunde religión ni residencia con nacionalidad. No inventa acento ni timbre de voz.",
-    "Revisa prompts ya guardados y completa solo campos que faltan sin cambiar valores manuales.",
-    "Filtra voces femeninas y masculinas, separa las no clasificadas y conserva siempre la selección previa.",
-    "Actualización web sin APK ni modificaciones de audio y biblioteca."
+    "Pronunciaciones generales con ▶ / ■ individual y prueba antes de Agregar.",
+    "Narrador compacto por defecto y con tarjeta morada.",
+    "Botón SALIR movido más abajo fuera de barra superior Android.",
+    "Perfiles de mezcla Diálogos, Cine y Nocturno con controles reales.",
+    "PEGAR reintenta API nativa y web; si Android bloquea portapapeles ofrece opción manual.",
+    "No modifica APK, firma, voces, sonido ni biblioteca."
   ]
 }

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>DramaVoice 6 v1.1.1</title>
-<meta name="dv6-version" content="10111">
+<meta name="dv6-version" content="10112">
 
 <meta name="theme-color" content="#07090d">
 <meta name="application-name" content="DramaVoice 6">
@@ -649,6 +649,27 @@ details.scene-details summary{cursor:pointer;color:#c9d4e5;font-weight:800;font-
 .dv6-voice-gender-10110 select{flex:1;min-width:146px;padding:11px;border-radius:11px;border:1px solid #425164;background:#0d1725;color:#f5f8fc;font:inherit;font-size:14px}
 .dv6-voice-gender-10110 small{width:100%;color:#afc0ce;font-size:12px;line-height:1.45}
 </style>
+
+<style id="dv6-10112-web-style">
+.dv111-narrator-card{border-color:#9364de!important;background:linear-gradient(145deg,#1e1836,#09131d)!important}
+.dv111-narrator-card .char-summary-name{color:#d0b5ff}
+.dv6-player-exit-zone{display:flex;padding:64px 16px 9px;justify-content:flex-start;position:relative;z-index:6}
+#playerBackBtn{min-height:55px;min-width:116px;touch-action:manipulation;position:relative;z-index:8}
+.global-pron-head,.global-pron-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 42px 36px!important;gap:5px}
+.global-pron-row input{min-width:0;padding:8px 5px;font-size:12px}
+.global-pron-row button{width:100%!important;min-height:42px;height:42px!important;font-size:17px}
+.global-pron-add{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px!important;gap:6px}
+#previewNewPron{grid-column:auto!important;min-height:46px;width:44px;padding:0}
+#addPronRule{grid-column:1/-1;min-height:46px}
+#pronTestStatus{min-height:20px;margin:9px 0;font-size:12px}
+#pasteFallback{padding:12px;border:1px solid #4e8e98;border-radius:14px;background:#0a222a;margin:12px 0}
+#pasteFallback[hidden]{display:none!important}
+#pasteFallback textarea{box-sizing:border-box;width:100%;min-height:116px}
+#pasteFallback p{font-size:13px;line-height:1.45;color:#d1e0e7}
+.dv6-fallback-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.dv6-mix-presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:16px 0 10px}
+.dv6-mix-presets button{font:inherit;font-size:13px;padding:9px 5px;min-height:48px;border:1px solid #357e77;color:#d7fff5;border-radius:12px;background:#0a302c}
+</style>
 </head>
 <body>
 <div class="app">
@@ -735,6 +756,16 @@ Todavía tengo trabajo pendiente.
 [FIN CAPITULO]</textarea>
       <div class="history-counter" id="historyCounter">0 palabras · 0 caracteres</div>
       <div id="analyzeStatus" class="history-inline-status"></div>
+
+<div id="pasteFallback" hidden>
+  <p>Android no permitió leer el portapapeles automáticamente. Mantén pulsado en el cuadro y elige Pegar. No se borrará tu historia hasta pulsar Usar texto.</p>
+  <textarea id="pasteFallbackEditor" placeholder="Pega aquí el texto desde Android"></textarea>
+  <div class="dv6-fallback-actions">
+    <button type="button" class="btn small aqua" id="applyManualPaste">Usar texto pegado</button>
+    <button type="button" class="btn small" id="cancelManualPaste">Cancelar</button>
+  </div>
+</div>
+
 
       <div class="history-actionbar">
         <button class="btn aqua" id="pasteBtn">Pegar</button>
@@ -825,10 +856,10 @@ Todavía tengo trabajo pendiente.
   <section class="section" id="reproductor">
     <div class="card player">
       <div class="player-topbar">
-        <button class="btn small" id="playerBackBtn">← Salir</button>
         <div class="player-topbar-title">REPRODUCTOR · DRAMAVOICE 6</div>
         <span id="wakeLockBadge">PANTALLA</span>
       </div>
+      <div class="dv6-player-exit-zone"><button class="btn small" id="playerBackBtn">← Salir</button></div>
       <div class="player-stage">
         <div class="portrait" id="playerPortrait">
           <img id="playerPortraitImg" alt="Visual de la escena" style="display:none">
@@ -912,7 +943,13 @@ Todavía tengo trabajo pendiente.
         <div class="mix-control"><span>SFX</span><input id="sfxVolume" type="range" min="0" max="1" step="0.05" value="0.72"><span class="mix-value" id="sfxVolumeLabel">72%</span></div>
         <div class="mix-control"><span>Ambiente al hablar</span><input id="duckingLevel" type="range" min="0.10" max="1" step="0.05" value="0.45"><span class="mix-value" id="duckingLevelLabel">45%</span></div>
         <div class="mix-control"><span>Fade ambiente</span><input id="ambientFadeMs" type="range" min="0" max="3000" step="250" value="750"><span class="mix-value" id="ambientFadeMsLabel">0.75 s</span></div>
-        <button class="btn aqua" id="testMixBtn">Probar mezcla</button>
+
+<div class="dv6-mix-presets" role="group" aria-label="Perfiles de mezcla">
+  <button type="button" data-dv6-mix="dialogos">Diálogos</button>
+  <button type="button" data-dv6-mix="cine">Cine</button>
+  <button type="button" data-dv6-mix="noche">Nocturno</button>
+</div><div class="status" id="dv6MixStatus10112" aria-live="polite"></div>
+<button class="btn aqua" id="testMixBtn">Probar mezcla</button>
         <div id="mixStatus" class="status"></div>
       </div>
     </div>
@@ -924,11 +961,13 @@ Todavía tengo trabajo pendiente.
           <h2>Pronunciaciones generales</h2>
           <button class="help-dot" data-help="Estas reglas afectan a todos los actores. Las correcciones que pertenecen a un solo personaje se registran dentro de su ficha en PERSONAJES." aria-label="Ayuda pronunciaciones">?</button>
         </div>
-        <div class="global-pron-head"><span>SE ESCRIBE</span><span>SE PRONUNCIA</span><span></span></div>
+        <div class="global-pron-head"><span>SE ESCRIBE</span><span>SE PRONUNCIA</span><span>PROBAR</span><span></span></div>
         <div id="pronRulesList"></div>
+        <div id="pronTestStatus" class="status" aria-live="polite"></div>
         <div class="global-pron-add">
           <input id="pronFrom" placeholder="Se escribe">
           <input id="pronTo" placeholder="Se pronuncia">
+          <button type="button" class="btn small aqua" id="previewNewPron" aria-label="Probar pronunciación nueva">▶</button>
           <button class="btn small aqua" id="addPronRule">Agregar</button>
         </div>
       </div>
@@ -950,7 +989,7 @@ Todavía tengo trabajo pendiente.
         <div class="dv6-version-line">
           <span class="dv6-version-current">Versión instalada: v1.1.1</span>
           <button class="btn small" id="checkUpdatesBtn">Buscar actualización</button>
-        </div>        
+        </div>
         <div class="reset-box">
           <button class="btn danger" id="resetCharactersPlacesBtn">Restablecer personajes y datos antiguos de lugares</button>
           <div class="prompt-status" style="margin-top:7px">Conserva sonidos, pronunciaciones generales, prompt general, mezcla e historia actual.</div>
@@ -3936,21 +3975,82 @@ $('#categoryTypeSelect').onchange=updateTaxonomyControls;
 $('#addCategoryBtn').onclick=()=>{const type=$('#categoryTypeSelect').value,family=$('#categoryFamilySelect').value,category=upperClosed($('#newCategoryName').value);if(!family||!category)return;ensureCategory(type,family,category);$('#newCategoryName').value='';renderSounds();$('#soundStatus').textContent=`Categoría ${category} creada dentro de ${family}.`;$('#soundStatus').className='status good'};
 $$('.soundFilter').forEach(btn=>btn.onclick=()=>{soundTypeFilter=btn.dataset.soundType;$$('.soundFilter').forEach(x=>x.classList.toggle('active',x===btn));renderSounds()});
 
-function renderPronRules(){
- const root=$('#pronRulesList');if(!root)return;root.innerHTML='';
- const globals=(pronRules||[]).filter(r=>!r.scope||r.scope==='*');
- globals.forEach(r=>{
-   const realIndex=pronRules.indexOf(r);
-   const row=document.createElement('div');row.className='global-pron-row';
-   row.innerHTML=`<input class="rFrom" value="${esc(r.from||'')}" placeholder="Se escribe"><input class="rTo" value="${esc(r.to||'')}" placeholder="Se pronuncia"><button class="btn small danger rDelete" title="Eliminar">×</button>`;
-   const save=()=>{r.from=row.querySelector('.rFrom').value;r.to=row.querySelector('.rTo').value;r.scope='*';localStorage.setItem(PRON_KEY,JSON.stringify(pronRules))};
-   row.querySelector('.rFrom').oninput=save;row.querySelector('.rTo').oninput=save;
-   row.querySelector('.rDelete').onclick=()=>{pronRules.splice(realIndex,1);localStorage.setItem(PRON_KEY,JSON.stringify(pronRules));renderPronRules()};
-   root.appendChild(row);
- });
- if(!globals.length)root.innerHTML='<div class="prompt-status" style="margin:8px 0">Sin reglas generales.</div>';
+
+let dv6PronActive10112=null;
+function dv6PronNote10112(msg,kind=''){
+  const st=$('#pronTestStatus');if(st){st.textContent=msg;st.className='status '+kind}
 }
-$('#addPronRule').onclick=()=>{const from=$('#pronFrom').value.trim(),to=$('#pronTo').value.trim();if(!from||!to)return;pronRules.push({from,to,scope:'*'});localStorage.setItem(PRON_KEY,JSON.stringify(pronRules));$('#pronFrom').value='';$('#pronTo').value='';renderPronRules()};
+function dv6StopPron10112(){
+  const active=dv6PronActive10112;
+  if(!active)return false;
+  dv6PronActive10112=null;++dv6PreviewToken;
+  try{speechSynthesis.cancel()}catch(e){}
+  previewing=false;
+  active.button.textContent='▶';
+  active.button.setAttribute('aria-label','Probar pronunciación');
+  dv6PronNote10112('Prueba detenida.','good');
+  return true;
+}
+function dv6PlayPron10112(btn,phrase){
+  const text=String(phrase||'').trim();
+  if(dv6PronActive10112?.button===btn){dv6StopPron10112();return}
+  if(!text){dv6PronNote10112('Escribe cómo debe pronunciarse.','warn');return}
+  if(playing||paused){dv6PronNote10112('Detén el reproductor antes de probar.','warn');return}
+  if(typeof SpeechSynthesisUtterance==='undefined'||!('speechSynthesis' in window)){
+    dv6PronNote10112('Motor TTS no disponible.','warn');return
+  }
+  dv6StopPron10112();
+  try{speechSynthesis.cancel()}catch(e){}
+  const token=++dv6PreviewToken;
+  const u=new SpeechSynthesisUtterance(text);
+  configureUtterance(u,'NARRADOR');
+  if(!u.voice){const fallback=preferredPreviewVoice('NARRADOR');if(fallback)u.voice=fallback}
+  previewing=true;
+  dv6PronActive10112={token,button:btn};
+  btn.textContent='■';btn.setAttribute('aria-label','Detener pronunciación');
+  dv6PronNote10112('Preparando: '+text,'warn');
+  const end=(message,kind)=>{
+    if(dv6PronActive10112?.token!==token)return;
+    dv6PronActive10112=null;previewing=false;
+    btn.textContent='▶';btn.setAttribute('aria-label','Probar pronunciación');
+    dv6PronNote10112(message,kind);
+  };
+  u.onstart=()=>{if(dv6PronActive10112?.token===token)dv6PronNote10112('Reproduciendo: '+text,'good')};
+  u.onend=()=>end('Prueba terminada.','good');
+  u.onerror=x=>end('Falló la voz: '+(x?.error||'error de reproducción'),'warn');
+  setTimeout(()=>{
+    if(dv6PronActive10112?.token!==token)return;
+    try{speechSynthesis.speak(u)}catch(e){end('No se pudo reproducir la prueba.','warn')}
+  },90);
+}
+function renderPronRules(){
+  dv6StopPron10112();
+  const root=$('#pronRulesList');if(!root)return;root.innerHTML='';
+  const globals=(pronRules||[]).filter(r=>!r.scope||r.scope==='*');
+  globals.forEach(r=>{
+    const realIndex=pronRules.indexOf(r);
+    const row=document.createElement('div');row.className='global-pron-row';
+    row.innerHTML='<input class="rFrom" value="'+esc(r.from||'')+'" placeholder="Se escribe">'+
+      '<input class="rTo" value="'+esc(r.to||'')+'" placeholder="Se pronuncia">'+
+      '<button type="button" class="btn small aqua rPlay" aria-label="Probar pronunciación">▶</button>'+
+      '<button type="button" class="btn small danger rDelete" title="Eliminar">×</button>';
+    const save=()=>{r.from=row.querySelector('.rFrom').value;r.to=row.querySelector('.rTo').value;r.scope='*';localStorage.setItem(PRON_KEY,JSON.stringify(pronRules))};
+    row.querySelector('.rFrom').oninput=save;row.querySelector('.rTo').oninput=save;
+    row.querySelector('.rPlay').onclick=()=>{save();dv6PlayPron10112(row.querySelector('.rPlay'),row.querySelector('.rTo').value)};
+    row.querySelector('.rDelete').onclick=()=>{dv6StopPron10112();pronRules.splice(realIndex,1);localStorage.setItem(PRON_KEY,JSON.stringify(pronRules));renderPronRules()};
+    root.appendChild(row);
+  });
+  if(!globals.length)root.innerHTML='<div class="prompt-status" style="margin:8px 0">Sin reglas generales.</div>';
+}
+$('#previewNewPron').onclick=()=>dv6PlayPron10112($('#previewNewPron'),$('#pronTo').value);
+$('#addPronRule').onclick=()=>{
+  const from=$('#pronFrom').value.trim(),to=$('#pronTo').value.trim();
+  if(!from||!to){dv6PronNote10112('Completa los dos campos.','warn');return}
+  dv6StopPron10112();pronRules.push({from,to,scope:'*'});
+  localStorage.setItem(PRON_KEY,JSON.stringify(pronRules));
+  $('#pronFrom').value='';$('#pronTo').value='';renderPronRules();
+  dv6PronNote10112('Pronunciación guardada.','good');
+};
 
 async function importStoryDocument(file){
  const name=file.name.toLowerCase();if(name.endsWith('.txt'))return await file.text();if(name.endsWith('.docx')){if(typeof JSZip==='undefined')throw new Error('JSZip no disponible');const zip=await JSZip.loadAsync(file);const f=zip.file('word/document.xml');if(!f)throw new Error('DOCX sin document.xml');const xml=await f.async('string');const doc=new DOMParser().parseFromString(xml,'application/xml');const ps=[...doc.getElementsByTagNameNS('*','p')];return ps.map(p=>[...p.getElementsByTagNameNS('*','t')].map(t=>t.textContent).join('')).join('\n')}throw new Error('Formato no compatible');
@@ -4292,24 +4392,51 @@ async function testAudioMix(){
 }
 $('#testMixBtn').onclick=testAudioMix;
 
-$('#pasteBtn').onclick=async()=>{
- let text='';
- try{
-   const native=window.DramaVoiceNativeTTS;
-   if(native?.hideKeyboard)native.hideKeyboard();
-   if(native?.getClipboardText)text=String(native.getClipboardText()||'');
- }catch{}
- if(!text){try{if(navigator.clipboard?.readText)text=await navigator.clipboard.readText()}catch{}}
- const story=$('#story');story.blur();
- if(text){
-   story.value=text;localStorage.setItem(STORY_KEY,text);updateHistoryCaptureUI(text,false);
-   $('#analyzeStatus').textContent='Texto pegado. Listo para analizar.';
-   $('#analyzeStatus').className='history-inline-status good';
- }else{
-   $('#analyzeStatus').textContent='No encontré texto disponible en el portapapeles.';
-   $('#analyzeStatus').className='history-inline-status warn';
- }
+const DV6_MIX_10112={
+  dialogos:{masterVolume:1,voiceVolume:1,ambientVolume:.2,sfxVolume:.4,duckingLevel:.15,ambientFadeMs:1250},
+  cine:{masterVolume:1,voiceVolume:1,ambientVolume:.55,sfxVolume:.75,duckingLevel:.45,ambientFadeMs:1000},
+  noche:{masterVolume:.65,voiceVolume:1,ambientVolume:.15,sfxVolume:.3,duckingLevel:.2,ambientFadeMs:1500}
 };
+document.querySelectorAll('[data-dv6-mix]').forEach(btn=>btn.addEventListener('click',()=>{
+  const data=DV6_MIX_10112[btn.dataset.dv6Mix];if(!data)return;
+  Object.entries(data).forEach(([key,value])=>{const slider=document.getElementById(key);if(slider)slider.value=value});
+  saveSettings();document.getElementById('dv6MixStatus10112').textContent='Perfil '+btn.textContent+' aplicado. Puedes ajustar cada barra.';
+}));
+
+
+
+function dv6SavePaste10112(text){
+  const box=$('#story');box.value=String(text);
+  localStorage.setItem(STORY_KEY,box.value);updateHistoryCaptureUI(box.value,false);
+  $('#analyzeStatus').textContent='Texto pegado. Listo para analizar.';
+  $('#analyzeStatus').className='history-inline-status good';
+  $('#pasteFallback').hidden=true;box.blur();
+}
+$('#applyManualPaste').onclick=()=>{
+  const text=$('#pasteFallbackEditor').value;
+  if(!text.trim()){$('#analyzeStatus').textContent='Pega primero el texto en el cuadro manual.';return}
+  dv6SavePaste10112(text);$('#pasteFallbackEditor').value='';
+};
+$('#cancelManualPaste').onclick=()=>{$('#pasteFallback').hidden=true;$('#pasteFallbackEditor').blur()};
+$('#pasteBtn').onclick=async()=>{
+  let text='';
+  const native=window.DramaVoiceNativeTTS;
+  try{if(typeof native?.getClipboardText==='function')text=String(native.getClipboardText()||'')}catch(e){}
+  if(!text){try{if(navigator.clipboard?.readText)text=String(await navigator.clipboard.readText()||'')}catch(e){}}
+  if(!text){try{
+    if(navigator.clipboard?.read){
+      for(const item of await navigator.clipboard.read()){
+        if(item.types?.includes('text/plain')){text=await (await item.getType('text/plain')).text();if(text)break}
+      }
+    }
+  }catch(e){}}
+  $('#story').blur();try{native?.hideKeyboard?.()}catch(e){}
+  if(text){dv6SavePaste10112(text);return}
+  $('#pasteFallback').hidden=false;
+  $('#analyzeStatus').textContent='Este APK no autorizó pegar automáticamente. Se abrió una opción manual.';
+  $('#analyzeStatus').className='history-inline-status warn';
+};
+
 $('#story').addEventListener('input',()=>updateHistoryCaptureUI($('#story').value,false));
 $('#copyGeneralPromptBtn').onclick=async()=>{const ok=await copyTextSmart(activeGeneralImagePrompt());const st=$('#characterPromptStatus');st.textContent=ok?'✓ Prompt general copiado.':'No se pudo copiar automáticamente.';st.className='status '+(ok?'good':'warn');setTimeout(()=>{st.textContent=''},1600)};
 function openGeneralPromptEditor(){
@@ -4367,7 +4494,7 @@ if(dv6InstallBtn)dv6InstallBtn.addEventListener('click',async()=>{
 dv6RefreshInstallUi();
 
 // v44 — actualizaciones inteligentes de la PWA
-const DV6_APP_VERSION=10111;
+const DV6_APP_VERSION=10112;
 const DV6_VERSION_URL='./version.json';
 let dv6UpdateInfo=null;
 let dv6UpdateRegistration=null;
@@ -7018,7 +7145,7 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
     if(!card){
       card=document.createElement('div');
       card.className='card dv111-narrator-card';
-      card.innerHTML=`<details class="char-collapse" data-key="${esc(narratorKey())}" open>
+      card.innerHTML=`<details class="char-collapse" data-key="${esc(narratorKey())}">
         <summary class="char-summary">
           <div class="char-summary-photo dv111-narrator-summary-photo"><img style="display:none" alt="Narrador"><div class="avatarFallback">N</div></div>
           <div><div class="char-summary-name name-upper">NARRADOR</div><div class="char-summary-meta" id="dv111NarratorSummaryVoice">${esc(narratorVoiceDisplay())}</div></div>
